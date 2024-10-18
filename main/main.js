@@ -67,3 +67,22 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// Export scene to JSON and download it.
+function exportScene() {
+    scene.updateMatrixWorld();
+    var result=scene.toJSON();
+    var jsonStr =JSON.stringify(result);
+
+    // Create a downloadable link for the exported scene
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'tsam.three.js.scene.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Add event listener to the button to trigger exportScene on click
+document.getElementById('downloadBtn').addEventListener('click', exportScene);
