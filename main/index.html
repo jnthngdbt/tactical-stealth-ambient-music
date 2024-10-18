@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+		</style>
+
+    <!-- Import map for module imports -->
+    <!-- See https://threejs.org/docs/index.html#manual/en/introduction/Installation -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@v0.149.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.149.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec3 vPosition;
+      void main() {
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        varying vec3 vPosition;
+        void main() {
+            gl_FragColor = vec4(abs(vPosition), 1.0);
+        }
+    </script>
+
+	</head>
+	<body>
+		<script type="module" src="/main.js"></script>
+	</body>
+</html>
