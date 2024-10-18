@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as shader from '/shader.js';
 
         // Create scene, camera, and renderer
         const scene = new THREE.Scene();
@@ -15,15 +16,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         controls.screenSpacePanning = false;
         controls.maxPolarAngle = Math.PI;
 
-        // Custom Shader Material
+        // Custom Shader Material using external shaders
         const shaderMaterial = new THREE.ShaderMaterial({
-            vertexShader: document.getElementById('vertexShader').textContent,
-            fragmentShader: document.getElementById('fragmentShader').textContent,
+          vertexShader: shader.vertexShader,
+          fragmentShader: shader.fragmentShader,
         });
 
         // Create plane
         const planeGeometry = new THREE.PlaneGeometry(50, 50);
-        const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x555555, side: THREE.DoubleSide });
+        const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x555555, side: THREE.DoubleSide, opacity: 0.2, transparent: true, depthWrite: false });
         const plane = new THREE.Mesh(planeGeometry, planeMaterial);
         plane.rotation.x = -Math.PI / 2;
         scene.add(plane);
