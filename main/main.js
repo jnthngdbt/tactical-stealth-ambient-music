@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import * as shader from '/shader.js';
+import * as shader from './shader.js';
 
 // Create scene, camera, and renderer
 const scene = new THREE.Scene();
