@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Vite Debugging",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",  // Vite's default port
+      "webRoot": "${workspaceFolder}",  // Adjust this to your project's source directory
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
