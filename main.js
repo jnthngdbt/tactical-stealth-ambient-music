@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import * as CONST from './constants.js';
-import * as OBJECTS from './objects.js';
-import * as MATERIAL from './material.js';
+import * as CONST from './app/constants.js';
+import * as OBJECTS from './app/objects.js';
+import * as MATERIAL from './app/material.js';
 
 // Create scene and renderer
 const scene = new THREE.Scene();
