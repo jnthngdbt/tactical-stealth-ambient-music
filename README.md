@@ -1,9 +1,11 @@
 # TSAM
 
+Visuals generator for [@TacticalStealthAmbientMusic](https://www.youtube.com/@TacticalStealthAmbientMusic).
+
 # Installation
 
 - Install [Node.js](https://nodejs.org/)
-- Install THREE.js and [Vite](https://vitejs.dev/) (build tool for development) using `npm`
+- Install [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/) (build tool for development) using `npm`
   ```
   # three.js
   npm install --save three
@@ -14,10 +16,11 @@
 
 # Run
 
-- Run locally
+- Build and run a local server
   ```
   npx vite
   ```
+- Launch with vscode using F5 (opens browser and debugging is enabled)
 
 # Deploy
 
