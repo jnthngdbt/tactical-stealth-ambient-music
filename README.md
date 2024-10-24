@@ -21,7 +21,7 @@
 
 # Deploy
 
-- Build into _dist/_ folder
+- Build into _docs/_ folder (using _docs/_ instead of default _dist/_ to make it work more easily with Github Pages)
   ```
-  npx vite build
+  npx vite build --outDir docs
   ```
