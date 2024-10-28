@@ -27,13 +27,16 @@ controls.update();
 
 // Create map layout
 scene.add(OBJECTS.floor({ size: [100, 100] }));
-scene.add(OBJECTS.room({ position: [0 ,  0], size: [16, 20] }));
-scene.add(OBJECTS.room({ position: [16,  0], size: [16, 20] }));
-scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], name: 'room' }));
+scene.add(OBJECTS.room({ position: [0 ,  0], size: [16, 20], name: 'active-1' }));
+scene.children[scene.children.length - 1].rotateY(Math.PI);
+scene.add(OBJECTS.room({ position: [16,  0], size: [16, 20], name: 'active-2' }));
+scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], name: 'highlight' }));
 scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], level: 1 }));
 scene.add(OBJECTS.room({ position: [16 , 20], size: [16, 20], level: 1 }));
 
-scene.getObjectByName('room').material = MATERIAL.highlight;
+scene.getObjectByName('highlight').material = MATERIAL.highlight;
+scene.getObjectByName('active-1').material = MATERIAL.active;
+scene.getObjectByName('active-2').material = MATERIAL.active;
 
 // Render loop
 function animate() {

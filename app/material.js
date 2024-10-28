@@ -6,7 +6,15 @@ export const base = new THREE.ShaderMaterial({
     depthWrite: false,
     side: THREE.DoubleSide,
     vertexShader: vertexShader(),
-    fragmentShader: fragmentShader(1, 1, 1, 0.1),
+    fragmentShader: fragmentShaderGray(0.5, 0.1),
+});
+
+export const active = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    vertexShader: vertexShader(),
+    fragmentShader: fragmentShaderGray(0.5, 0.35),
 });
 
 export const highlight = new THREE.ShaderMaterial({
@@ -14,8 +22,12 @@ export const highlight = new THREE.ShaderMaterial({
     depthWrite: false,
     side: THREE.DoubleSide,
     vertexShader: vertexShader(),
-    fragmentShader: fragmentShader(1.0, 0.5, 1.0, 0.5),
+    fragmentShader: fragmentShader(1.0, 0.5, 1.0, 0.25),
 });
+
+function fragmentShaderGray(gray, a) {
+    return fragmentShader(gray, gray, gray, a);
+}
 
 function fragmentShader(r, g, b, a) {
     return `
@@ -32,7 +44,7 @@ function fragmentShader(r, g, b, a) {
             float dotProduct = abs(dot(normal, viewDir));
 
             // Set the alpha based on how aligned the normal is with the view direction
-            float alpha = ${0.82 * a} * smoothstep(0.0, 1.0, dotProduct); // Adjust the range as needed
+            float alpha = ${0.85 * a} * smoothstep(0.0, 1.0, dotProduct); // Adjust the range as needed
             
             // Set the final color, for simplicity we'll use white
             gl_FragColor = vec4(${r}, ${g}, ${b}, ${a} - alpha); // Use alpha for transparency
