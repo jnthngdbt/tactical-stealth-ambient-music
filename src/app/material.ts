@@ -25,11 +25,11 @@ export const highlight = new THREE.ShaderMaterial({
     fragmentShader: fragmentShader(1.0, 0.5, 1.0, 0.25),
 });
 
-function fragmentShaderGray(gray, a) {
+function fragmentShaderGray(gray: number, a: number) {
     return fragmentShader(gray, gray, gray, a);
 }
 
-function fragmentShader(r, g, b, a) {
+function fragmentShader(r: number, g: number, b: number, a: number) {
     return `
         // XRAY
         varying vec3 vNormal;
@@ -52,7 +52,7 @@ function fragmentShader(r, g, b, a) {
         `;
 }
 
-function vertexShader(shear = 0.0) {
+function vertexShader(shear: number = 0.0) {
     return `
         // XRAY
         varying vec3 vNormal;

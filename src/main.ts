@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import * as CONST from './app/constants.js';
-import * as OBJECTS from './app/objects.js';
-import * as MATERIAL from './app/material.js';
+import * as OBJECTS from './app/objects.ts';
+import * as MATERIAL from './app/material.ts';
 
 // Create scene and renderer
 const scene = new THREE.Scene();
@@ -26,17 +25,17 @@ controls.maxPolarAngle = Math.PI;
 controls.update();
 
 // Create map layout
-scene.add(OBJECTS.floor({ size: [100, 100] }));
-scene.add(OBJECTS.room({ position: [0 ,  0], size: [16, 20], name: 'active-1' }));
+scene.add(OBJECTS.floor({size: [100, 100]}));
+scene.add(OBJECTS.room({position: [0 , 0], size: [16, 20], name: 'active-1' }));
 scene.children[scene.children.length - 1].rotateY(Math.PI);
 scene.add(OBJECTS.room({ position: [16,  0], size: [16, 20], name: 'active-2' }));
 scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], name: 'highlight' }));
 scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], level: 1 }));
 scene.add(OBJECTS.room({ position: [16 , 20], size: [16, 20], level: 1 }));
 
-scene.getObjectByName('highlight').material = MATERIAL.highlight;
-scene.getObjectByName('active-1').material = MATERIAL.active;
-scene.getObjectByName('active-2').material = MATERIAL.active;
+// scene.getObjectByName('highlight').material = MATERIAL.highlight;
+// scene.getObjectByName('active-1').material = MATERIAL.active;
+// scene.getObjectByName('active-2').material = MATERIAL.active;
 
 // Render loop
 function animate() {
@@ -72,4 +71,4 @@ function exportScene() {
 }
 
 // Add event listener to the button to trigger exportScene on click
-document.getElementById('downloadBtn').addEventListener('click', exportScene);
+document.getElementById('downloadBtn')?.addEventListener('click', exportScene);

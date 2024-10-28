@@ -1,11 +1,14 @@
-import * as CONST from './constants.js';
-import * as MATERIAL from './material.js';
+import * as CONST from './constants.ts';
+import * as MATERIAL from './material.ts';
 import * as THREE from 'three';
 import { CSG } from 'three-csg-ts';
 
-'use strict';
+interface FloorOptions {
+  size: [number, number];
+  position?: [number, number];
+}
 
-export function floor({ size }) {
+export function floor({size, position = [0, 0]}: FloorOptions) {
   const [width, depth] = size;
   const planeGeometry = new THREE.PlaneGeometry(width, depth);
   const planeMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide, opacity: CONST.FLOOR_OPACITY, transparent: true, depthWrite: false });
@@ -16,7 +19,15 @@ export function floor({ size }) {
   return plane;
 }
 
-export function room({ position, size, level = 0, height = CONST.CEILING_HEIGHT, name = '' }) {
+interface RoomOptions {
+  size: [number, number];
+  position?: [number, number];
+  name?: string;
+  level?: number;
+  height?: number;
+}
+
+export function room({size, position = [0, 0], name = '', level = 0, height = CONST.CEILING_HEIGHT}: RoomOptions ) {
   const [x, z] = position;
   const [width, depth] = size;
   const y = level * CONST.LEVEL_HEIGHT + height / 2; // put room floor at floor level
@@ -36,7 +47,6 @@ export function room({ position, size, level = 0, height = CONST.CEILING_HEIGHT,
   door.updateMatrix();
 
   const roomdoor = CSG.subtract(room, door);
-
 
   roomdoor.name = name;
 
