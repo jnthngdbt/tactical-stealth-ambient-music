@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Terrain } from './objects/floor.ts';
+import { Terrain } from './objects/terrain.ts';
 import { Room } from './objects/room.ts';
 
 export class Layout {
@@ -9,7 +9,7 @@ export class Layout {
     this.scene = scene;
   }
 
-  public addFloor({ size } : { size: [number, number ] }) {
+  public addTerrain({ size } : { size: [number, number ] }) {
     const floor = new Terrain({ size});
     this.scene.add(floor);
   }

@@ -4,12 +4,13 @@ import { App } from './app.ts';
 import { Layout } from './layout.ts';
 import * as MATERIAL from './material.ts';
 
+// App running the show.
 const app = new App({});
 app.animate();
 
-// Map layout
+// Map layout.
 var layout = new Layout(app.scene);
-layout.addFloor({ size: [100, 100] });
+layout.addTerrain({ size: [100, 100] });
 layout.addRoom({ position: [0 , 0], size: [16, 20] });
 layout.addRoom({ position: [16,  0], size: [16, 20] });
 layout.addRoom({ position: [0 , 20], size: [16, 20] });
