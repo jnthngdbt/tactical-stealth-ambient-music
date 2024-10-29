@@ -1,4 +1,13 @@
 import * as THREE from 'three';
+import * as CONST from './constants.ts';
+
+export const terrain = new THREE.MeshBasicMaterial({ 
+    color: CONST.TERRAIN_COLOR, 
+    opacity: CONST.TERRAIN_OPACITY, 
+    side: THREE.DoubleSide,
+    transparent: true, 
+    depthWrite: false,
+});
 
 // Default material.
 export const base = new THREE.ShaderMaterial({

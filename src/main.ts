@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import * as OBJECTS from './app/objects.ts';
-import * as MATERIAL from './app/material.ts';
+import * as MATERIAL from './material.ts';
+import { Layout } from './layout.ts';
 
 // Create scene and renderer
 const scene = new THREE.Scene();
@@ -24,26 +24,24 @@ controls.screenSpacePanning = false;
 controls.maxPolarAngle = Math.PI;
 controls.update();
 
-// Create map layout
-scene.add(OBJECTS.floor({size: [100, 100]}));
-scene.add(OBJECTS.room({position: [0 , 0], size: [16, 20], name: 'active-1' }));
-scene.children[scene.children.length - 1].rotateY(Math.PI);
-scene.add(OBJECTS.room({ position: [16,  0], size: [16, 20], name: 'active-2' }));
-scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], name: 'highlight' }));
-scene.add(OBJECTS.room({ position: [0 , 20], size: [16, 20], level: 1 }));
-scene.add(OBJECTS.room({ position: [16 , 20], size: [16, 20], level: 1 }));
+// Map layout
+var layout = new Layout(scene);
+layout.addFloor({ size: [100, 100] });
+layout.addRoom({ position: [0 , 0], size: [16, 20] });
+layout.addRoom({ position: [16,  0], size: [16, 20] });
+layout.addRoom({ position: [0 , 20], size: [16, 20] });
+layout.addRoom({ position: [0 , 20], size: [16, 20], level: 1 });
+layout.addRoom({ position: [16 , 20], size: [16, 20], level: 1 });
 
-// scene.getObjectByName('highlight').material = MATERIAL.highlight;
-// scene.getObjectByName('active-1').material = MATERIAL.active;
-// scene.getObjectByName('active-2').material = MATERIAL.active;
+(scene.children[1] as THREE.Mesh).material = MATERIAL.active;
+(scene.children[2] as THREE.Mesh).material = MATERIAL.active;
+(scene.children[3] as THREE.Mesh).material = MATERIAL.highlight;
 
 // Render loop
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-
     renderer.render(scene, camera);
-
 }
 animate();
 
