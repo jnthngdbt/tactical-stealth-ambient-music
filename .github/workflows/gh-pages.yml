@@ -32,5 +32,7 @@ jobs:
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions and is auto-generated
-        publish_dir: ./public # Does not need to exist in the repository
+        # This token is provided by Actions and is auto-generated
+        github_token: ${{ secrets.GITHUB_TOKEN }} 
+        # Doesn't need to exist in the repository; must fit with `outDir` in vite.config.js
+        publish_dir: ./docs 
