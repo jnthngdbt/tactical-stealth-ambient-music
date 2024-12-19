@@ -20,15 +20,43 @@ body, html {
 
 /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
 
-.binoculars {
+.binoculars-x {
   position: relative;
-  width: 80%;
-  height: 80%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 94%;
+  height: 94%;
   border-radius: 25%;
   background: transparent;
   box-shadow: 
-    0 0 0 9999px black,
-    60vmin 0 0 black;
+    0 0 0 9999px rgba(0, 0, 0, 0.3);
+}
+
+.binoculars-xx {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 94%;
+  height: 94%;
+  border-radius: 25%;
+  background: transparent;
+  box-shadow: 
+  0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.binoculars-xxx {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 90%;
+  height: 90%;
+  border-radius: 25%;
+  background: transparent;
+  box-shadow: 
+  0 0 0 9999px rgba(0, 0, 0, 1);
 }
 
 /* Following gives inverse of what is needed: black center with black blended shadow; could be used as a mask */
