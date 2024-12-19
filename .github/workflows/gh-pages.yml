@@ -33,4 +33,4 @@ jobs:
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions and is auto-generated
-        publish_dir: ./docs
+        publish_dir: ./public # Does not need to exist in the repository

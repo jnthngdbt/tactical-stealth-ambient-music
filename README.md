@@ -24,8 +24,20 @@ Visuals generator for [@TacticalStealthAmbientMusic](https://www.youtube.com/@Ta
 
 # Deploy
 
+## Automated Github Actions
+
+- The Github Actions workflow is defined in _.github/worklows/gh-pages.yml_
+  - At each push in `main` branch, it builds using `npx vite build`
+  - Build artifacts are pushed in branch `gh-pages`
+    - Branch only contains build files in _root_
+- Github Pages is configured to deploy branch `gh-pages` from _root_ folder
+  - See [Repository > Settings > Pages](https://github.com/jnthngdbt/tactical-stealth-ambient-music/settings/pages)
+
+## Manually (_not used anymore_)
+
 - Build into _docs/_ folder (using _docs/_ instead of default _dist/_ to make it work more easily with Github Pages)
   ```
   npx vite build 
   ```
   - For configuration, see _vite.config.js_
+- Push the changes
