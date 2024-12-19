@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { FilmPass } from "three/examples/jsm/Addons.js";
 
 // Scene Setup
 const scene = new THREE.Scene();
@@ -27,12 +31,22 @@ textureLoader.load("https://cdn.midjourney.com/4a24248c-3833-4961-bb7f-372992a6c
   scene.add(plane);
 });
 
-// Resize Handler
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+// Post-Processing Setup
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// Film Grain Effect
+const filmPass = new FilmPass(1.5);
+composer.addPass(filmPass);
+
+// Bloom Effect (Glow)
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.3, // Strength
+  0.4, // Radius
+  0.85 // Threshold
+);
+composer.addPass(bloomPass);
 
 // Variables for panning
 let isPanning = false;
@@ -68,9 +82,17 @@ window.addEventListener("wheel", (event) => {
   camera.position.z = THREE.MathUtils.clamp(camera.position.z, 0.5, 10); // Clamp zoom levels
 });
 
+// Resize Handling
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+
 // Animation Loop
 function animate() {
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+  composer.render();
 }
 animate();
