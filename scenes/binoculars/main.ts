@@ -1,27 +1,42 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
+// Scene Setup
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-
-scene.background = new THREE.Color( 0x111122 );
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 2;
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.setAnimationLoop( animate );
-document.body.appendChild( renderer.domElement );
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshBasicMaterial( { color: 0x552255 } );
-const cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
+// Ensure proper color management
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-camera.position.z = 5;
+// Load an Image Texture
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load("https://cdn.midjourney.com/4a24248c-3833-4961-bb7f-372992a6cb87/0_0.png", (texture) => {
+  texture.colorSpace = THREE.SRGBColorSpace; // Ensure texture is in sRGB
 
+  // Create a plane geometry and material
+  const aspectRatio = texture.image.width / texture.image.height;
+  const geometry = new THREE.PlaneGeometry(10, 10 / aspectRatio); // Maintain aspect ratio
+  const material = new THREE.MeshBasicMaterial({ map: texture });
+  const plane = new THREE.Mesh(geometry, material);
+
+  scene.add(plane);
+});
+
+// Resize Handler
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animation Loop
 function animate() {
-
-	cube.rotation.x += 0.01;
-	cube.rotation.y += 0.01;
-
-	renderer.render( scene, camera );
-
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
 }
+animate();
