@@ -1,0 +1,36 @@
+body { 
+  margin: 0; 
+  background-color: rgb(20, 18, 29);
+}
+
+canvas { display: block; }
+
+/* Style for the download button */
+#downloadBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background-color: #333333;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  opacity: 0.2;
+}
+
+/* Hover effect for the button */
+#downloadBtn:hover {
+  opacity: 0.8;
+}
+
+/* Style for the download icon */
+#downloadBtn i {
+  color: white;
+  font-size: 24px;
+}

@@ -1,32 +1,29 @@
-body { margin: 0; }
-canvas { display: block; }
+body {
+  font-family: 'Russo One';
+  background-color: rgb(20, 18, 29);
 
-/* Style for the download button */
-#downloadBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  background-color: #333333;
-  border: none;
-  border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  opacity: 0.2;
+  text-size-adjust:100%; 
+  -webkit-text-size-adjust:100%;
+  -ms-text-size-adjust:100%;
+  -moz-text-size-adjust:100%;
 }
 
-/* Hover effect for the button */
-#downloadBtn:hover {
-  opacity: 0.8;
+#links {
+  /*background: rgba(128,128,128,0.2);*/
+
+  position: absolute;
+  top: 1%;
+  height: 45%;
+  left: 1%;
+  width: 45%;
+
+  /*text-align: center;*/
+  font-size: 160px;
+  /*font-weight: 400;*/
+  text-transform: uppercase;
 }
 
-/* Style for the download icon */
-#downloadBtn i {
-  color: white;
-  font-size: 24px;
+a {
+  text-decoration: none;
+  color: rgb(132, 75, 162);
 }
