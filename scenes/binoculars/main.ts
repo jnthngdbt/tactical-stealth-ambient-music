@@ -29,7 +29,7 @@ Some images for testing:
 
 // Load an Image Texture
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load("https://cdn.midjourney.com/4a24248c-3833-4961-bb7f-372992a6cb87/0_0.png", (texture) => {
+textureLoader.load("https://cdn.midjourney.com/2e4dae5c-a670-4c21-a6c0-abe8f0757a25/0_0.png", (texture) => {
   texture.colorSpace = THREE.SRGBColorSpace; // Ensure texture is in sRGB
 
   // Create a plane geometry and material
@@ -52,7 +52,7 @@ composer.addPass(filmPass);
 // Bloom Effect (Glow)
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.1, // Strength
+  0.2, // Strength
   0.4, // Radius
   0.85 // Threshold
 );

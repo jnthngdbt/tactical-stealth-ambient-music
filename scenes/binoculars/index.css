@@ -28,8 +28,8 @@ body, html {
 }
 
 .outer-ring {
-  width: 90%;
-  height: 90%;
+  width: 80%;
+  height: 80%;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 1.0);
 }
 
