@@ -18,6 +18,15 @@ document.body.appendChild(renderer.domElement);
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+/*
+Some images for testing:
+- https://cdn.midjourney.com/4a24248c-3833-4961-bb7f-372992a6cb87/0_0.png (desert, first)
+- https://cdn.midjourney.com/018cde85-080a-400c-b235-60d29413adb7/0_1.png (moonlike)
+- https://cdn.midjourney.com/9b6e2976-aa7a-4cda-b089-1a481818df87/0_1.png (trapezoid)
+- https://cdn.midjourney.com/2e4dae5c-a670-4c21-a6c0-abe8f0757a25/0_0.png (dark, multiple buildings)
+- https://cdn.midjourney.com/4e449e81-c3bd-4d08-94ec-aa464fb40833/0_0.png (bright, 2 towers)
+*/
+
 // Load an Image Texture
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load("https://cdn.midjourney.com/4a24248c-3833-4961-bb7f-372992a6cb87/0_0.png", (texture) => {
