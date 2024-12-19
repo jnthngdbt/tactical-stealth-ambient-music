@@ -79,7 +79,7 @@ window.addEventListener("mouseup", () => {
 window.addEventListener("wheel", (event) => {
   var scrollZoomSpeedFactor = 0.001;
   camera.position.z += event.deltaY * scrollZoomSpeedFactor * camera.position.z; // Adjust zoom speed
-  camera.position.z = THREE.MathUtils.clamp(camera.position.z, 0.5, 10); // Clamp zoom levels
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z, 0.7, 3); // Clamp zoom levels
 });
 
 // Resize Handling
