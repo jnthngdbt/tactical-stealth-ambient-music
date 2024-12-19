@@ -27,23 +27,23 @@ body, html {
   background: transparent;
 }
 
-.ring-1 {
-  width: 94%;
-  height: 94%;
-  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
-}
-
-.ring-2 {
-  width: 94%;
-  height: 94%;
-  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-}
-
-.ring-3 {
+.outer-ring {
   width: 90%;
   height: 90%;
-  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 1.0);
 }
+
+.inner-ring {
+  width: 96%;
+  height: 96%;
+}
+
+.alpha-1 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.1); }	
+.alpha-2 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.2); }	
+.alpha-3 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3); }	
+.alpha-4 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4); }	
+.alpha-5 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); }	
+.alpha-6 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }	
+.alpha-7 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7); }	
+.alpha-8 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8); }	
+.alpha-9 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.9); }	
