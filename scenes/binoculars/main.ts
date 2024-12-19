@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { FilmPass } from "three/examples/jsm/Addons.js";
+import * as CONST from './constants.ts';
 
 // Scene Setup
 const scene = new THREE.Scene();
@@ -36,13 +37,13 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
 // Film Grain Effect
-const filmPass = new FilmPass(1.5);
+const filmPass = new FilmPass(getFilmGrainIntensity(camera.position.z));
 composer.addPass(filmPass);
 
 // Bloom Effect (Glow)
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.3, // Strength
+  0.1, // Strength
   0.4, // Radius
   0.85 // Threshold
 );
@@ -79,7 +80,7 @@ window.addEventListener("mouseup", () => {
 window.addEventListener("wheel", (event) => {
   var scrollZoomSpeedFactor = 0.001;
   camera.position.z += event.deltaY * scrollZoomSpeedFactor * camera.position.z; // Adjust zoom speed
-  camera.position.z = THREE.MathUtils.clamp(camera.position.z, 0.7, 3); // Clamp zoom levels
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z, CONST.MIN_ZOOM_POS, CONST.MAX_ZOOM_POS); // Clamp zoom levels
 });
 
 // Resize Handling
@@ -90,9 +91,31 @@ window.addEventListener("resize", () => {
   composer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// Cast uniforms to explicitly known types
+type FilmPassUniforms = {
+  intensity: { value: number };
+};
+
 // Animation Loop
 function animate() {
   requestAnimationFrame(animate);
+
+  // Update FilmPass intensity based on camera position
+  // (the more zoomed in, the more intense the film grain)
+  const uniforms = filmPass.uniforms as FilmPassUniforms;
+  uniforms.intensity.value = getFilmGrainIntensity(camera.position.z); 
+
   composer.render();
 }
+
+function getFilmGrainIntensity(cameraPosition: number): number {
+  return THREE.MathUtils.mapLinear(
+    cameraPosition, 
+    CONST.MIN_ZOOM_POS, 
+    CONST.MAX_ZOOM_POS, 
+    CONST.MAX_FILM_INTENSITY, 
+    CONST.MIN_FILM_INTENSITY);
+}
+
 animate();
+
