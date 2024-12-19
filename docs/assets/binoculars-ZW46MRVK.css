@@ -1,0 +1,1 @@
+body{margin:0;background-color:#14121d}canvas{display:block}#binocularOverlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background:radial-gradient(circle at center,#00000080 60%,#000 90%);mask-image:radial-gradient(circle at center,transparent 60%,black 90%);-webkit-mask-image:radial-gradient(circle at center,transparent 60%,black 90%)}
