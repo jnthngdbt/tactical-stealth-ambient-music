@@ -18,54 +18,32 @@ body, html {
   align-items: center;
 }
 
-/* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
-
-.binoculars-x {
+.binoculars {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 94%;
-  height: 94%;
   border-radius: 25%;
   background: transparent;
-  box-shadow: 
-    0 0 0 9999px rgba(0, 0, 0, 0.3);
 }
 
-.binoculars-xx {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.ring-1 {
   width: 94%;
   height: 94%;
-  border-radius: 25%;
-  background: transparent;
-  box-shadow: 
-  0 0 0 9999px rgba(0, 0, 0, 0.5);
+  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
 }
 
-.binoculars-xxx {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.ring-2 {
+  width: 94%;
+  height: 94%;
+  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.ring-3 {
   width: 90%;
   height: 90%;
-  border-radius: 25%;
-  background: transparent;
-  box-shadow: 
-  0 0 0 9999px rgba(0, 0, 0, 1);
+  /* box-shadow arguments: <offset-x> <offset-y> <blur-radius> <spread-radius> */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 1.0);
 }
-
-/* Following gives inverse of what is needed: black center with black blended shadow; could be used as a mask */
-/* .binoculars {
-  position: relative;
-  width: 80%;
-  height: 80%;
-  border-radius: 25%;
-  background: black;
-  box-shadow: 
-  0px 0px 10px 10px black; 
-} */
