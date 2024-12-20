@@ -114,7 +114,7 @@ type FilmPassUniforms = {
 };
 
 // Jitter Parameters
-const jitterAmplitude = 0.001; // Maximum jitter offset
+const jitterAmplitude = 0.0015; // Maximum jitter offset
 const jitterSpeed = 2; // Lower means faster jitter
 const addJitter = true; // Toggle jitter
 

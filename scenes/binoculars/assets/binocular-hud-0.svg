@@ -1,0 +1,37 @@
+<svg width="100%" height="100%" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Left Lens -->
+  <circle cx="250" cy="200" r="150" stroke="lime" stroke-width="2" />
+  <!-- Right Lens -->
+  <circle cx="550" cy="200" r="150" stroke="lime" stroke-width="2" />
+  
+  <!-- Center Crosshair -->
+  <line x1="400" y1="175" x2="400" y2="225" stroke="lime" stroke-width="2" />
+  <line x1="375" y1="200" x2="425" y2="200" stroke="lime" stroke-width="2" />
+  
+  <!-- Left HUD Lines -->
+  <line x1="100" y1="100" x2="200" y2="100" stroke="lime" stroke-width="2" />
+  <line x1="150" y1="50" x2="150" y2="150" stroke="lime" stroke-width="2" />
+  <line x1="150" y1="100" x2="200" y2="150" stroke="lime" stroke-width="2" />
+  
+  <!-- Right HUD Lines -->
+  <line x1="700" y1="100" x2="600" y2="100" stroke="lime" stroke-width="2" />
+  <line x1="650" y1="50" x2="650" y2="150" stroke="lime" stroke-width="2" />
+  <line x1="650" y1="100" x2="600" y2="150" stroke="lime" stroke-width="2" />
+  
+  <!-- Left Lens Details -->
+  <circle cx="250" cy="200" r="120" stroke="lime" stroke-dasharray="5,5" stroke-width="1" />
+  <line x1="250" y1="80" x2="250" y2="120" stroke="lime" stroke-width="2" />
+  <line x1="130" y1="200" x2="170" y2="200" stroke="lime" stroke-width="2" />
+  
+  <!-- Right Lens Details -->
+  <circle cx="550" cy="200" r="120" stroke="lime" stroke-dasharray="5,5" stroke-width="1" />
+  <line x1="550" y1="80" x2="550" y2="120" stroke="lime" stroke-width="2" />
+  <line x1="670" y1="200" x2="630" y2="200" stroke="lime" stroke-width="2" />
+  
+  <!-- Top Indicators -->
+  <text x="360" y="50" fill="lime" font-size="8" font-family="Arial">BINOCULAR MODE</text>
+  
+  <!-- Bottom Indicators -->
+  <text x="300" y="370" fill="lime" font-size="12" font-family="Arial">STATUS: ACTIVE</text>
+  <text x="450" y="370" fill="lime" font-size="12" font-family="Arial">ZOOM: 4X</text>
+</svg>

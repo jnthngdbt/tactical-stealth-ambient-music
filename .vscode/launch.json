@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "Vite Debugging",
-      "type": "chrome",
+      "type": "msedge",
       "request": "launch",
       "url": "http://localhost:5173",  // Vite's default port
       "webRoot": "${workspaceFolder}",  // Adjust this to your project's source directory

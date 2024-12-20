@@ -1,0 +1,26 @@
+<svg width="100%" height="100%" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" fill="none" preserveAspectRatio="none">  
+  <!-- Main HUD Rectangle -->
+  <rect x="100" y="50" width="600" height="300" rx="25%" ry="25%" stroke="black" stroke-width="2" fill="none" />
+  
+  <!-- Grid Lines -->
+  <line x1="100" y1="150" x2="700" y2="150" stroke="black" stroke-opacity="0.3" stroke-width="1" />
+  <line x1="100" y1="250" x2="700" y2="250" stroke="black" stroke-opacity="0.3" stroke-width="1" />
+  <line x1="300" y1="50" x2="300" y2="350" stroke="black" stroke-opacity="0.3" stroke-width="1" />
+  <line x1="500" y1="50" x2="500" y2="350" stroke="black" stroke-opacity="0.3" stroke-width="1" />
+  
+  <!-- Crosshairs -->
+  <circle cx="400" cy="200" r="50" stroke="black" stroke-width="2" fill="none" stroke-dasharray="4,4" />
+  <line x1="400" y1="150" x2="400" y2="250" stroke="black" stroke-width="2" />
+  <line x1="350" y1="200" x2="450" y2="200" stroke="black" stroke-width="2" />
+  
+  <!-- Status Indicators -->
+  <text x="120" y="40" fill="black" font-size="12" font-family="Arial">SYSTEM ONLINE</text>
+  <text x="580" y="40" fill="black" font-size="12" font-family="Arial" text-anchor="end">ZOOM: 3X</text>
+  
+  <!-- Dynamic Target Information -->
+  <text x="400" y="320" fill="black" font-size="14" font-family="Arial" text-anchor="middle">TARGET LOCKED</text>
+  
+  <!-- Bottom Status Bar -->
+  <line x1="100" y1="370" x2="700" y2="370" stroke="black" stroke-width="1" />
+  <text x="400" y="390" fill="black" font-size="12" font-family="Arial" text-anchor="middle">BATTERY: 85% | SIGNAL: STRONG</text>
+</svg>
