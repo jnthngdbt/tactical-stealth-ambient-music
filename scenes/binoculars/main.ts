@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { FilmPass } from "three/examples/jsm/Addons.js";
+import { ShaderPass } from "three/examples/jsm/Addons.js";
 import * as CONST from './constants.ts';
 
 // Scene Setup
@@ -52,14 +52,45 @@ textureLoader.load("https://media.discordapp.net/attachments/1319498604766953512
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-// Film Grain Effect
-const filmPass = new FilmPass(getFilmGrainIntensity(camera.position.z));
-composer.addPass(filmPass);
+// Invert Color Shader
+const NoiseShader = {
+  uniforms: {
+    tDiffuse: { value: null }, // Scene texture
+    time: { value: 0 }, // Time uniform
+    noiseIntensity: { value: 0.1 }, // Noise intensity
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform float time;
+    uniform float noiseIntensity;
+
+    // Random function
+    float random(vec2 uv) {
+      return fract(sin(dot(uv.xy, vec2(12.9898,78.233))) * 43758.5453123) - 0.5;
+    }
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      float noise = random(vUv + time);
+      gl_FragColor = vec4(color.rgb + noise * noiseIntensity, color.a);
+    }
+  `,
+};
+const noisePass = new ShaderPass(NoiseShader);
+composer.addPass(noisePass);
 
 // Bloom Effect (Glow)
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.2, // Strength
+  0.5, // Strength
   0.4, // Radius
   0.85 // Threshold
 );
@@ -108,18 +139,20 @@ window.addEventListener("resize", () => {
   composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Cast uniforms to explicitly known types
-type FilmPassUniforms = {
-  intensity: { value: number };
-};
-
 // Jitter Parameters
 const jitterAmplitude = 0.0015; // Maximum jitter offset
 const jitterSpeed = 2; // Lower means faster jitter
 const addJitter = true; // Toggle jitter
 
+// Animation loop
+const clock = new THREE.Clock();
+
 // Animation Loop
 function animate() {
+  const elapsedTime = clock.getElapsedTime();
+  noisePass.uniforms.time.value = elapsedTime;
+  noisePass.uniforms.noiseIntensity.value = getNoiseIntensity(camera.position.z);
+
   if (addJitter) {
     // Apply small random jitter to the camera position
     const time = performance.now() / jitterSpeed;
@@ -128,11 +161,6 @@ function animate() {
   }
 
   requestAnimationFrame(animate);
-
-  // Update FilmPass intensity based on camera position
-  // (the more zoomed in, the more intense the film grain)
-  const uniforms = filmPass.uniforms as FilmPassUniforms;
-  uniforms.intensity.value = getFilmGrainIntensity(camera.position.z); 
 
   composer.render();
 }
@@ -144,6 +172,15 @@ function getFilmGrainIntensity(cameraPosition: number): number {
     CONST.MAX_ZOOM_POS, 
     CONST.MAX_FILM_INTENSITY, 
     CONST.MIN_FILM_INTENSITY);
+}
+
+function getNoiseIntensity(cameraPosition: number): number {
+  return THREE.MathUtils.mapLinear(
+    cameraPosition, 
+    CONST.MIN_ZOOM_POS, 
+    CONST.MAX_ZOOM_POS, 
+    CONST.MAX_NOISE_INTENSITY, 
+    CONST.MIN_NOISE_INTENSITY);
 }
 
 animate();
