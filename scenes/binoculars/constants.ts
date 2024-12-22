@@ -4,3 +4,5 @@ export const MIN_FILM_INTENSITY = 1;
 export const MAX_FILM_INTENSITY = 4;
 export const MIN_NOISE_INTENSITY = 0.05;
 export const MAX_NOISE_INTENSITY = 0.2;
+export const MIN_PIXEL_SIZE = 1;
+export const MAX_PIXEL_SIZE = 3;

@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from "three/examples/jsm/Addons.js";
+import { RenderPixelatedPass } from 'three/addons/postprocessing/RenderPixelatedPass.js';
+import { FilmPass, ShaderPass } from "three/examples/jsm/Addons.js";
 import * as CONST from './constants.ts';
 
 // Scene Setup
@@ -30,13 +31,13 @@ Some images for testing:
 - https://media.discordapp.net/attachments/1319498604766953512/1319500329343258624/jnthngdbt_Midnight_cyberpunk_concrete_multi-building_bunker_com_3a4c4704-f83d-4f54-a9c9-28e7fcc11441.png?ex=67662ff1&is=6764de71&hm=637176c06a0a714bd8e572cb3e532d1794c9c7ae55df037573c3d88289e53c54&=&format=webp&quality=lossless (cozy silos)
 - https://media.discordapp.net/attachments/1319498604766953512/1319505786111787051/jnthngdbt_Midnight_cyberpunk_concrete_multi-building_bunker_com_74d166ca-8493-4f48-a146-64ca25121cab.png?ex=67663506&is=6764e386&hm=befb989829d1165e48e4428a14869ea2c2c8d5735c06685ae578fe253dc89af8&=&format=webp&quality=lossless (blue house from below)
 - https://media.discordapp.net/attachments/1319498604766953512/1319511172948693002/jnthngdbt_Midnight_futuristic_concrete_multi-building_bunker_co_cdcc27e2-b964-4ba4-9990-92acce687e7c.png?ex=67663a0a&is=6764e88a&hm=3d084c813ba956c51a6c5a9694d03db3e34b59fd63f74f23eaff16c775e24fca&=&format=webp&quality=lossless (red base close)
-- https://media.discordapp.net/attachments/1319498604766953512/1319511209749516381/jnthngdbt_Midnight_futuristic_concrete_multi-building_bunker_co_cf4c2416-c763-45a1-8ef7-d1381616799a.png?ex=67663a13&is=6764e893&hm=ab4e6d37a0ddac72cc36467445fb2298df8f2e75a277b21ca2c25482bd232dba&=&format=webp&quality=lossless (gray outpost)
+- https://media.discordapp.net/attachments/1319498604766953512/1319511209749516381/jnthngdbt_Midnight_futuristic_concrete_multi-building_bunker_co_cf4c2416-c763-45a1-8ef7-d1381616799a.png?ex=67663a13&is=6764e893&hm=ab4e6d37a0ddac72cc36467445fb2298df8f2e75a277b21ca2c25482bd232dba&=&format=webp&quality=lossless (gray seaport)
 - https://media.discordapp.net/attachments/1319498604766953512/1319511408164995092/jnthngdbt_Midnight_cyberpunk_concrete_multi-building_bunker_com_0701d598-e389-4b2a-a124-7589788e4d04.png?ex=67663a43&is=6764e8c3&hm=8607b89ee42b75be4bcc962e6f655eecfc0dfd440c9caa2cdce0769ac6bb0116&=&format=webp&quality=lossless (dark forest orange)
 */
 
 // Load an Image Texture
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load("https://media.discordapp.net/attachments/1319498604766953512/1319500437174620200/jnthngdbt_Midnight_cyberpunk_concrete_multi-building_bunker_com_354daa91-edcb-4e11-a44f-f56a098819f8.png?ex=6766300b&is=6764de8b&hm=f7128cb8e728dddf7f44af2106c323f8bc533b00c42a798af80600e1a35f3530&=&format=webp&quality=lossless", (texture) => {
+textureLoader.load("https://cdn.midjourney.com/9b6e2976-aa7a-4cda-b089-1a481818df87/0_1.png", (texture) => {
   texture.colorSpace = THREE.SRGBColorSpace; // Ensure texture is in sRGB
 
   // Create a plane geometry and material
@@ -87,10 +88,19 @@ const NoiseShader = {
 const noisePass = new ShaderPass(NoiseShader);
 composer.addPass(noisePass);
 
+
+// Add pixel pass
+const pixelPass = new RenderPixelatedPass(5, scene, camera);
+composer.addPass(pixelPass);
+
+// Film Grain Effect
+const filmPass = new FilmPass(1.5);
+composer.addPass(filmPass);
+
 // Bloom Effect (Glow)
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.5, // Strength
+  0.2, // Strength
   0.4, // Radius
   0.85 // Threshold
 );
@@ -147,11 +157,19 @@ const addJitter = true; // Toggle jitter
 // Animation loop
 const clock = new THREE.Clock();
 
+// Cast uniforms to explicitly known types
+type PixelPassUniforms = {
+  pixelSize: { value: number };
+};
+
 // Animation Loop
 function animate() {
   const elapsedTime = clock.getElapsedTime();
   noisePass.uniforms.time.value = elapsedTime;
   noisePass.uniforms.noiseIntensity.value = getNoiseIntensity(camera.position.z);
+
+  // var pixelPassUniforms = pixelPass. as PixelPassUniforms;
+  pixelPass.setPixelSize(getPixelSize(camera.position.z));
 
   if (addJitter) {
     // Apply small random jitter to the camera position
@@ -165,13 +183,13 @@ function animate() {
   composer.render();
 }
 
-function getFilmGrainIntensity(cameraPosition: number): number {
+function getPixelSize(cameraPosition: number): number {
   return THREE.MathUtils.mapLinear(
     cameraPosition, 
     CONST.MIN_ZOOM_POS, 
     CONST.MAX_ZOOM_POS, 
-    CONST.MAX_FILM_INTENSITY, 
-    CONST.MIN_FILM_INTENSITY);
+    CONST.MAX_PIXEL_SIZE, 
+    CONST.MIN_PIXEL_SIZE);
 }
 
 function getNoiseIntensity(cameraPosition: number): number {
