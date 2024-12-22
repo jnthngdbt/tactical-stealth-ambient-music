@@ -114,9 +114,9 @@ window.addEventListener("mousemove", (event) => {
     const deltaY = (event.clientY - startMouse.y) / window.innerHeight;
 
     // Adjust camera position for panning
-    var panSpeedFactor = 2.2 / camera.position.z;
-    camera.position.x = startCameraPosition.x + deltaX * camera.position.z * 2 * panSpeedFactor;
-    camera.position.y = startCameraPosition.y - deltaY * camera.position.z * 2 * panSpeedFactor;
+    var panSpeedFactor = 8.0;
+    camera.position.x = startCameraPosition.x + deltaX * panSpeedFactor;
+    camera.position.y = startCameraPosition.y - deltaY * panSpeedFactor;
   }
 });
 
