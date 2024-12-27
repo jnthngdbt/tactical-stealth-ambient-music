@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import * as CONST from './constants.ts';
+import * as CONST from '../constants.ts';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 
 export class ControlsManager {
@@ -12,6 +12,8 @@ export class ControlsManager {
   public panSpeedFactor = 8.0;
 
   public isSideZooming = false;
+  public sideZoomZoneWidth = 0.15;
+  private sideZoomPos = 0;
 
   public scrollZoomSpeedFactor = 0.001;
 
@@ -36,23 +38,33 @@ export class ControlsManager {
     });
 
     window.addEventListener("mousemove", (event) => {
-      this.onPan(event.clientX, event.clientY);
+      this.isSideZooming ?
+        this.onSideZoom(event.clientY) :
+        this.onPan(event.clientX, event.clientY);
     });
 
     window.addEventListener("mouseup", () => {
-      this.onPanEnd();
+      this.isSideZooming ?
+        this.onSideZoomEnd() :
+        this.onPanEnd();
     });
 
     window.addEventListener("touchstart", (event) => {
-      this.onPanStart(event.touches[0].clientX, event.touches[0].clientY);
+      this.isSideZoomZone(event.touches[0].clientX) ? 
+        this.onSideZoomStart(event.touches[0].clientY) :
+        this.onPanStart(event.touches[0].clientX, event.touches[0].clientY);
     });
 
     window.addEventListener("touchmove", (event) => {
-      this.onPan(event.touches[0].clientX, event.touches[0].clientY);
+      this.isSideZooming ?
+        this.onSideZoom(event.touches[0].clientY) :
+        this.onPan(event.touches[0].clientX, event.touches[0].clientY);
     });
 
     window.addEventListener("touchend", () => {
-      this.onPanEnd();
+      this.isSideZooming ?
+        this.onSideZoomEnd() :
+        this.onPanEnd();
     });
 
     // Zoom using scroll wheel
@@ -71,11 +83,22 @@ export class ControlsManager {
   }
 
   private isSideZoomZone(x: number) {
-    return x / this.window.innerWidth > 0.8;
+    return x / this.window.innerWidth > (1.0 - this.sideZoomZoneWidth);
   }
 
   private onSideZoomStart(y: number) {
-    this.isSideZooming = true
+    this.isSideZooming = true;
+    this.sideZoomPos = y;
+  }
+  
+  private onSideZoom(y: number) {
+    const deltaY = y - this.sideZoomPos;
+    this.sideZoomPos = y;
+    this.onZoom(deltaY);
+  }
+
+  private onSideZoomEnd() {
+    this.isSideZooming = false;
   }
 
   private onZoom(deltaY: number) {
