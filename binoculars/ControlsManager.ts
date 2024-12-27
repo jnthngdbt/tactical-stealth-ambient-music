@@ -2,15 +2,18 @@ import * as THREE from 'three';
 import * as CONST from './constants.ts';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 
-export class NavigationControls {
+export class ControlsManager {
   public window: Window;
   public camera: THREE.PerspectiveCamera; 
   public renderer: THREE.WebGLRenderer;
   public composer: EffectComposer;
   
   public isPanning = false;
-  public scrollZoomSpeedFactor = 0.001;
   public panSpeedFactor = 8.0;
+
+  public isSideZooming = false;
+
+  public scrollZoomSpeedFactor = 0.001;
 
   private startMouse = new THREE.Vector2();
   private startCameraPosition = new THREE.Vector3();
@@ -27,7 +30,9 @@ export class NavigationControls {
 
     // Add Event Listeners for Panning
     window.addEventListener("mousedown", (event) => {
-      this.onPanStart(event.clientX, event.clientY);
+      this.isSideZoomZone(event.clientX) ? 
+        this.onSideZoomStart(event.clientY) :
+        this.onPanStart(event.clientX, event.clientY);
     });
 
     window.addEventListener("mousemove", (event) => {
@@ -63,6 +68,14 @@ export class NavigationControls {
 
   public update(time: number) {
     // if needed
+  }
+
+  private isSideZoomZone(x: number) {
+    return x / this.window.innerWidth > 0.8;
+  }
+
+  private onSideZoomStart(y: number) {
+    this.isSideZooming = true
   }
 
   private onZoom(deltaY: number) {

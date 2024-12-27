@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import PixelatedNoiseMaterial from "./PixelatedNoiseMaterial.ts";
 import * as CONST from './constants.ts';
-import { NavigationControls } from "./NavigationControls.ts";
+import { ControlsManager } from "./ControlsManager.ts";
 import { CameraJitter } from "./CameraJitter.ts";
 
 // Scene Setup
@@ -55,7 +55,7 @@ composer.addPass(new RenderPass(scene, camera));
 // Add post-processing passes... (if necessary)
 
 // Pan and zoom controls
-var navControls = new NavigationControls(window, camera, renderer, composer);
+var navControls = new ControlsManager(window, camera, renderer, composer);
 
 // Camera jitter for a shaky effect
 var cameraJitter = new CameraJitter(camera, 0.0015, 2);

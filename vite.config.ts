@@ -5,8 +5,8 @@ export default {
     rollupOptions: {
       input: {
         main: 'index.html',
-        planning: 'scenes/planning/index.html',
-        binoculars: 'scenes/binoculars/index.html',
+        planning: 'planning/index.html',
+        binoculars: 'binoculars/index.html',
       },
     },
   },
