@@ -76,15 +76,6 @@ export class ControlsManager {
     window.addEventListener("resize", () => {
       this.onResize();
     });
-
-    window.addEventListener('deviceorientation', (event) => {
-      const alpha = event.alpha ?? 0; // degrees, Z-axis (left-right)
-      const beta = event.beta ?? 0;   // degrees, X-axis (up-down)
-      // event.gamma ?? 0; // degrees, Y-axis (tilt left-right)
-
-      this.camera.position.y = 0.05 * (beta - 90);
-      this.camera.position.x = -0.1 * (alpha);
-    });
   }
 
   public update(time: number) {
