@@ -9,13 +9,14 @@ export class ControlsManager {
   public composer: EffectComposer;
   
   public isPanning = false;
-  public panSpeedFactor = 8.0;
+  public panSpeedFactor = 10.0;
 
   public isSideZooming = false;
   public sideZoomZoneWidth = 0.15;
   private sideZoomPos = 0;
 
   public scrollZoomSpeedFactor = 0.001;
+  public sideZoomSpeedFactor = 0.002;
 
   private startMouse = new THREE.Vector2();
   private startCameraPosition = new THREE.Vector3();
@@ -69,7 +70,7 @@ export class ControlsManager {
 
     // Zoom using scroll wheel
     window.addEventListener("wheel", (event) => {
-      this.onZoom(event.deltaY);
+      this.onZoom(event.deltaY * this.scrollZoomSpeedFactor);
     });
 
     // Resize Handling
@@ -94,15 +95,15 @@ export class ControlsManager {
   private onSideZoom(y: number) {
     const deltaY = y - this.sideZoomPos;
     this.sideZoomPos = y;
-    this.onZoom(deltaY);
+    this.onZoom(deltaY * this.sideZoomSpeedFactor);
   }
 
   private onSideZoomEnd() {
     this.isSideZooming = false;
   }
 
-  private onZoom(deltaY: number) {
-    this.camera.position.z += deltaY * this.scrollZoomSpeedFactor * this.camera.position.z;
+  private onZoom(delta: number) {
+    this.camera.position.z += delta * this.camera.position.z;
     this.camera.position.z = THREE.MathUtils.clamp(this.camera.position.z, CONST.MIN_ZOOM_POS, CONST.MAX_ZOOM_POS);
   }
 
