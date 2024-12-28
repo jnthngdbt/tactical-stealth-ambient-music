@@ -140,6 +140,7 @@ export class ControlsManager {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.window.innerWidth, this.window.innerHeight);
     this.composer.setSize(this.window.innerWidth, this.window.innerHeight);
+    this.restrictCameraPosition();
   }
 
   private restrictCameraPosition() {
