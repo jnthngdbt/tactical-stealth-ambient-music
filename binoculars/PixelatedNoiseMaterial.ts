@@ -5,7 +5,7 @@ const PixelatedNoiseMaterial = new THREE.ShaderMaterial({
     resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
     pixelSize: { value: 3 },
     time: { value: 0.0 },
-    noiseIntensity: { value: 0.08 },
+    noiseIntensity: { value: 0.10 },
     diffuseTexture: { value: null }, // Renamed to avoid conflict
   },
   vertexShader: `

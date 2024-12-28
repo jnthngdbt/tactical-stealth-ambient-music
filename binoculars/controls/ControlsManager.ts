@@ -12,7 +12,7 @@ export class ControlsManager {
   public isPanning = false;
   public panSpeedFactor = 10.0;
 
-  public minZoomCameraPosZ = 1.5;
+  public minZoomCameraPosZ = 0.8;
 
   public isSideZooming = false;
   public sideZoomZoneWidth = 0.15;
