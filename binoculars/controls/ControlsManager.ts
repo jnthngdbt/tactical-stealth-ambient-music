@@ -7,9 +7,12 @@ export class ControlsManager {
   public camera: THREE.PerspectiveCamera; 
   public renderer: THREE.WebGLRenderer;
   public composer: EffectComposer;
+  public planeSize: THREE.Vector2;
   
   public isPanning = false;
   public panSpeedFactor = 10.0;
+
+  public minZoomCameraPosZ = 1.5;
 
   public isSideZooming = false;
   public sideZoomZoneWidth = 0.15;
@@ -24,12 +27,14 @@ export class ControlsManager {
   constructor(window: Window, 
     camera: THREE.PerspectiveCamera, 
     renderer: THREE.WebGLRenderer, 
-    composer: EffectComposer) {
+    composer: EffectComposer,
+    planeSize: THREE.Vector2) {
 
     this.window = window;
     this.camera = camera;
     this.renderer = renderer;
     this.composer = composer;
+    this.planeSize = planeSize;
 
     // Add Event Listeners for Panning
     window.addEventListener("mousedown", (event) => {
@@ -104,7 +109,8 @@ export class ControlsManager {
 
   private onZoom(delta: number) {
     this.camera.position.z += delta * this.camera.position.z;
-    this.camera.position.z = THREE.MathUtils.clamp(this.camera.position.z, CONST.MIN_ZOOM_POS, CONST.MAX_ZOOM_POS);
+
+    this.restrictCameraPosition();
   }
 
   private onPanStart(x: number, y: number) {
@@ -123,9 +129,10 @@ export class ControlsManager {
     const deltaX = (x - this.startMouse.x) / this.window.innerWidth;
     const deltaY = (y - this.startMouse.y) / this.window.innerHeight;
 
-    // Adjust camera position for panning
     this.camera.position.x = this.startCameraPosition.x + deltaX * this.panSpeedFactor;
     this.camera.position.y = this.startCameraPosition.y - deltaY * this.panSpeedFactor;
+
+    this.restrictCameraPosition();
   }
 
   private onResize() {
@@ -133,5 +140,29 @@ export class ControlsManager {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.window.innerWidth, this.window.innerHeight);
     this.composer.setSize(this.window.innerWidth, this.window.innerHeight);
+  }
+
+  private restrictCameraPosition() {
+    const edgeFactor = 0.85; // account for black border of binoculars
+    const z = this.camera.position.z;
+    const fov = (edgeFactor * this.camera.fov / 2) * (Math.PI / 180);
+    const cameraAr = this.camera.aspect;
+
+    // Calculate frustum dimensions at the plane's distance
+    const frustumHeight = 2 * z * Math.tan(fov);
+    const frustumWidth = frustumHeight * cameraAr;
+
+    // Calculate camera boundaries
+    const xMax = (this.planeSize.x - frustumWidth) / 2;
+    const yMax = (this.planeSize.y - frustumHeight) / 2;
+
+    // Restrict zoom camera position
+    const zMaxFromHeight = this.planeSize.y / (2 * Math.tan(fov));
+    const zMaxFromWidth = this.planeSize.x / (2 * Math.tan(fov) * cameraAr);
+    const zMax = Math.min(zMaxFromHeight, zMaxFromWidth)
+
+    this.camera.position.x = THREE.MathUtils.clamp(this.camera.position.x, -xMax, xMax);
+    this.camera.position.y = THREE.MathUtils.clamp(this.camera.position.y, -yMax, yMax);
+    this.camera.position.z = THREE.MathUtils.clamp(this.camera.position.z, this.minZoomCameraPosZ, zMax);
   }
 }

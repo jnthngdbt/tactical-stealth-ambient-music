@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import PixelatedNoiseMaterial from "./PixelatedNoiseMaterial.ts";
-import * as CONST from './constants.ts';
 import { ControlsManager } from "./controls/ControlsManager.ts";
 import { CameraJitter } from "./controls/CameraJitter.ts";
 
@@ -34,6 +33,8 @@ const img = "jnthngdbt_Heavily_defended_desert_concrete_multi-building_bunke_4e4
 
 const host = "https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/binoculars/high-res/";
 
+var planeSize = new THREE.Vector2(0, 0);
+
 // Load an Image Texture
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load(host + img, (texture) => {
@@ -42,7 +43,8 @@ textureLoader.load(host + img, (texture) => {
 
   // Create a plane geometry and material
   const aspectRatio = texture.image.width / texture.image.height;
-  const geometry = new THREE.PlaneGeometry(10, 10 / aspectRatio);
+  planeSize.set(10, 10 / aspectRatio);
+  const geometry = new THREE.PlaneGeometry(planeSize.x, planeSize.y);
   const plane = new THREE.Mesh(geometry, PixelatedNoiseMaterial);
 
   scene.add(plane);
@@ -55,7 +57,7 @@ composer.addPass(new RenderPass(scene, camera));
 // Add post-processing passes... (if necessary)
 
 // Pan and zoom controls
-var navControls = new ControlsManager(window, camera, renderer, composer);
+var navControls = new ControlsManager(window, camera, renderer, composer, planeSize);
 
 // Camera jitter for a shaky effect
 var cameraJitter = new CameraJitter(camera, 0.0015, 2);
