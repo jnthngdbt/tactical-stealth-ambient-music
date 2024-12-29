@@ -1,0 +1,27 @@
+.util-button {
+	width: 30px;
+	height: 30px;
+	background-color: #333333;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	opacity: 0.1;
+}
+
+.util-button:hover {
+	opacity: 0.5;
+}
+
+.util-button i {
+	color: white;
+	font-size: 16px;
+}
+
+.util-button-container {
+	position: fixed; /* Sticks to the viewport */
+	bottom: 2%; 
+	left: 50%; /* Centers horizontally based on the container's width */
+	transform: translateX(-50%); /* Adjusts for the container's width */
+	display: flex;
+	gap: 20px; /* Fixed spacing between buttons */
+}
