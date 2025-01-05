@@ -4,6 +4,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
+import { HorizontalBlurShader, ShaderPass, VerticalBlurShader } from 'three/examples/jsm/Addons.js';
 
 document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
@@ -50,7 +51,7 @@ for (let i = 0; i < 100; i++) {
 const ambientLight = new THREE.AmbientLight(0x4444444);
 scene.add(ambientLight);
 
-const spotlight = new THREE.PointLight(0x88ff88);
+const spotlight = new THREE.PointLight(0xcccccc);
 spotlight.intensity = 100.5;
 spotlight.decay = 1;
 scene.add(spotlight);
@@ -121,6 +122,13 @@ document.addEventListener('keyup', (event) => {
 const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
+
+
+const blurVerticalShader = new ShaderPass(VerticalBlurShader);
+composer.addPass(blurVerticalShader);
+
+const blurHorizontalShader = new ShaderPass(HorizontalBlurShader);
+composer.addPass(blurHorizontalShader);
 
 // Film grain pass
 const filmPass = new FilmPass(2, false);
