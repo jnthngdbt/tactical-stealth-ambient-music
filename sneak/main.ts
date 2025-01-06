@@ -20,7 +20,7 @@ document.body.appendChild(renderer.domElement);
 
 // Add a plane as the ground
 const planeGeometry = new THREE.PlaneGeometry(500, 500);
-const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xaaaaaa });
+const planeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 plane.rotation.x = -Math.PI / 2;
 plane.receiveShadow = true;
@@ -33,7 +33,7 @@ for (let i = 0; i < 100; i++) {
     THREE.MathUtils.randFloat(30, 60),
     THREE.MathUtils.randFloat(30, 60)
   );
-  const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff }); //{ color: Math.random() * 0xffffff }
+  const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc }); //{ color: Math.random() * 0xffffff }
   const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
   building.position.set(
     THREE.MathUtils.randFloat(-250, 250),
@@ -51,9 +51,9 @@ for (let i = 0; i < 100; i++) {
 const ambientLight = new THREE.AmbientLight(0x4444444);
 scene.add(ambientLight);
 
-const spotlight = new THREE.PointLight(0xcccccc);
-spotlight.intensity = 100.5;
-spotlight.decay = 1;
+const spotlight = new THREE.PointLight(0x888888);
+spotlight.intensity = 10.5;
+spotlight.decay = 0.7;
 scene.add(spotlight);
 
 // Attach spotlight to the camera
