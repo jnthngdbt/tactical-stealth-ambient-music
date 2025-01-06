@@ -13,9 +13,9 @@ const scene = new THREE.Scene();
 
 // #region CAMERA 
 
-const minPositionY = 5;
+const minStand = 5;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, minPositionY, 0);
+camera.position.set(0, minStand, 0);
 
 // #region RENDERER
 
@@ -78,7 +78,6 @@ scene.add(camera);
 // #region CONTROLS
 
 const velocity = new THREE.Vector3();
-const speed = 50;
 
 // FPS Controls
 const controls = new PointerLockControls(camera, renderer.domElement);
@@ -130,6 +129,24 @@ document.addEventListener('keyup', (event) => {
   }
 });
 
+// #region WHEEL SPEED
+
+const scrollZoomSpeedFactor = 0.01;
+const wheelFactor = 5;
+const minSpeed = 10;
+const standFactor = 0.1;
+const speedFactor = 5;
+var wheel = 0;
+var stand = minStand;
+var speed = minSpeed;
+
+window.addEventListener("wheel", (event) => {
+	wheel = Math.max(wheel - event.deltaY * scrollZoomSpeedFactor, 0);
+	stand = minStand + standFactor * wheel * wheelFactor;
+	speed = Math.max(speedFactor * wheel * wheelFactor, minSpeed);
+	console.log(speed);
+});
+
 // #region POSTPROCESSING
 
 // Postprocessing setup
@@ -167,7 +184,7 @@ function animate() {
     controls.moveRight(velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 		
-		camera.position.y = minPositionY + 20 * velocity.length() / speed;
+		camera.position.y = stand;
   }
 
   composer.render(delta);
