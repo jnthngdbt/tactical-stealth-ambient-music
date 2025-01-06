@@ -64,7 +64,7 @@ scene.add(camera);
 // #region CONTROLS
 
 const velocity = new THREE.Vector3();
-const speed = 100;
+const speed = 50;
 
 // FPS Controls
 const controls = new PointerLockControls(camera, renderer.domElement);
