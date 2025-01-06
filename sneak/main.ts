@@ -4,10 +4,27 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
-import { HorizontalBlurShader, ShaderPass, VerticalBlurShader } from 'three/examples/jsm/Addons.js';
+import { HorizontalBlurShader, OBJLoader, ShaderPass, VerticalBlurShader } from 'three/examples/jsm/Addons.js';
 
 document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
+
+// #region WORLD SCENE
+const rangeBuffer = 200;
+const buildingRangeX = 250;
+const buildingRangeZ = 250;
+const environmentRangeX = rangeBuffer + buildingRangeX;
+const environmentRangeZ = rangeBuffer + buildingRangeZ;
+const groundRangeX = rangeBuffer + environmentRangeX;
+const groundRangeZ = rangeBuffer + environmentRangeZ;
+
+const buildingMinSize = 10;
+const buildingMaxSize = 30;
+const buildingMinHeight = 4;
+const buildingMaxHeight = 20;
+
+const spawnPositionX = buildingRangeX / 2 + 25;
+const spawnPositionZ = buildingRangeZ / 2 + 25;
 
 const scene = new THREE.Scene();
 
@@ -30,7 +47,6 @@ window.addEventListener("wheel", (event) => {
 	intensity = THREE.MathUtils.clamp(intensity - event.deltaY * scrollZoomSpeedFactor, minIntensity, maxIntensity);
 	stand = computeStand();
 	speed = computeSpeed();
-	console.log(`wheel: ${intensity}, stand: ${stand}, speed: ${speed}`);
 });
 
 function computeSpeed() {
@@ -44,7 +60,8 @@ function computeStand() {
 // #region CAMERA 
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, stand, 0);
+camera.position.set(spawnPositionX, stand, spawnPositionZ);
+camera.lookAt(0, 0, 0);
 
 // #region RENDERER
 
@@ -61,10 +78,17 @@ const colorDoorHandle = 0x888888;
 const colorGoggleLight = 0xcccccc;
 const colorSpotlight = 0xffffff;
 const colorAmbientLight = 0x444444;
+const colorTree = 0x555555;
+
+const textureLoader = new THREE.TextureLoader();
+const bumpMap = textureLoader.load('noise-perlin-wiki.png');
+bumpMap.wrapS = THREE.RepeatWrapping; // Allow tiling
+bumpMap.wrapT = THREE.RepeatWrapping;
+bumpMap.repeat.set(40, 40); // Adjust tiling scale
 
 // Add a plane as the ground
-const planeGeometry = new THREE.PlaneGeometry(500, 500);
-const planeMaterial = new THREE.MeshPhongMaterial({ color: colorFloor });
+const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ);
+const planeMaterial = new THREE.MeshStandardMaterial({ color: colorFloor, bumpMap: bumpMap, bumpScale: 0.5 });
 
 const floor = new THREE.Mesh(planeGeometry, planeMaterial);
 floor.rotation.x = -Math.PI / 2;
@@ -81,20 +105,18 @@ if (addCeiling) {
 }
 
 // Add buildings (cubes)
-const rangeX = 200;
-const rangeZ = 200;
 for (let i = 0; i < 100; i++) {
   const buildingGeometry = new THREE.BoxGeometry(
-    THREE.MathUtils.randFloat(10, 60),
-    THREE.MathUtils.randFloat(4, 20),
-    THREE.MathUtils.randFloat(10, 60)
+    THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize),
+    THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight),
+    THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize)
   );
   const buildingMaterial = new THREE.MeshPhongMaterial({ color: colorBuilding, side: THREE.FrontSide }); //{ color: Math.random() * 0xffffff }
   const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
   building.position.set(
-    THREE.MathUtils.randFloat(-rangeX, rangeX),
+    THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2),
     buildingGeometry.parameters.height / 2,
-    THREE.MathUtils.randFloat(-rangeZ, rangeZ)
+    THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2)
   );
   building.castShadow = true;
   building.receiveShadow = true;
@@ -127,6 +149,32 @@ for (let i = 0; i < 100; i++) {
 
   scene.add(building);
 }
+
+const objLoader = new OBJLoader();
+
+// Add bitrunk palm trees
+objLoader.load('palm-0.obj', (objectBase) => {
+	for (let j = 0; j < 800; j++) {
+		const object = objectBase.clone();
+
+		const scale = THREE.MathUtils.randFloat(0.005, 0.02);
+
+		object.scale.set(scale, scale, scale);
+		object.position.set(
+			THREE.MathUtils.randFloat(-environmentRangeX/2, environmentRangeX/2),
+			0,
+			THREE.MathUtils.randFloat(-environmentRangeZ/2, environmentRangeZ/2)
+		);
+		object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
+		object.traverse((child) => {
+			if (child instanceof THREE.Mesh) {
+					child.material = new THREE.MeshStandardMaterial({ color: colorTree }); // Dark gray
+			}
+		});
+
+		scene.add(object);
+	}
+});
 
 // #region LIGHTING
 
