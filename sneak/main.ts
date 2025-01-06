@@ -135,19 +135,21 @@ document.addEventListener('keyup', (event) => {
 
 // #region WHEEL SPEED
 
-const scrollZoomSpeedFactor = 0.01;
-const wheelFactor = 3;
-const minSpeed = 10;
+const scrollZoomSpeedFactor = 0.01; // using mouse, event.deltaY is 100 or -100
+const wheelFactor = 3.0;
+const minWheel = 0.0;
+const maxWheel = 10.0;
+const minSpeed = 10.0;
 const standFactor = 0.1;
-const speedFactor = 5;
-var wheel = 0; // incremental wheel value
+const speedFactor = 5.0;
+var wheel = 0.0; // incremental wheel value
 var stand = minStand; // camera stand height
 var speed = minSpeed; // camera movement speed
 
 window.addEventListener("wheel", (event) => {
-	wheel = Math.max(wheel - event.deltaY * scrollZoomSpeedFactor, 0);
+	wheel = THREE.MathUtils.clamp(wheel - event.deltaY * scrollZoomSpeedFactor, minWheel, maxWheel);
 	stand = minStand + standFactor * wheel * wheelFactor;
-	speed = Math.max(speedFactor * wheel * wheelFactor, minSpeed);
+	speed = minSpeed + speedFactor * wheel * wheelFactor;
 });
 
 // #region POSTPROCESSING
