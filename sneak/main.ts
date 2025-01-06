@@ -34,10 +34,14 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-const ceiling = floor.clone();
-ceiling.rotation.x = Math.PI / 2;
-ceiling.position.y = 20;
-scene.add(ceiling);
+const addCeiling = false;
+var ceiling = new THREE.Mesh();
+if (addCeiling) {
+	ceiling = floor.clone();
+	ceiling.rotation.x = Math.PI / 2;
+	ceiling.position.y = 20;
+	scene.add(ceiling);
+}
 
 // Add buildings (cubes)
 const rangeX = 200;

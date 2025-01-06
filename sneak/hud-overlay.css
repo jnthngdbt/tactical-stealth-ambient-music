@@ -15,7 +15,7 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	border-radius: 25%;
+	border-radius: 5%;
 	background: transparent;
 }
 
@@ -38,4 +38,4 @@
 .alpha-6 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); }	
 .alpha-7 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7); }	
 .alpha-8 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8); }	
-.alpha-9 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.9); }	
+.alpha-9 { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.9); }

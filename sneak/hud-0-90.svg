@@ -1,6 +1,6 @@
 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" fill="none" preserveAspectRatio="none">  
   <!-- Main HUD Rectangle -->
-  <rect x="5%" y="5%" width="90%" height="90%" rx="25%" ry="25%" stroke="#555555" stroke-width="1" fill="none" />
+  <rect x="5%" y="5%" width="90%" height="90%" rx="5%" ry="5%" stroke="#555555" stroke-width="1" fill="none" />
   
   <!-- Grid Lines -->
   <line x1="10%" y1="35%" x2="90%" y2="35%" stroke="#555555" stroke-opacity="0.6" stroke-width="1" />
