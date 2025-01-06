@@ -132,19 +132,18 @@ document.addEventListener('keyup', (event) => {
 // #region WHEEL SPEED
 
 const scrollZoomSpeedFactor = 0.01;
-const wheelFactor = 5;
+const wheelFactor = 3;
 const minSpeed = 10;
 const standFactor = 0.1;
 const speedFactor = 5;
-var wheel = 0;
-var stand = minStand;
-var speed = minSpeed;
+var wheel = 0; // incremental wheel value
+var stand = minStand; // camera stand height
+var speed = minSpeed; // camera movement speed
 
 window.addEventListener("wheel", (event) => {
 	wheel = Math.max(wheel - event.deltaY * scrollZoomSpeedFactor, 0);
 	stand = minStand + standFactor * wheel * wheelFactor;
 	speed = Math.max(speedFactor * wheel * wheelFactor, minSpeed);
-	console.log(speed);
 });
 
 // #region POSTPROCESSING
@@ -166,8 +165,10 @@ composer.addPass(filmPass);
 
 // #region ANIMATION
 
-// Animation loop
 const clock = new THREE.Clock();
+var step = 0; // incremental movement for camera bobbing
+
+// Animation loop
 function animate() {
   requestAnimationFrame(animate);
 
@@ -184,7 +185,10 @@ function animate() {
     controls.moveRight(velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 		
-		camera.position.y = stand;
+		step += 0.03 * velocity.length();
+
+		const bobbing = Math.sin(step) * 0.2;
+		camera.position.y = stand + bobbing;
   }
 
   composer.render(delta);
