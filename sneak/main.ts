@@ -13,7 +13,7 @@ const scene = new THREE.Scene();
 
 // #region CAMERA 
 
-const minStand = 5;
+const minStand = 0.8;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, minStand, 0);
 
@@ -45,14 +45,14 @@ if (addCeiling) {
 
 // Add buildings (cubes)
 const rangeX = 200;
-const rangeZ = 400;
+const rangeZ = 200;
 for (let i = 0; i < 100; i++) {
   const buildingGeometry = new THREE.BoxGeometry(
-    THREE.MathUtils.randFloat(30, 60),
-    THREE.MathUtils.randFloat(30, 60),
-    THREE.MathUtils.randFloat(30, 60)
+    THREE.MathUtils.randFloat(10, 60),
+    THREE.MathUtils.randFloat(4, 20),
+    THREE.MathUtils.randFloat(10, 60)
   );
-  const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc }); //{ color: Math.random() * 0xffffff }
+  const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc, side: THREE.FrontSide }); //{ color: Math.random() * 0xffffff }
   const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
   building.position.set(
     THREE.MathUtils.randFloat(-rangeX, rangeX),
@@ -136,20 +136,22 @@ document.addEventListener('keyup', (event) => {
 // #region WHEEL SPEED
 
 const scrollZoomSpeedFactor = 0.01; // using mouse, event.deltaY is 100 or -100
-const wheelFactor = 3.0;
 const minWheel = 0.0;
 const maxWheel = 10.0;
-const minSpeed = 10.0;
-const standFactor = 0.1;
-const speedFactor = 5.0;
+const minSpeed = 2.0;
+const maxSpeed = 30.0;
+const maxStand = 1.8;
+const standFactor = (maxStand - minStand) / (maxWheel - minWheel);
+const speedFactor = (maxSpeed - minSpeed) / (maxWheel - minWheel);
 var wheel = 0.0; // incremental wheel value
 var stand = minStand; // camera stand height
 var speed = minSpeed; // camera movement speed
 
 window.addEventListener("wheel", (event) => {
 	wheel = THREE.MathUtils.clamp(wheel - event.deltaY * scrollZoomSpeedFactor, minWheel, maxWheel);
-	stand = minStand + standFactor * wheel * wheelFactor;
-	speed = minSpeed + speedFactor * wheel * wheelFactor;
+	stand = minStand + standFactor * wheel;
+	speed = minSpeed + speedFactor * wheel;
+	console.log(`wheel: ${wheel}, stand: ${stand}, speed: ${speed}`);
 });
 
 // #region POSTPROCESSING
@@ -172,6 +174,9 @@ composer.addPass(filmPass);
 // #region ANIMATION
 
 const clock = new THREE.Clock();
+
+const bobbingSpeed = 0.18;
+const bobbingAmplitude = 0.035;
 var step = 0; // incremental movement for camera bobbing
 
 // Animation loop
@@ -191,9 +196,9 @@ function animate() {
     controls.moveRight(velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 		
-		step += 0.03 * velocity.length();
+		step += bobbingSpeed * velocity.length();
 
-		const bobbing = Math.sin(step) * 0.2;
+		const bobbing = Math.sin(step) * bobbingAmplitude;
 		camera.position.y = stand + bobbing;
   }
 
