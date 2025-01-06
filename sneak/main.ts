@@ -9,24 +9,39 @@ import { HorizontalBlurShader, ShaderPass, VerticalBlurShader } from 'three/exam
 document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
 
-// Create scene, camera, and renderer
 const scene = new THREE.Scene();
+
+// #region CAMERA 
+
+const minPositionY = 5;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, minPositionY, 0);
+
+// #region RENDERER
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// #region SCENE OBJECTS
+// #region OBJECTS
 
 // Add a plane as the ground
 const planeGeometry = new THREE.PlaneGeometry(500, 500);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = -Math.PI / 2;
-plane.receiveShadow = true;
-scene.add(plane);
+
+const floor = new THREE.Mesh(planeGeometry, planeMaterial);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const ceiling = floor.clone();
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = 20;
+scene.add(ceiling);
 
 // Add buildings (cubes)
+const rangeX = 200;
+const rangeZ = 400;
 for (let i = 0; i < 100; i++) {
   const buildingGeometry = new THREE.BoxGeometry(
     THREE.MathUtils.randFloat(30, 60),
@@ -36,9 +51,9 @@ for (let i = 0; i < 100; i++) {
   const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc }); //{ color: Math.random() * 0xffffff }
   const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
   building.position.set(
-    THREE.MathUtils.randFloat(-250, 250),
+    THREE.MathUtils.randFloat(-rangeX, rangeX),
     buildingGeometry.parameters.height / 2,
-    THREE.MathUtils.randFloat(-250, 250)
+    THREE.MathUtils.randFloat(-rangeZ, rangeZ)
   );
   building.castShadow = true;
   building.receiveShadow = true;
@@ -57,7 +72,6 @@ spotlight.decay = 0.7;
 scene.add(spotlight);
 
 // Attach spotlight to the camera
-camera.position.set(0, 10, 0);
 camera.add(spotlight);
 scene.add(camera);
 
@@ -123,7 +137,6 @@ const composer = new EffectComposer(renderer);
 const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
 
-
 const blurVerticalShader = new ShaderPass(VerticalBlurShader);
 composer.addPass(blurVerticalShader);
 
@@ -154,7 +167,7 @@ function animate() {
     controls.moveRight(velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 		
-		camera.position.y = 5 + 0.2 * velocity.length();
+		camera.position.y = minPositionY + 20 * velocity.length() / speed;
   }
 
   composer.render(delta);
