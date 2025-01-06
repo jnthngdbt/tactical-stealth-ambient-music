@@ -1,4 +1,4 @@
-import{O as p,h as g,B as m,F as n,g as c,U as C,a as u,r as x,H as _,N as w,o as v,e as S}from"./three.module-DKLVStQ4.js";const b={name:"CopyShader",uniforms:{tDiffuse:{value:null},opacity:{value:1}},vertexShader:`
+import{O as p,h as g,B as m,r as n,g as c,U as C,a as u,s as x,H as _,N as w,o as v,e as S}from"./three.module-BLdKcLw8.js";const b={name:"CopyShader",uniforms:{tDiffuse:{value:null},opacity:{value:1}},vertexShader:`
 
 		varying vec2 vUv;
 
