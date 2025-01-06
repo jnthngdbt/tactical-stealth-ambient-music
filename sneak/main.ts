@@ -11,11 +11,40 @@ document.body.style.overflow = 'hidden';
 
 const scene = new THREE.Scene();
 
+// #region WHEEL INTENSITY
+
+const scrollZoomSpeedFactor = 0.01; // using mouse, event.deltaY is 100 or -100
+const minIntensity = 0.0;
+const maxIntensity = 10.0;
+const minSpeed = 2.0;
+const maxSpeed = 30.0;
+const minStand = 1.0;
+const maxStand = 1.0;
+const standFactor = (maxStand - minStand) / (maxIntensity - minIntensity);
+const speedFactor = (maxSpeed - minSpeed) / (maxIntensity - minIntensity);
+var intensity = 7.0; // incremental wheel value
+var stand = computeStand(); // camera stand height
+var speed = computeSpeed(); // camera movement speed
+
+window.addEventListener("wheel", (event) => {
+	intensity = THREE.MathUtils.clamp(intensity - event.deltaY * scrollZoomSpeedFactor, minIntensity, maxIntensity);
+	stand = computeStand();
+	speed = computeSpeed();
+	console.log(`wheel: ${intensity}, stand: ${stand}, speed: ${speed}`);
+});
+
+function computeSpeed() {
+	return minSpeed + speedFactor * intensity;
+}
+
+function computeStand() {
+	return minStand + standFactor * intensity;
+}
+
 // #region CAMERA 
 
-const minStand = 0.8;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, minStand, 0);
+camera.position.set(0, stand, 0);
 
 // #region RENDERER
 
@@ -25,9 +54,17 @@ document.body.appendChild(renderer.domElement);
 
 // #region OBJECTS
 
+const colorFloor = 0x888888;
+const colorBuilding = 0xcccccc;
+const colorDoor = 0xaaaaaa;
+const colorDoorHandle = 0x888888;
+const colorGoggleLight = 0xcccccc;
+const colorSpotlight = 0xffffff;
+const colorAmbientLight = 0x444444;
+
 // Add a plane as the ground
 const planeGeometry = new THREE.PlaneGeometry(500, 500);
-const planeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+const planeMaterial = new THREE.MeshPhongMaterial({ color: colorFloor });
 
 const floor = new THREE.Mesh(planeGeometry, planeMaterial);
 floor.rotation.x = -Math.PI / 2;
@@ -52,7 +89,7 @@ for (let i = 0; i < 100; i++) {
     THREE.MathUtils.randFloat(4, 20),
     THREE.MathUtils.randFloat(10, 60)
   );
-  const buildingMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc, side: THREE.FrontSide }); //{ color: Math.random() * 0xffffff }
+  const buildingMaterial = new THREE.MeshPhongMaterial({ color: colorBuilding, side: THREE.FrontSide }); //{ color: Math.random() * 0xffffff }
   const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
   building.position.set(
     THREE.MathUtils.randFloat(-rangeX, rangeX),
@@ -61,16 +98,43 @@ for (let i = 0; i < 100; i++) {
   );
   building.castShadow = true;
   building.receiveShadow = true;
+
+	// Add doors
+	for (let j = 0; j < 4; j++) {
+		const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+		const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
+		const door = new THREE.Mesh(doorGeometry, doorMaterial);
+		const facing =(j < 2 ? 1 : -1)
+		door.position.set(
+			THREE.MathUtils.randFloat(-buildingGeometry.parameters.width / 2, buildingGeometry.parameters.width / 2),
+			doorGeometry.parameters.height / 2 - buildingGeometry.parameters.height / 2 ,
+			facing * buildingGeometry.parameters.depth / 2 - facing * 0.9 * 0.5 * doorGeometry.parameters.depth
+		);
+
+		// Add door handle
+		const handleGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.2);
+		const handleMaterial = new THREE.MeshPhongMaterial({ color: colorDoorHandle });
+		const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+		handle.position.set(
+			-0.3 * doorGeometry.parameters.width, // left-right
+			-0.05 * doorGeometry.parameters.height,
+			0.0,
+		);
+
+		door.add(handle);
+		building.add(door);
+	}
+
   scene.add(building);
 }
 
 // #region LIGHTING
 
 // Add light sources
-const ambientLight = new THREE.AmbientLight(0x4444444);
+const ambientLight = new THREE.AmbientLight(colorAmbientLight);
 scene.add(ambientLight);
 
-const spotlight = new THREE.PointLight(0x888888);
+const spotlight = new THREE.PointLight(colorGoggleLight);
 spotlight.intensity = 10.5;
 spotlight.decay = 0.7;
 scene.add(spotlight);
@@ -131,27 +195,6 @@ document.addEventListener('keyup', (event) => {
       movement.right = false;
       break;
   }
-});
-
-// #region WHEEL SPEED
-
-const scrollZoomSpeedFactor = 0.01; // using mouse, event.deltaY is 100 or -100
-const minWheel = 0.0;
-const maxWheel = 10.0;
-const minSpeed = 2.0;
-const maxSpeed = 30.0;
-const maxStand = 1.8;
-const standFactor = (maxStand - minStand) / (maxWheel - minWheel);
-const speedFactor = (maxSpeed - minSpeed) / (maxWheel - minWheel);
-var wheel = 0.0; // incremental wheel value
-var stand = minStand; // camera stand height
-var speed = minSpeed; // camera movement speed
-
-window.addEventListener("wheel", (event) => {
-	wheel = THREE.MathUtils.clamp(wheel - event.deltaY * scrollZoomSpeedFactor, minWheel, maxWheel);
-	stand = minStand + standFactor * wheel;
-	speed = minSpeed + speedFactor * wheel;
-	console.log(`wheel: ${wheel}, stand: ${stand}, speed: ${speed}`);
 });
 
 // #region POSTPROCESSING
