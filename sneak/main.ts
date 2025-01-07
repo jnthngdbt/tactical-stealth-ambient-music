@@ -216,7 +216,7 @@ const objLoader = new OBJLoader();
 
 // Add bitrunk palm trees
 objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
-	for (let j = 0; j < 800; j++) {
+	for (let j = 0; j < 1000; j++) {
 		const object = objectBase.clone();
 
 		const scale = THREE.MathUtils.randFloat(0.005, 0.02);
@@ -341,9 +341,11 @@ const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
 
 const blurVerticalShader = new ShaderPass(VerticalBlurShader);
+blurVerticalShader.uniforms.v.value = 1.2 / window.innerHeight;
 composer.addPass(blurVerticalShader);
 
 const blurHorizontalShader = new ShaderPass(HorizontalBlurShader);
+blurHorizontalShader.uniforms.h.value = 1.2 / window.innerWidth;
 composer.addPass(blurHorizontalShader);
 
 // Film grain pass
