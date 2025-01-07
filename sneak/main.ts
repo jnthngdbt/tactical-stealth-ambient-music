@@ -24,7 +24,7 @@ const buildingMaxSize = 30;
 const buildingMinHeight = 4;
 const buildingMaxHeight = 20;
 
-const buidingLightmapIntensity = 2.0;
+const buidingLightmapIntensity = 5.0;
 
 const spawnPositionX = buildingRangeX / 2 + 25;
 const spawnPositionZ = buildingRangeZ / 2 + 25;
@@ -75,12 +75,11 @@ document.body.appendChild(renderer.domElement);
 // #region OBJECTS
 
 const colorFloor = 0x888888;
-const colorBuilding = 0xcccccc;
-const colorDoor = 0xaaaaaa;
+const colorBuilding = 0x888888;
+const colorDoor = 0x666666;
 const colorDoorHandle = 0x888888;
 const colorGoggleLight = 0xcccccc;
-const colorSpotlight = 0xffffff;
-const colorAmbientLight = 0x444444;
+const colorAmbientLight = 0xcccccc;
 const colorTree = 0x555555;
 
 const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
