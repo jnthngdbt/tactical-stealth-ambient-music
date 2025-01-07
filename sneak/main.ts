@@ -81,6 +81,7 @@ const colorDoorHandle = 0x888888;
 const colorGoggleLight = 0xcccccc;
 const colorAmbientLight = 0xcccccc;
 const colorTree = 0x555555;
+const colorSoldier = 0xffffff;
 
 const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
 
@@ -218,6 +219,32 @@ objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
 		object.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
 					child.material = new THREE.MeshStandardMaterial({ color: colorTree }); // Dark gray
+			}
+		});
+
+		scene.add(object);
+	}
+});
+
+// #region SOLDIERS
+
+objLoader.load(assetsPath + "models/soldier-0.obj", (objectBase) => {
+	for (let j = 0; j < 70; j++) {
+		const object = objectBase.clone();
+
+		const scale = 0.028;
+		object.scale.set(scale, scale, scale);
+
+		object.position.set(
+			THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2),
+			0,
+			THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2)
+		);
+
+		object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
+		object.traverse((child) => {
+			if (child instanceof THREE.Mesh) {
+					child.material = new THREE.MeshStandardMaterial({ color: colorSoldier }); // Dark gray
 			}
 		});
 
