@@ -72,7 +72,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// #region OBJECTS
+// #region COLORS
 
 const colorFloor = 0x888888;
 const colorBuilding = 0x888888;
@@ -85,6 +85,8 @@ const colorSoldier = 0xffffff;
 
 const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
 
+// #region GROUND
+
 const textureLoader = new THREE.TextureLoader();
 const bumpMap = textureLoader.load(assetsPath + "textures/noise-perlin-0.png");
 bumpMap.wrapS = THREE.RepeatWrapping; // Allow tiling
@@ -92,9 +94,19 @@ bumpMap.wrapT = THREE.RepeatWrapping;
 bumpMap.repeat.set(40, 40); // Adjust tiling scale
 
 // Add a plane as the ground
-const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ);
+const terrainResolution = 512;
+const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ, terrainResolution, terrainResolution);
 const planeMaterial = new THREE.MeshStandardMaterial({ 
 	color: colorFloor, bumpMap: bumpMap, bumpScale: 0.7 });
+
+// Apply noise to vertices
+const position = planeGeometry.attributes.position;
+for (let i = 0; i < position.count; i++) {
+  const z = Math.random() * 0.1; // Add ruggedness
+  position.setZ(i, z);
+}
+position.needsUpdate = true; // Notify Three.js of changes
+planeGeometry.computeVertexNormals(); // Recompute normals for lighting
 
 const floor = new THREE.Mesh(planeGeometry, planeMaterial);
 floor.rotation.x = -Math.PI / 2;
