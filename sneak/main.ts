@@ -92,7 +92,8 @@ bumpMap.repeat.set(40, 40); // Adjust tiling scale
 
 // Add a plane as the ground
 const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ);
-const planeMaterial = new THREE.MeshStandardMaterial({ color: colorFloor, bumpMap: bumpMap, bumpScale: 0.7 });
+const planeMaterial = new THREE.MeshStandardMaterial({ 
+	color: colorFloor, bumpMap: bumpMap, bumpScale: 0.7 });
 
 const floor = new THREE.Mesh(planeGeometry, planeMaterial);
 floor.rotation.x = -Math.PI / 2;
@@ -121,7 +122,7 @@ textureLoader.load(assetsPath + "textures/spotlight-0.png", (lightMapBase) => {
 		const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
 
 		const material = height > 12 ? 
-			createFaceMaterials(depth, width, lightMapBase) : 
+			createLightedFaceMaterials(depth, width, lightMapBase) : 
 			new THREE.MeshPhongMaterial({ color: colorBuilding});
 
 		const building = new THREE.Mesh(buildingGeometry, material);
@@ -165,7 +166,7 @@ textureLoader.load(assetsPath + "textures/spotlight-0.png", (lightMapBase) => {
 });
 
 // Create materials for each face of the building
-function createFaceMaterials(depth: number, width: number, lightMapBase: THREE.Texture) {
+function createLightedFaceMaterials(depth: number, width: number, lightMapBase: THREE.Texture) {
 	const lightMaps = [
 		lightMapBase.clone(), // Front
 		lightMapBase.clone(), // Back
