@@ -10,6 +10,7 @@ document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
 
 // #region WORLD SCENE
+
 const rangeBuffer = 200;
 const buildingRangeX = 250;
 const buildingRangeZ = 250;
@@ -80,15 +81,17 @@ const colorSpotlight = 0xffffff;
 const colorAmbientLight = 0x444444;
 const colorTree = 0x555555;
 
+const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
+
 const textureLoader = new THREE.TextureLoader();
-const bumpMap = textureLoader.load('noise-perlin-wiki.png');
+const bumpMap = textureLoader.load(assetsPath + "textures/noise-perlin-0.png");
 bumpMap.wrapS = THREE.RepeatWrapping; // Allow tiling
 bumpMap.wrapT = THREE.RepeatWrapping;
 bumpMap.repeat.set(40, 40); // Adjust tiling scale
 
 // Add a plane as the ground
 const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ);
-const planeMaterial = new THREE.MeshStandardMaterial({ color: colorFloor, bumpMap: bumpMap, bumpScale: 0.5 });
+const planeMaterial = new THREE.MeshStandardMaterial({ color: colorFloor, bumpMap: bumpMap, bumpScale: 0.7 });
 
 const floor = new THREE.Mesh(planeGeometry, planeMaterial);
 floor.rotation.x = -Math.PI / 2;
@@ -153,7 +156,7 @@ for (let i = 0; i < 100; i++) {
 const objLoader = new OBJLoader();
 
 // Add bitrunk palm trees
-objLoader.load('palm-0.obj', (objectBase) => {
+objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
 	for (let j = 0; j < 800; j++) {
 		const object = objectBase.clone();
 
