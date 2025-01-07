@@ -24,6 +24,8 @@ const buildingMaxSize = 30;
 const buildingMinHeight = 4;
 const buildingMaxHeight = 20;
 
+const buidingLightmapIntensity = 2.0;
+
 const spawnPositionX = buildingRangeX / 2 + 25;
 const spawnPositionZ = buildingRangeZ / 2 + 25;
 
@@ -107,51 +109,95 @@ if (addCeiling) {
 	scene.add(ceiling);
 }
 
-// Add buildings (cubes)
-for (let i = 0; i < 100; i++) {
-  const buildingGeometry = new THREE.BoxGeometry(
-    THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize),
-    THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight),
-    THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize)
-  );
-  const buildingMaterial = new THREE.MeshPhongMaterial({ color: colorBuilding, side: THREE.FrontSide }); //{ color: Math.random() * 0xffffff }
-  const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
-  building.position.set(
-    THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2),
-    buildingGeometry.parameters.height / 2,
-    THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2)
-  );
-  building.castShadow = true;
-  building.receiveShadow = true;
+// #region BUILDINGS
 
-	// Add doors
-	for (let j = 0; j < 4; j++) {
-		const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
-		const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
-		const door = new THREE.Mesh(doorGeometry, doorMaterial);
-		const facing =(j < 2 ? 1 : -1)
-		door.position.set(
-			THREE.MathUtils.randFloat(-buildingGeometry.parameters.width / 2, buildingGeometry.parameters.width / 2),
-			doorGeometry.parameters.height / 2 - buildingGeometry.parameters.height / 2 ,
-			facing * buildingGeometry.parameters.depth / 2 - facing * 0.9 * 0.5 * doorGeometry.parameters.depth
-		);
+const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
+textureLoader.load(assetsPath + "textures/spotlight-0.png", (lightMapBase) => {
+	// Add buildings (cubes)
+	for (let i = 0; i < 100; i++) {
+		const width = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
+		const height = THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight);
+		const depth = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
 
-		// Add door handle
-		const handleGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.2);
-		const handleMaterial = new THREE.MeshPhongMaterial({ color: colorDoorHandle });
-		const handle = new THREE.Mesh(handleGeometry, handleMaterial);
-		handle.position.set(
-			-0.3 * doorGeometry.parameters.width, // left-right
-			-0.05 * doorGeometry.parameters.height,
-			0.0,
-		);
+		const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
 
-		door.add(handle);
-		building.add(door);
+		const material = height > 12 ? 
+			createFaceMaterials(depth, width, lightMapBase) : 
+			new THREE.MeshPhongMaterial({ color: colorBuilding});
+
+		const building = new THREE.Mesh(buildingGeometry, material);
+
+		const position = { 
+			x: THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2), 
+			y: buildingGeometry.parameters.height / 2, 
+			z: THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2) 
+		};
+		building.position.set(position.x, position.y, position.z);
+		building.castShadow = true;
+		building.receiveShadow = true;
+
+		// Add doors
+		for (let j = 0; j < 4; j++) {
+			const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+			const door = new THREE.Mesh(doorGeometry, doorMaterial);
+			const facing =(j < 2 ? 1 : -1)
+			door.position.set(
+				THREE.MathUtils.randFloat(-buildingGeometry.parameters.width / 2, buildingGeometry.parameters.width / 2),
+				doorGeometry.parameters.height / 2 - buildingGeometry.parameters.height / 2 ,
+				facing * buildingGeometry.parameters.depth / 2 - facing * 0.9 * 0.5 * doorGeometry.parameters.depth
+			);
+
+			// Add door handle
+			const handleGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.2);
+			const handleMaterial = new THREE.MeshPhongMaterial({ color: colorDoorHandle });
+			const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+			handle.position.set(
+				-0.3 * doorGeometry.parameters.width, // left-right
+				-0.05 * doorGeometry.parameters.height,
+				0.0,
+			);
+
+			door.add(handle);
+			building.add(door);
+		}
+
+		scene.add(building);
 	}
+});
 
-  scene.add(building);
+// Create materials for each face of the building
+function createFaceMaterials(depth: number, width: number, lightMapBase: THREE.Texture) {
+	const lightMaps = [
+		lightMapBase.clone(), // Front
+		lightMapBase.clone(), // Back
+		null, // Top
+		null, // Bottom
+		lightMapBase.clone(), // Left
+		lightMapBase.clone(), // Right
+	];
+
+	// Set wrapping for each texture
+	lightMaps.forEach((lightMap, index) => {
+		if (lightMap === null) return;
+		lightMap.wrapS = THREE.RepeatWrapping;
+		lightMap.wrapT = THREE.RepeatWrapping;
+		const repeat = index === 0 || index === 1 ? // Front or back
+			Math.floor(depth / 10) : 
+			Math.floor(width / 10);
+		lightMap.repeat.set(repeat, 1);
+	});
+
+	// Create materials for each face
+	const materials = lightMaps.map((lightMap) => 
+		new THREE.MeshPhongMaterial({ 
+			color: colorBuilding, 
+			lightMap: lightMap, 
+			lightMapIntensity: buidingLightmapIntensity }));
+
+	return materials;
 }
+
+// #region TREES
 
 const objLoader = new OBJLoader();
 
@@ -292,6 +338,7 @@ function animate() {
 		
 		step += bobbingSpeed * velocity.length();
 
+		// TODO: use clock delta to be invariant to render speed
 		const bobbing = Math.sin(step) * bobbingAmplitude;
 		camera.position.y = stand + bobbing;
   }
