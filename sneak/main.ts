@@ -13,12 +13,16 @@ document.body.style.overflow = 'hidden';
 
 const useInfrared = true;
 const infraredGain = 1.0;
+const infraredTint = 0xffffff;
+
+const blurFactor = 1.2; // suggested: 1.2 for grayscale, 1.5 for green
 
 function convertToInfrared(originalHex: number): THREE.Color {
 	const original = new THREE.Color(originalHex);
 	if (!useInfrared) return new THREE.Color(original);
 	const luminescence = infraredGain * (original.r * 0.3 + original.g * 0.59 + original.b * 0.11);
-	return new THREE.Color(luminescence, luminescence, luminescence);
+	const tint = new THREE.Color(infraredTint);
+	return new THREE.Color(luminescence * tint.r, luminescence * tint.g, luminescence * tint.b);
 }
 
 const colorSky = convertToInfrared(0x01010E);
@@ -353,11 +357,11 @@ const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
 
 const blurVerticalShader = new ShaderPass(VerticalBlurShader);
-blurVerticalShader.uniforms.v.value = 1.2 / window.innerHeight;
+blurVerticalShader.uniforms.v.value = blurFactor / window.innerHeight;
 composer.addPass(blurVerticalShader);
 
 const blurHorizontalShader = new ShaderPass(HorizontalBlurShader);
-blurHorizontalShader.uniforms.h.value = 1.2 / window.innerWidth;
+blurHorizontalShader.uniforms.h.value = blurFactor / window.innerWidth;
 composer.addPass(blurHorizontalShader);
 
 // Film grain pass
