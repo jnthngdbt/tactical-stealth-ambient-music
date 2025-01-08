@@ -15,7 +15,9 @@ const useInfrared = true;
 const infraredGain = 1.0;
 const infraredTint = 0xffffff;
 
-const blurFactor = 1.2; // suggested: 1.2 for grayscale, 1.5 for green
+var isInfraredProjectorOn = true;
+
+const blurAmount = 1.0 / 1000.0; // default is 1.0 / 512.0
 
 function convertToInfrared(originalHex: number): THREE.Color {
 	const original = new THREE.Color(originalHex);
@@ -51,7 +53,7 @@ const buildingMaxSize = 30;
 const buildingMinHeight = 4;
 const buildingMaxHeight = 20;
 
-const buidingLightmapIntensity = 5.0;
+const buidingLightmapIntensity = 20.0;
 
 const spawnPositionX = buildingRangeX / 2 + 25;
 const spawnPositionZ = buildingRangeZ / 2 + 25;
@@ -96,12 +98,16 @@ camera.lookAt(0, 0, 0);
 
 // #region LIGHTING
 
+function getInfraredProjectorIntensity(): number {
+	return isInfraredProjectorOn ? 10.5 : 0;
+}
+
 // Add light sources
 const ambientLight = new THREE.AmbientLight(colorAmbientLight);
 scene.add(ambientLight);
 
 const spotlight = new THREE.PointLight(colorGoggleLight);
-spotlight.intensity = 10.5;
+spotlight.intensity = getInfraredProjectorIntensity();
 spotlight.decay = 0.5;
 scene.add(spotlight);
 
@@ -329,6 +335,10 @@ document.addEventListener('keydown', (event) => {
     case 'KeyD':
       movement.right = true;
       break;
+		case 'KeyC':
+			spotlight.intensity = getInfraredProjectorIntensity();
+			isInfraredProjectorOn = !isInfraredProjectorOn;
+			break;
   }
 });
 
@@ -357,11 +367,13 @@ const renderPass = new RenderPass(scene, camera);
 composer.addPass(renderPass);
 
 const blurVerticalShader = new ShaderPass(VerticalBlurShader);
-blurVerticalShader.uniforms.v.value = blurFactor / window.innerHeight;
-composer.addPass(blurVerticalShader);
-
 const blurHorizontalShader = new ShaderPass(HorizontalBlurShader);
-blurHorizontalShader.uniforms.h.value = blurFactor / window.innerWidth;
+
+// Using constant blur factor, otherwise less blur on bigger screens.
+blurVerticalShader.uniforms.v.value = blurAmount;
+blurHorizontalShader.uniforms.h.value = blurAmount;
+
+composer.addPass(blurVerticalShader);
 composer.addPass(blurHorizontalShader);
 
 // Film grain pass
