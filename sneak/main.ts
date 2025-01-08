@@ -9,6 +9,29 @@ import { HorizontalBlurShader, OBJLoader, ShaderPass, VerticalBlurShader } from 
 document.body.style.margin = '0';
 document.body.style.overflow = 'hidden';
 
+// #region COLORS
+
+const useInfrared = true;
+const infraredGain = 1.0;
+
+function convertToInfrared(originalHex: number): THREE.Color {
+	const original = new THREE.Color(originalHex);
+	if (!useInfrared) return new THREE.Color(original);
+	const luminescence = infraredGain * (original.r * 0.3 + original.g * 0.59 + original.b * 0.11);
+	return new THREE.Color(luminescence, luminescence, luminescence);
+}
+
+const colorSky = convertToInfrared(0x01010E);
+const colorGround = convertToInfrared(0x88837D);
+const colorBuilding = convertToInfrared(0x8A8782);
+const colorDoor = convertToInfrared(0x6A6762);
+const colorDoorHandle = convertToInfrared(0x888888);
+const colorGoggleLight = convertToInfrared(0xcccccc);
+const colorAmbientLight = convertToInfrared(0x333333);
+const colorTree = convertToInfrared(0x555555);
+
+const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
+
 // #region WORLD SCENE
 
 const rangeBuffer = 200;
@@ -30,6 +53,7 @@ const spawnPositionX = buildingRangeX / 2 + 25;
 const spawnPositionZ = buildingRangeZ / 2 + 25;
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(colorSky);
 
 // #region WHEEL INTENSITY
 
@@ -66,24 +90,26 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.set(spawnPositionX, stand, spawnPositionZ);
 camera.lookAt(0, 0, 0);
 
+// #region LIGHTING
+
+// Add light sources
+const ambientLight = new THREE.AmbientLight(colorAmbientLight);
+scene.add(ambientLight);
+
+const spotlight = new THREE.PointLight(colorGoggleLight);
+spotlight.intensity = 10.5;
+spotlight.decay = 0.5;
+scene.add(spotlight);
+
+// Attach spotlight to the camera
+camera.add(spotlight);
+scene.add(camera);
+
 // #region RENDERER
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
-// #region COLORS
-
-const colorFloor = 0x888888;
-const colorBuilding = 0x888888;
-const colorDoor = 0x666666;
-const colorDoorHandle = 0x888888;
-const colorGoggleLight = 0xcccccc;
-const colorAmbientLight = 0xcccccc;
-const colorTree = 0x555555;
-const colorSoldier = 0xffffff;
-
-const assetsPath = 'https://raw.githubusercontent.com/jnthngdbt/tactical-steath-ambient-music-assets/refs/heads/main/';
 
 // #region GROUND
 
@@ -97,7 +123,7 @@ bumpMap.repeat.set(40, 40); // Adjust tiling scale
 const terrainResolution = 512;
 const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ, terrainResolution, terrainResolution);
 const planeMaterial = new THREE.MeshStandardMaterial({ 
-	color: colorFloor, bumpMap: bumpMap, bumpScale: 0.7 });
+	color: colorGround, bumpMap: bumpMap, bumpScale: 0.7 });
 
 // Apply noise to vertices
 const position = planeGeometry.attributes.position;
@@ -125,7 +151,8 @@ if (addCeiling) {
 // #region BUILDINGS
 
 const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
-textureLoader.load(assetsPath + "textures/spotlight-0.png", (lightMapBase) => {
+const lightName = useInfrared ? "spotlight-0.png" : "spotlight-warm-0.png";
+textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 	// Add buildings (cubes)
 	for (let i = 0; i < 100; i++) {
 		const width = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
@@ -136,7 +163,7 @@ textureLoader.load(assetsPath + "textures/spotlight-0.png", (lightMapBase) => {
 
 		const material = height > 12 ? 
 			createLightedFaceMaterials(depth, width, lightMapBase) : 
-			new THREE.MeshPhongMaterial({ color: colorBuilding});
+			new THREE.MeshPhongMaterial({ color: colorBuilding });
 
 		const building = new THREE.Mesh(buildingGeometry, material);
 
@@ -216,27 +243,27 @@ const objLoader = new OBJLoader();
 
 // Add bitrunk palm trees
 objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
-	for (let j = 0; j < 1000; j++) {
-		const object = objectBase.clone();
+		for (let j = 0; j < 1000; j++) {
+			const object = objectBase.clone();
 
-		const scale = THREE.MathUtils.randFloat(0.005, 0.02);
+			const scale = THREE.MathUtils.randFloat(0.005, 0.02);
 
-		object.scale.set(scale, scale, scale);
-		object.position.set(
-			THREE.MathUtils.randFloat(-environmentRangeX/2, environmentRangeX/2),
-			0,
-			THREE.MathUtils.randFloat(-environmentRangeZ/2, environmentRangeZ/2)
-		);
-		object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
+			object.scale.set(scale, scale, scale);
+			object.position.set(
+				THREE.MathUtils.randFloat(-environmentRangeX/2, environmentRangeX/2),
+				0,
+				THREE.MathUtils.randFloat(-environmentRangeZ/2, environmentRangeZ/2)
+			);
+			object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
 		object.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
 					child.material = new THREE.MeshStandardMaterial({ color: colorTree }); // Dark gray
 			}
 		});
 
-		scene.add(object);
-	}
-});
+			scene.add(object);
+		}
+	});
 
 // #region SOLDIERS
 
@@ -256,28 +283,13 @@ objLoader.load(assetsPath + "models/soldier-0.obj", (objectBase) => {
 		object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
 		object.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
-					child.material = new THREE.MeshStandardMaterial({ color: colorSoldier }); // Dark gray
+					child.material = new THREE.MeshNormalMaterial();
 			}
 		});
 
 		scene.add(object);
 	}
 });
-
-// #region LIGHTING
-
-// Add light sources
-const ambientLight = new THREE.AmbientLight(colorAmbientLight);
-scene.add(ambientLight);
-
-const spotlight = new THREE.PointLight(colorGoggleLight);
-spotlight.intensity = 10.5;
-spotlight.decay = 0.7;
-scene.add(spotlight);
-
-// Attach spotlight to the camera
-camera.add(spotlight);
-scene.add(camera);
 
 // #region CONTROLS
 
