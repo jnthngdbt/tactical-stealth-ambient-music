@@ -160,59 +160,83 @@ if (addCeiling) {
 
 // #region BUILDINGS
 
+const objLoader = new OBJLoader();
+
 const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
 const lightName = useInfrared ? "spotlight-0.png" : "spotlight-warm-0.png";
 textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
-	// Add buildings (cubes)
-	for (let i = 0; i < 100; i++) {
-		const width = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
-		const height = THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight);
-		const depth = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
+	objLoader.load(assetsPath + "models/soldier-0.obj", (soldierBase) => {
+		// Add buildings (cubes)
+		for (let i = 0; i < 100; i++) {
+			const width = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
+			const height = THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight);
+			const depth = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
 
-		const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+			const isBigBuilding = height > 12;
 
-		const material = height > 12 ? 
-			createLightedFaceMaterials(depth, width, lightMapBase) : 
-			new THREE.MeshPhongMaterial({ color: colorBuilding });
+			const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
 
-		const building = new THREE.Mesh(buildingGeometry, material);
+			const material = isBigBuilding ? 
+				createLightedFaceMaterials(depth, width, lightMapBase) : 
+				new THREE.MeshPhongMaterial({ color: colorBuilding });
 
-		const position = { 
-			x: THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2), 
-			y: buildingGeometry.parameters.height / 2, 
-			z: THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2) 
-		};
-		building.position.set(position.x, position.y, position.z);
-		building.castShadow = true;
-		building.receiveShadow = true;
+			const building = new THREE.Mesh(buildingGeometry, material);
 
-		// Add doors
-		for (let j = 0; j < 4; j++) {
-			const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
-			const door = new THREE.Mesh(doorGeometry, doorMaterial);
-			const facing =(j < 2 ? 1 : -1)
-			door.position.set(
-				THREE.MathUtils.randFloat(-buildingGeometry.parameters.width / 2, buildingGeometry.parameters.width / 2),
-				doorGeometry.parameters.height / 2 - buildingGeometry.parameters.height / 2 ,
-				facing * buildingGeometry.parameters.depth / 2 - facing * 0.9 * 0.5 * doorGeometry.parameters.depth
-			);
+			const position = { 
+				x: THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2), 
+				y: buildingGeometry.parameters.height / 2, 
+				z: THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2) 
+			};
+			building.position.set(position.x, position.y, position.z);
+			building.castShadow = true;
+			building.receiveShadow = true;
 
-			// Add door handle
-			const handleGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.2);
-			const handleMaterial = new THREE.MeshPhongMaterial({ color: colorDoorHandle });
-			const handle = new THREE.Mesh(handleGeometry, handleMaterial);
-			handle.position.set(
-				-0.3 * doorGeometry.parameters.width, // left-right
-				-0.05 * doorGeometry.parameters.height,
-				0.0,
-			);
+			// #region DOORS
+			for (let j = 0; j < 2; j++) {
+				const doorGeometry = new THREE.BoxGeometry(1, 2, 0.1);
+				const door = new THREE.Mesh(doorGeometry, doorMaterial);
+				const facing = (j < 1 ? 1 : -1)
+				const doorRangeOnWall = 0.9 * buildingGeometry.parameters.width / 2;
+				door.position.set(
+					THREE.MathUtils.randFloat(-doorRangeOnWall, doorRangeOnWall),
+					doorGeometry.parameters.height / 2 - buildingGeometry.parameters.height / 2 ,
+					facing * buildingGeometry.parameters.depth / 2 - facing * 0.9 * 0.5 * doorGeometry.parameters.depth
+				);
 
-			door.add(handle);
-			building.add(door);
+				// Add door handle
+				const handleGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.2);
+				const handleMaterial = new THREE.MeshPhongMaterial({ color: colorDoorHandle });
+				const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+				handle.position.set(
+					-0.3 * doorGeometry.parameters.width, // left-right
+					-0.05 * doorGeometry.parameters.height,
+					0.0,
+				);
+
+				// #region SOLDIER
+				
+				// Add soldier for big building door
+				if (isBigBuilding) {
+					const soldier = soldierBase.clone();
+					const scale = 0.028;
+					soldier.scale.set(scale, scale, facing * scale);
+					soldier.position.set(1, -doorGeometry.parameters.height / 2, facing * 0.2);
+			
+					soldier.traverse((child) => {
+						if (child instanceof THREE.Mesh) {
+								child.material = new THREE.MeshNormalMaterial();
+						}
+					});
+					door.add(soldier);
+				}
+
+				door.add(handle);
+				building.add(door);
+			}
+
+			scene.add(building);
 		}
-
-		scene.add(building);
-	}
+	});
 });
 
 // Create materials for each face of the building
@@ -249,8 +273,6 @@ function createLightedFaceMaterials(depth: number, width: number, lightMapBase: 
 
 // #region TREES
 
-const objLoader = new OBJLoader();
-
 // Add bitrunk palm trees
 objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
 		for (let j = 0; j < 1000; j++) {
@@ -274,32 +296,6 @@ objLoader.load(assetsPath + "models/palmtree-0.obj", (objectBase) => {
 			scene.add(object);
 		}
 	});
-
-// #region SOLDIERS
-
-objLoader.load(assetsPath + "models/soldier-0.obj", (objectBase) => {
-	for (let j = 0; j < 70; j++) {
-		const object = objectBase.clone();
-
-		const scale = 0.028;
-		object.scale.set(scale, scale, scale);
-
-		object.position.set(
-			THREE.MathUtils.randFloat(-buildingRangeX/2, buildingRangeX/2),
-			0,
-			THREE.MathUtils.randFloat(-buildingRangeZ/2, buildingRangeZ/2)
-		);
-
-		object.rotation.y = THREE.MathUtils.randFloat(0, 2 * Math.PI);
-		object.traverse((child) => {
-			if (child instanceof THREE.Mesh) {
-					child.material = new THREE.MeshNormalMaterial();
-			}
-		});
-
-		scene.add(object);
-	}
-});
 
 // #region CONTROLS
 
