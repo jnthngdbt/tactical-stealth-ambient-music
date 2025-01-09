@@ -303,8 +303,6 @@ objLoader.load(assetsPath + "models/soldier-0.obj", (objectBase) => {
 
 // #region CONTROLS
 
-const velocity = new THREE.Vector3();
-
 // FPS Controls
 const controls = new PointerLockControls(camera, renderer.domElement);
 document.addEventListener('click', () => {
@@ -383,6 +381,7 @@ composer.addPass(filmPass);
 // #region ANIMATION
 
 const clock = new THREE.Clock();
+const velocity = new THREE.Vector3();
 
 const bobbingSpeed = 8;
 const bobbingAmplitudeVertical = 0.035;
@@ -402,11 +401,18 @@ function animate() {
     if (movement.left) velocity.x -= speed * delta;
     if (movement.right) velocity.x += speed * delta;
 
-    controls.moveRight(velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
+		// Normalize the movement vector if moving diagonally
+		const movementEpsilon = 0.1;
+		const isDiagMove = 
+			Math.abs(velocity.x) > movementEpsilon && 
+			Math.abs(velocity.z) > movementEpsilon;
+		const diagMoveNormalization = isDiagMove ? 0.707 : 1.0;
+
+    controls.moveRight(velocity.x * diagMoveNormalization * delta);
+    controls.moveForward(-velocity.z * diagMoveNormalization * delta);
 		
 		// Bobbing effect
-		step += delta * bobbingSpeed * velocity.length();
+		step += delta * bobbingSpeed * velocity.length() * diagMoveNormalization;
 		const bobbingVertical = Math.sin(step) * bobbingAmplitudeVertical;
 		camera.position.y = stand + bobbingVertical;
   }
