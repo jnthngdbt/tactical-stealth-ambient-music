@@ -384,8 +384,8 @@ composer.addPass(filmPass);
 
 const clock = new THREE.Clock();
 
-const bobbingSpeed = 0.18;
-const bobbingAmplitude = 0.035;
+const bobbingSpeed = 8;
+const bobbingAmplitudeVertical = 0.035;
 var step = 0; // incremental movement for camera bobbing
 
 // Animation loop
@@ -405,11 +405,10 @@ function animate() {
     controls.moveRight(velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 		
-		step += bobbingSpeed * velocity.length();
-
-		// TODO: use clock delta to be invariant to render speed
-		const bobbing = Math.sin(step) * bobbingAmplitude;
-		camera.position.y = stand + bobbing;
+		// Bobbing effect
+		step += delta * bobbingSpeed * velocity.length();
+		const bobbingVertical = Math.sin(step) * bobbingAmplitudeVertical;
+		camera.position.y = stand + bobbingVertical;
   }
 
   composer.render(delta);
