@@ -47,6 +47,8 @@ const environmentRangeX = rangeBuffer + buildingRangeX;
 const environmentRangeZ = rangeBuffer + buildingRangeZ;
 const groundRangeX = rangeBuffer + environmentRangeX;
 const groundRangeZ = rangeBuffer + environmentRangeZ;
+const soldierRangeX = 0.5 * buildingRangeX;
+const soldierRangeZ = 0.5 * buildingRangeZ;
 
 const buildingMinSize = 10;
 const buildingMaxSize = 30;
@@ -214,9 +216,12 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 				);
 
 				// #region SOLDIER
-				
+
 				// Add soldier for big building door
-				if (isBigBuilding) {
+				const isSoldierRange = 
+					Math.abs(building.position.x) < soldierRangeX / 2 && 
+					Math.abs(building.position.z) < soldierRangeZ / 2;
+				if (isBigBuilding && isSoldierRange) {
 					const soldier = soldierBase.clone();
 					const scale = 0.028;
 					soldier.scale.set(scale, scale, facing * scale);
