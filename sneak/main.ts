@@ -86,7 +86,10 @@ const maxStand = 1.0;
 const standFactor = (maxStand - minStand) / (maxIntensity - minIntensity);
 const speedFactor = (maxSpeed - minSpeed) / (maxIntensity - minIntensity);
 
-// Target heart.
+// Targets.
+const targetDensityPerFloor = 2 / 100; // 1 / m^2 
+const targetMinDistFromWallFactor = 0.15;
+const heartRadius = 0.015;
 const heartBeatSignal = [
 	1, 1.8, 1.2, 0.8, // Beat
 	1, 1.2, 1.4, 1.2, // Beat
@@ -159,24 +162,31 @@ const targetMaterial = new THREE.ShaderMaterial({
 	vertexShader: `
 		varying vec3 vNormal;
 		varying vec3 vViewDir;
+		varying float cameraDistance;
 
 		void main() {
-				vNormal = normalize(normalMatrix * normal);
-				vViewDir = normalize(-vec3(modelViewMatrix * vec4(position, 1.0)));
+			vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+			cameraDistance = distance(cameraPosition, worldPosition.xyz);
 
-				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			vNormal = normalize(normalMatrix * normal);
+			vViewDir = normalize(-vec3(modelViewMatrix * vec4(position, 1.0)));
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 		}
 		`,
 	fragmentShader: `
 		varying vec3 vNormal;
 		varying vec3 vViewDir;
+		varying float cameraDistance;
 
 		void main() {
 			float dotProduct = abs(dot(vNormal, vViewDir));
-			float intensity = pow(dotProduct, 2.0);
+			float intensity = pow(dotProduct, 1.0);
 			vec3 color = vec3(1.0, 0.0, 0.0);
 
-			gl_FragColor = vec4(color, intensity);
+			float distanceFade = clamp(1.0 - cameraDistance / 30.0, 0.0, 1.0);
+
+			gl_FragColor = vec4(color, intensity * distanceFade);
 		}
 		`,
 	depthTest: false,
@@ -267,24 +277,36 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 				0.0,
 			);
 
-			// #region TARGETS
-
-			// Add target for big building door			
-			const isTargetRange = 
-				Math.abs(building.position.x) < targetRangeX / 2 && 
-				Math.abs(building.position.z) < targetRangeZ / 2;
-			if (isTargetRange) {
-				const targetGeometry = new THREE.SphereGeometry(0.01, 32, 32);
-				const target = new THREE.Mesh(targetGeometry, targetMaterial);
-				target.renderOrder = 1; // render last to be always visible
-				target.position.set(1, 0, -facing * 1.5);
-				target.userData = { heartSpeed: THREE.MathUtils.randFloat(1.0, 1.4) };
-				door.add(target);
-				targets.push(target);
-			}
-
 			door.add(handle);
 			building.add(door);
+		}
+
+		// #region TARGETS
+
+		const isTargetRange = 
+			Math.abs(building.position.x) < targetRangeX / 2 && 
+			Math.abs(building.position.z) < targetRangeZ / 2;
+
+		if (isTargetRange) {
+			const floorArea = width * depth;
+			// Not randomizing the number of targets, because overlapping buildings creates randomness.
+			const numTargets = Math.floor(floorArea * targetDensityPerFloor);
+			for (let j = 0; j < numTargets; j++) {
+				const targetGeometry = new THREE.SphereGeometry(heartRadius);
+				const target = new THREE.Mesh(targetGeometry, targetMaterial);
+				target.renderOrder = 1; // render last to be always visible
+				target.userData = { heartSpeed: THREE.MathUtils.randFloat(1.0, 1.4) };
+
+				const buffer = 1.0 - targetMinDistFromWallFactor;
+				target.position.set(
+					THREE.MathUtils.randFloat(-(buffer * width) / 2, (buffer * width) / 2), 
+					THREE.MathUtils.randFloat(0.6 - height/2, 1.4 - height/2),
+					THREE.MathUtils.randFloat(-(buffer * depth) / 2, (buffer * depth) / 2) 
+				);
+
+				building.add(target);
+				targets.push(target);
+			}
 		}
 
 		scene.add(building);
@@ -423,7 +445,7 @@ composer.addPass(blurVerticalShader);
 composer.addPass(blurHorizontalShader);
 
 // Film grain pass
-const filmPass = new FilmPass(2, false);
+const filmPass = new FilmPass(1.8, false);
 composer.addPass(filmPass);
 
 // #region ANIMATION
