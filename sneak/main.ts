@@ -49,8 +49,6 @@ const environmentRangeX = rangeBuffer + buildingRangeX;
 const environmentRangeZ = rangeBuffer + buildingRangeZ;
 const groundRangeX = rangeBuffer + environmentRangeX;
 const groundRangeZ = rangeBuffer + environmentRangeZ;
-const targetRangeX = 1.2 * buildingRangeX;
-const targetRangeZ = 1.2 * buildingRangeZ;
 
 // Terrain.
 const terrainResolution = 512;
@@ -61,8 +59,8 @@ const buildingMaxSize = 30;
 const buildingMinHeight = 4;
 const buildingMaxHeight = 20;
 const buidingLightmapIntensity = 20.0;
-const bigBuildingHeightThreshold = 12;
 const buildingLightsSpacing = 10.0; // m
+const buildingFloorHeightThreshold = 5.0;
 
 // Player.
 const spawnPositionX = buildingRangeX / 2 + 25;
@@ -184,7 +182,7 @@ const targetMaterial = new THREE.ShaderMaterial({
 			float intensity = pow(dotProduct, 1.0);
 			vec3 color = vec3(1.0, 0.0, 0.0);
 
-			float distanceFade = clamp(1.0 - cameraDistance / 30.0, 0.0, 1.0);
+			float distanceFade = clamp(1.0 - cameraDistance / 20.0, 0.0, 1.0);
 
 			gl_FragColor = vec4(color, intensity * distanceFade);
 		}
@@ -236,7 +234,9 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 		const height = THREE.MathUtils.randFloat(buildingMinHeight, buildingMaxHeight);
 		const depth = THREE.MathUtils.randFloat(buildingMinSize, buildingMaxSize);
 
-		const isBigBuilding = height > bigBuildingHeightThreshold;
+		const numFloors = Math.max(Math.floor(height / buildingFloorHeightThreshold), 1);
+		const floorHeight = height / numFloors;
+		const isBigBuilding = numFloors > 2;
 
 		const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
 
@@ -283,14 +283,12 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 
 		// #region TARGETS
 
-		const isTargetRange = 
-			Math.abs(building.position.x) < targetRangeX / 2 && 
-			Math.abs(building.position.z) < targetRangeZ / 2;
+		const floorArea = width * depth;
+		// Not randomizing the number of targets, because overlapping buildings creates randomness.
+		const numTargets = Math.floor(floorArea * targetDensityPerFloor);
 
-		if (isTargetRange) {
-			const floorArea = width * depth;
-			// Not randomizing the number of targets, because overlapping buildings creates randomness.
-			const numTargets = Math.floor(floorArea * targetDensityPerFloor);
+		for (let floorIdx = 0; floorIdx < numFloors; floorIdx++) {
+			const floorLevel = floorIdx * floorHeight;
 			for (let j = 0; j < numTargets; j++) {
 				const targetGeometry = new THREE.SphereGeometry(heartRadius);
 				const target = new THREE.Mesh(targetGeometry, targetMaterial);
@@ -300,7 +298,7 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 				const buffer = 1.0 - targetMinDistFromWallFactor;
 				target.position.set(
 					THREE.MathUtils.randFloat(-(buffer * width) / 2, (buffer * width) / 2), 
-					THREE.MathUtils.randFloat(0.6 - height/2, 1.4 - height/2),
+					THREE.MathUtils.randFloat(floorLevel + 0.6 - height/2, floorLevel + 1.4 - height/2),
 					THREE.MathUtils.randFloat(-(buffer * depth) / 2, (buffer * depth) / 2) 
 				);
 
