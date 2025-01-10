@@ -88,12 +88,11 @@ const speedFactor = (maxSpeed - minSpeed) / (maxIntensity - minIntensity);
 
 // Target heart.
 const heartBeatSignal = [
-	1, 1.5, 1.2, 1, 0.8, 1, // Beat
-	1, 1, 1,                 // Rest
-	1.2, 1.5, 1.2, 1, 0.8, 1, // Beat
-	1, 1, 1                  // Rest
+	1, 1.8, 1.2, 0.8, // Beat
+	1, 1.2, 1.4, 1.2, // Beat
+	1, 1, 1, 1, 1, 1, 1              // Rest
 ];
-const heartBeatDuration = 2; // Total duration for one cycle in seconds
+const heartBeatDuration = 1.0; // Total duration for one cycle in seconds
 const heartBeatSamplesPerSecond = heartBeatSignal.length / heartBeatDuration;
 
 // #region SCENE
@@ -196,6 +195,7 @@ var targets: THREE.Mesh[] = [];
 
 const doorMaterial = new THREE.MeshPhongMaterial({ color: colorDoor });
 const lightName = useInfrared ? "spotlight-0.png" : "spotlight-warm-0.png";
+
 textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 	// Add buildings (cubes)
 	for (let i = 0; i < 100; i++) {
@@ -256,7 +256,7 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 				const target = new THREE.Mesh(targetGeometry, targetMaterial);
 				target.renderOrder = 1; // render last to be always visible
 				target.position.set(1, 0, -facing * 1.5);
-				target.userData = { heartSpeed: THREE.MathUtils.randFloat(1.0, 1.5) };
+				target.userData = { heartSpeed: THREE.MathUtils.randFloat(1.0, 1.4) };
 				door.add(target);
 				targets.push(target);
 			}
