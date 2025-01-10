@@ -460,8 +460,8 @@ function animate() {
   const delta = clock.getDelta();
 	
   if (controls.isLocked) {
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
+    velocity.x -= velocity.x * 15.0 * delta; // sideways
+    velocity.z -= velocity.z * 10.0 * delta; // forward-backward
 
     if (movement.forward) velocity.z -= speed * delta;
     if (movement.backward) velocity.z += speed * delta;
@@ -488,7 +488,7 @@ function animate() {
 	targets.forEach((target) => {
 		const heartTime = clock.elapsedTime * heartBeatSamplesPerSecond * target.userData.heartSpeed;
 		const sampleIndex = Math.floor(heartTime) % heartBeatSignal.length;
-		const scale = 10 * (heartBeatSignal[sampleIndex] - 0.3);
+		const scale = 10 * (heartBeatSignal[sampleIndex] - 0.6);
 		target.scale.set(scale, scale, scale);
 	});
 
