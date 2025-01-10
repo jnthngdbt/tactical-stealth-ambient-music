@@ -151,6 +151,38 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// #region SHADERS
+
+// Shader material
+
+const targetMaterial = new THREE.ShaderMaterial({
+	vertexShader: `
+		varying vec3 vNormal;
+		varying vec3 vViewDir;
+
+		void main() {
+				vNormal = normalize(normalMatrix * normal);
+				vViewDir = normalize(-vec3(modelViewMatrix * vec4(position, 1.0)));
+
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
+		`,
+	fragmentShader: `
+		varying vec3 vNormal;
+		varying vec3 vViewDir;
+
+		void main() {
+			float dotProduct = abs(dot(vNormal, vViewDir));
+			float intensity = pow(dotProduct, 2.0);
+			vec3 color = vec3(1.0, 0.0, 0.0);
+
+			gl_FragColor = vec4(color, intensity);
+		}
+		`,
+	depthTest: false,
+	transparent: true,
+});
+
 // #region GROUND
 
 const textureLoader = new THREE.TextureLoader();
@@ -160,32 +192,23 @@ bumpMap.wrapT = THREE.RepeatWrapping;
 bumpMap.repeat.set(40, 40); // Adjust tiling scale
 
 // Add a plane as the ground
-const planeGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ, terrainResolution, terrainResolution);
-const planeMaterial = new THREE.MeshStandardMaterial({ 
+const groundGeometry = new THREE.PlaneGeometry(groundRangeX, groundRangeZ, terrainResolution, terrainResolution);
+const groundMaterial = new THREE.MeshStandardMaterial({ 
 	color: colorGround, bumpMap: bumpMap, bumpScale: 0.7 });
 
 // Apply noise to vertices
-const position = planeGeometry.attributes.position;
+const position = groundGeometry.attributes.position;
 for (let i = 0; i < position.count; i++) {
   const z = Math.random() * 0.1; // Add ruggedness
   position.setZ(i, z);
 }
 position.needsUpdate = true; // Notify Three.js of changes
-planeGeometry.computeVertexNormals(); // Recompute normals for lighting
+groundGeometry.computeVertexNormals(); // Recompute normals for lighting
 
-const floor = new THREE.Mesh(planeGeometry, planeMaterial);
-floor.rotation.x = -Math.PI / 2;
-floor.receiveShadow = true;
-scene.add(floor);
-
-const addCeiling = false;
-var ceiling = new THREE.Mesh();
-if (addCeiling) {
-	ceiling = floor.clone();
-	ceiling.rotation.x = Math.PI / 2;
-	ceiling.position.y = 20;
-	scene.add(ceiling);
-}
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
 
 // #region BUILDINGS
 
@@ -252,7 +275,6 @@ textureLoader.load(assetsPath + "textures/" + lightName, (lightMapBase) => {
 				Math.abs(building.position.z) < targetRangeZ / 2;
 			if (isTargetRange) {
 				const targetGeometry = new THREE.SphereGeometry(0.01, 32, 32);
-				const targetMaterial = new THREE.MeshBasicMaterial({ color: colorTarget, depthTest: false });
 				const target = new THREE.Mesh(targetGeometry, targetMaterial);
 				target.renderOrder = 1; // render last to be always visible
 				target.position.set(1, 0, -facing * 1.5);
@@ -440,15 +462,15 @@ function animate() {
 		step += delta * bobbingSpeed * velocity.length() * diagMoveNormalization;
 		const bobbingVertical = Math.sin(step) * bobbingAmplitudeVertical;
 		camera.position.y = stand + bobbingVertical;
-
-		// Targets hearts
-		targets.forEach((target) => {
-			const heartTime = clock.elapsedTime * heartBeatSamplesPerSecond * target.userData.heartSpeed;
-			const sampleIndex = Math.floor(heartTime) % heartBeatSignal.length;
-			const scale = 10 * (heartBeatSignal[sampleIndex] - 0.7);
-			target.scale.set(scale, scale, scale);
-		});
-  }
+	}
+	
+	// Targets hearts
+	targets.forEach((target) => {
+		const heartTime = clock.elapsedTime * heartBeatSamplesPerSecond * target.userData.heartSpeed;
+		const sampleIndex = Math.floor(heartTime) % heartBeatSignal.length;
+		const scale = 10 * (heartBeatSignal[sampleIndex] - 0.3);
+		target.scale.set(scale, scale, scale);
+	});
 
   composer.render(delta);
 }
