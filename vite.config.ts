@@ -8,6 +8,7 @@ export default {
         planning: 'planning/index.html',
         binoculars: 'binoculars/index.html',
         sneak: 'sneak/index.html',
+        battlefield: 'battlefield/index.html',
       },
     },
   },
