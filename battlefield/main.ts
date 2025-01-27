@@ -207,7 +207,7 @@ function createSmoke(speed: number) {
 			u_color: { value: new THREE.Color(0xcccccc) },
 			u_minHeight: { value: -canyonDepth },
 			u_maxHeight: { value: 10.0 },
-			u_texture: { value: new THREE.TextureLoader().load("smoke1.png") }, // open game art
+			u_texture: { value: new THREE.TextureLoader().load(assetsPath + 'textures/smoke1.png') }, // open game art
 		},
 		vertexShader: `
       varying float v_height;
