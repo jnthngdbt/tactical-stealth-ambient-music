@@ -1,6 +1,8 @@
 # TSAM
 
-Visuals generator for [@TacticalStealthAmbientMusic](https://www.youtube.com/@TacticalStealthAmbientMusic).
+https://jnthngdbt.github.io/tactical-stealth-ambient-music/
+
+Visuals experiments for [@TacticalStealthAmbientMusic](https://www.youtube.com/@TacticalStealthAmbientMusic).
 
 # Installation
 
