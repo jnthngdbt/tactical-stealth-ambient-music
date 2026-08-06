@@ -1,0 +1,157 @@
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  color: #b7f3ea;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hud-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+.hud-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0px,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: rgba(183, 243, 234, 0.5);
+  border-style: solid;
+  border-width: 0;
+}
+.hud-corner.tl { top: 3%; left: 3%; border-top-width: 2px; border-left-width: 2px; }
+.hud-corner.tr { top: 3%; right: 3%; border-top-width: 2px; border-right-width: 2px; }
+.hud-corner.bl { bottom: 3%; left: 3%; border-bottom-width: 2px; border-left-width: 2px; }
+.hud-corner.br { bottom: 3%; right: 3%; border-bottom-width: 2px; border-right-width: 2px; }
+
+.hud-header {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.hud-callsign {
+  font-size: 12px;
+  opacity: 0.55;
+  letter-spacing: 0.3em;
+}
+
+.hud-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: 28px;
+  margin: 4px 0;
+  color: #d8fff8;
+  text-shadow: 0 0 12px rgba(53, 240, 208, 0.55);
+}
+
+.hud-subtitle {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.hud-objective-panel {
+  position: absolute;
+  left: 4%;
+  bottom: 9%;
+  width: min(360px, 32vw);
+  padding: 14px 16px;
+  border-left: 2px solid rgba(53, 240, 208, 0.6);
+  background: linear-gradient(90deg, rgba(5, 10, 10, 0.55), rgba(5, 10, 10, 0));
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.hud-objective-panel.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hud-objective-code {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.hud-objective-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: 20px;
+  margin: 4px 0 8px;
+  color: #7ffff0;
+}
+
+.hud-objective-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.hud-progress-track {
+  margin-top: 10px;
+  height: 2px;
+  background: rgba(183, 243, 234, 0.15);
+}
+
+.hud-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #35f0d0;
+  box-shadow: 0 0 8px rgba(53, 240, 208, 0.8);
+}
+
+.hud-footer {
+  position: absolute;
+  bottom: 4%;
+  right: 4%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hud-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.hud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(183, 243, 234, 0.6);
+  background: transparent;
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.hud-dot.active {
+  background: #35f0d0;
+  box-shadow: 0 0 8px rgba(53, 240, 208, 0.9);
+}
+
+.hud-dot.done {
+  background: rgba(53, 240, 208, 0.4);
+}
+
+.hud-counter {
+  font-size: 12px;
+  opacity: 0.75;
+}

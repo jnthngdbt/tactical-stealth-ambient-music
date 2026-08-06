@@ -1,0 +1,46 @@
+.util-button {
+  position: fixed;
+  bottom: 4%;
+  left: 4%;
+  width: 46px;
+  height: 46px;
+  background-color: rgba(10, 14, 16, 0.6);
+  border: 1px solid rgba(183, 243, 234, 0.4);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+  pointer-events: auto;
+}
+
+.util-button:hover { opacity: 0.9; }
+
+.util-button i {
+  color: #b7f3ea;
+  font-size: 15px;
+}
+
+.util-button.armed {
+  border-color: #ffb238;
+  animation: util-pulse 0.8s ease-in-out infinite;
+}
+
+.util-button.armed i { color: #ffb238; }
+
+.util-button.recording {
+  border-color: #ff4d4d;
+  opacity: 1;
+}
+
+.util-button.recording i {
+  color: #ff4d4d;
+  animation: util-pulse 1s ease-in-out infinite;
+}
+
+@keyframes util-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
