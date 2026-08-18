@@ -23,6 +23,7 @@ export class App {
 	private lastAnchor = new THREE.Vector3();
 	private anchorInitialized = false;
 	private lookAtTarget = new THREE.Vector3(0, 1.5, 0); // eases toward the operators' centroid
+	private resizeHandler = () => this.onResize();
 
 	constructor() {
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -78,7 +79,16 @@ export class App {
 		this.labelRenderer.domElement.style.zIndex = '1';
 		document.body.appendChild(this.labelRenderer.domElement);
 
-		window.addEventListener('resize', () => this.onResize());
+		window.addEventListener('resize', this.resizeHandler);
+	}
+
+	// Tears down the renderer/label-renderer DOM and listeners so another mode
+	// (see main.ts's mode toggle) can take over the page cleanly.
+	public dispose() {
+		window.removeEventListener('resize', this.resizeHandler);
+		this.renderer.domElement.remove();
+		this.labelRenderer.domElement.remove();
+		this.renderer.dispose();
 	}
 
 	private onResize() {

@@ -106,6 +106,84 @@
   opacity: 0.55;
 }
 
+/* Path editor mode (pathEditor.ts) — the only interactive part of the HUD,
+   so it opts back into pointer events despite #hud's pointer-events: none. */
+.hud-editor-panel {
+  position: absolute;
+  left: 4%;
+  bottom: 5%;
+  pointer-events: auto;
+}
+
+.hud-editor-title {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.hud-editor-operator {
+  font-size: 16px;
+  color: #7ffff0;
+  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
+}
+
+.hud-editor-count {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.hud-editor-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hud-editor-btn {
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: #b7f3ea;
+  background: rgba(10, 14, 16, 0.6);
+  border: 1px solid rgba(183, 243, 234, 0.4);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+  opacity: 0.75;
+}
+
+.hud-editor-btn:hover {
+  opacity: 1;
+  border-color: rgba(183, 243, 234, 0.8);
+}
+
+/* Always-visible switch between cinematic playback and the path editor
+   (outside #hud, like recordBtn, so it stays interactive in both modes). */
+.hud-mode-toggle {
+  position: fixed;
+  bottom: 4%;
+  right: 4%;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #b7f3ea;
+  background: rgba(10, 14, 16, 0.6);
+  border: 1px solid rgba(183, 243, 234, 0.4);
+  border-radius: 23px;
+  padding: 12px 20px;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+
+.hud-mode-toggle:hover {
+  opacity: 1;
+  border-color: rgba(183, 243, 234, 0.8);
+}
+
+
 /* Drone-feed style ID tag rendered via CSS2DObject, anchored to each operator */
 .operator-label {
   font-family: 'Share Tech Mono', monospace;

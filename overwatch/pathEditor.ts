@@ -1,0 +1,316 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
+import type { Checkpoint } from './objects/operator.ts';
+import { TRAJECTORIES, OPERATOR_NAMES } from './mission.ts';
+import * as CONST from './constants.ts';
+
+// Runs while any operator in mission.ts still has an incomplete path (see
+// PATHS_READY), or whenever the HUD mode toggle switches into path-editing
+// mode. A static, straight-down, full-brightness view — no camera drift, no
+// operator movement, no night grading — so terrain, trees and rooftops read
+// clearly enough to place checkpoints that avoid them. Click the ground to
+// add a checkpoint for the selected operator; the copy buttons below produce
+// ready-to-paste arrays for mission.ts's TRAJECTORIES. Returns a dispose()
+// function that tears this mode down so another mode can take over the page.
+export function runPathEditor(): () => void {
+	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+	renderer.setClearColor(CONST.BACKGROUND_COLOR);
+	document.body.appendChild(renderer.domElement);
+
+	const scene = new THREE.Scene();
+
+	const centroid = new THREE.Vector3();
+	// each operator's first checkpoint doubles as its spawn point; centre the
+	// initial view on whichever ones already exist (none yet is fine too —
+	// the camera just starts at the site origin until "Add" places one)
+	const spawnPoints = TRAJECTORIES.map((path) => path[0]).filter((cp): cp is Checkpoint => !!cp);
+	spawnPoints.forEach((sp) => centroid.add(enuToLocal(sp.east, sp.north, 0)));
+	centroid.divideScalar(Math.max(1, spawnPoints.length));
+
+	// Straight-down orthographic camera: an "up" vector parallel to the view
+	// direction is a classic OrbitControls gimbal-lock trap, so the camera
+	// points along -Y while "up" points along -Z instead of the default +Y.
+	const aspect = window.innerWidth / window.innerHeight;
+	const camera = new THREE.OrthographicCamera(
+		-CONST.EDIT_VIEW_HALF_SIZE * aspect,
+		CONST.EDIT_VIEW_HALF_SIZE * aspect,
+		CONST.EDIT_VIEW_HALF_SIZE,
+		-CONST.EDIT_VIEW_HALF_SIZE,
+		1,
+		4000,
+	);
+	camera.up.set(0, 0, -1);
+	camera.position.set(centroid.x, CONST.EDIT_CAMERA_HEIGHT, centroid.z);
+	camera.lookAt(centroid.x, 0, centroid.z);
+
+	const { tiles } = createTiles(camera, renderer, { dim: false });
+	scene.add(tiles.group);
+
+	const controls = new OrbitControls(camera, renderer.domElement);
+	controls.enableRotate = false; // locked top-down, no angle/animation
+	controls.screenSpacePanning = true;
+	controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+	controls.target.set(centroid.x, 0, centroid.z);
+	controls.minZoom = 0.2;
+	controls.maxZoom = 8;
+	renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+	function onResize() {
+		const newAspect = window.innerWidth / window.innerHeight;
+		camera.left = -CONST.EDIT_VIEW_HALF_SIZE * newAspect;
+		camera.right = CONST.EDIT_VIEW_HALF_SIZE * newAspect;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+	}
+	window.addEventListener('resize', onResize);
+
+	// Working copy of each operator's path, seeded from mission.ts so a
+	// partially-built config can be resumed and extended.
+	const paths: Checkpoint[][] = TRAJECTORIES.map((path) => path.map((cp) => ({ ...cp })));
+	// Editor-only callsigns, kept in sync with `paths` as operators are added/deleted.
+	const names: string[] = [...OPERATOR_NAMES];
+	let selected = 0;
+
+	function pickAvailableName(): string {
+		const used = new Set(names);
+		const candidates = CONST.OPERATOR_NAME_POOL.filter((n) => !used.has(n));
+		const pool = candidates.length ? candidates : CONST.OPERATOR_NAME_POOL;
+		return pool[Math.floor(Math.random() * pool.length)];
+	}
+
+	const operatorColor = (index: number) => (index % 2 === 0 ? CONST.OPERATOR_COLOR : CONST.OPERATOR_ALT_COLOR);
+	const operatorGroups: THREE.Group[] = paths.map(() => {
+		const group = new THREE.Group();
+		scene.add(group);
+		return group;
+	});
+
+	function disposeGroup(group: THREE.Group) {
+		group.children.forEach((child) => {
+			const mesh = child as THREE.Mesh | THREE.Line;
+			mesh.geometry?.dispose();
+			(mesh.material as THREE.Material)?.dispose?.();
+		});
+		group.clear();
+	}
+
+	// Redraws one operator's markers (a disc per checkpoint, the first
+	// bigger) and connecting line, dimmed unless it's the selected operator.
+	function rebuildOperatorVisual(index: number) {
+		const group = operatorGroups[index];
+		disposeGroup(group);
+
+		const path = paths[index];
+		const color = operatorColor(index);
+		const opacity = index === selected ? CONST.EDIT_PATH_OPACITY_ACTIVE : CONST.EDIT_PATH_OPACITY_INACTIVE;
+
+		const points: THREE.Vector3[] = [];
+		path.forEach((checkpoint, i) => {
+			const local = enuToLocal(checkpoint.east, checkpoint.north, 0);
+			local.y = sampleGroundHeight(tiles, local.x, local.z, local.y) + CONST.EDIT_MARKER_HEIGHT;
+			points.push(local);
+
+			const radius = i === 0 ? CONST.EDIT_MARKER_START_RADIUS : CONST.EDIT_MARKER_RADIUS;
+			const marker = new THREE.Mesh(
+				new THREE.CircleGeometry(radius, 20),
+				new THREE.MeshBasicMaterial({ color, transparent: true, opacity, toneMapped: false }),
+			);
+			marker.rotation.x = -Math.PI / 2;
+			marker.position.copy(local);
+			group.add(marker);
+		});
+
+		if (points.length >= 2) {
+			const line = new THREE.Line(
+				new THREE.BufferGeometry().setFromPoints(points),
+				new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false }),
+			);
+			group.add(line);
+		}
+	}
+
+	paths.forEach((_, i) => rebuildOperatorVisual(i));
+
+	// --- HUD wiring -----------------------------------------------------
+
+	document.body.classList.add('mode-edit');
+	const recordBtn = document.getElementById('recordBtn');
+	if (recordBtn) recordBtn.style.display = 'none';
+	const coordsPanel = document.querySelector<HTMLElement>('.hud-coords-panel');
+	if (coordsPanel) coordsPanel.style.display = 'none';
+	const subtitleEl = document.querySelector('.hud-subtitle');
+	const originalSubtitle = subtitleEl?.textContent ?? '';
+	if (subtitleEl) subtitleEl.textContent = 'PATH EDITOR // TOP-DOWN';
+	const editorPanel = document.getElementById('editorPanel');
+	editorPanel?.removeAttribute('hidden');
+
+	const editorOperatorEl = document.getElementById('editorOperator');
+	const editorCountEl = document.getElementById('editorCount');
+	const copyBtn = document.getElementById('editorCopyBtn');
+	const copyAllBtn = document.getElementById('editorCopyAllBtn');
+	const addBtn = document.getElementById('editorAddBtn');
+	const deleteBtn = document.getElementById('editorDeleteBtn');
+
+	function updateHud() {
+		if (paths.length === 0) {
+			if (editorOperatorEl) {
+				editorOperatorEl.textContent = 'No operators';
+				editorOperatorEl.style.color = '';
+			}
+			if (editorCountEl) editorCountEl.textContent = 'Click "Add" to create one';
+			return;
+		}
+
+		const name = names[selected] ?? '';
+		const hex = `#${new THREE.Color(operatorColor(selected)).getHexString()}`;
+		if (editorOperatorEl) {
+			editorOperatorEl.textContent = `${name} [${selected + 1}/${paths.length}]`;
+			editorOperatorEl.style.color = hex;
+		}
+		if (editorCountEl) {
+			const count = paths[selected].length;
+			editorCountEl.textContent = `${count} checkpoint${count === 1 ? '' : 's'}${count < 2 ? ' (need 2+)' : ''}`;
+		}
+	}
+	updateHud();
+
+	function selectOperator(index: number) {
+		if (index < 0 || index >= paths.length) return;
+		selected = index;
+		paths.forEach((_, i) => rebuildOperatorVisual(i));
+		updateHud();
+	}
+
+	function onKeyDown(event: KeyboardEvent) {
+		const num = Number.parseInt(event.key, 10);
+		if (!Number.isNaN(num) && num >= 1 && num <= paths.length) {
+			selectOperator(num - 1);
+			return;
+		}
+		if ((event.key === 'Backspace' || event.key === 'Delete') && paths.length > 0) {
+			paths[selected].pop();
+			rebuildOperatorVisual(selected);
+			updateHud();
+		}
+	}
+	window.addEventListener('keydown', onKeyDown);
+
+	const round1 = (v: number) => Math.round(v * 10) / 10;
+	const formatCheckpoint = (cp: Checkpoint) => `{ east: ${cp.east.toFixed(1)}, north: ${cp.north.toFixed(1)} }`;
+	const formatPath = (path: Checkpoint[], indent: string) =>
+		`${indent}[\n${path.map((cp) => `${indent}\t${formatCheckpoint(cp)},`).join('\n')}\n${indent}],`;
+
+	function onCopyClick() {
+		if (paths.length === 0) return;
+		navigator.clipboard?.writeText(formatPath(paths[selected], '')).catch(() => { });
+	}
+	function onCopyAllClick() {
+		const body = paths.map((path) => formatPath(path, '\t')).join('\n');
+		const text = `export const TRAJECTORIES: Checkpoint[][] = [\n${body}\n];`;
+		navigator.clipboard?.writeText(text).catch(() => { });
+	}
+	function onAddClick() {
+		paths.push([]);
+		names.push(pickAvailableName());
+		const group = new THREE.Group();
+		scene.add(group);
+		operatorGroups.push(group);
+		selected = paths.length - 1;
+		paths.forEach((_, i) => rebuildOperatorVisual(i));
+		updateHud();
+	}
+	function onDeleteClick() {
+		if (paths.length <= 1) return; // always keep at least one operator
+
+		disposeGroup(operatorGroups[selected]);
+		scene.remove(operatorGroups[selected]);
+		operatorGroups.splice(selected, 1);
+		paths.splice(selected, 1);
+		names.splice(selected, 1);
+
+		selected = Math.min(selected, paths.length - 1);
+		paths.forEach((_, i) => rebuildOperatorVisual(i));
+		updateHud();
+	}
+	copyBtn?.addEventListener('click', onCopyClick);
+	copyAllBtn?.addEventListener('click', onCopyAllClick);
+	addBtn?.addEventListener('click', onAddClick);
+	deleteBtn?.addEventListener('click', onDeleteClick);
+
+	// --- Checkpoint placement --------------------------------------------
+	// A pointerdown/pointerup pair with a movement threshold, so a pan-drag
+	// (also the left mouse button, via controls.mouseButtons above) doesn't
+	// also drop a checkpoint.
+	const raycaster = new THREE.Raycaster();
+	let downPos: { x: number; y: number } | null = null;
+
+	renderer.domElement.addEventListener('pointerdown', (event) => {
+		downPos = { x: event.clientX, y: event.clientY };
+	});
+
+	renderer.domElement.addEventListener('pointerup', (event) => {
+		if (!downPos) return;
+		const moved = Math.hypot(event.clientX - downPos.x, event.clientY - downPos.y);
+		downPos = null;
+		if (moved > CONST.EDIT_CLICK_DRAG_THRESHOLD_PX || paths.length === 0) return;
+
+		const rect = renderer.domElement.getBoundingClientRect();
+		const ndc = new THREE.Vector2(
+			((event.clientX - rect.left) / rect.width) * 2 - 1,
+			-((event.clientY - rect.top) / rect.height) * 2 + 1,
+		);
+		raycaster.setFromCamera(ndc, camera);
+		const hit = raycaster.intersectObject(tiles.group, true)[0];
+		if (!hit) return;
+
+		const { east, north } = localToEnu(hit.point.x, hit.point.z);
+		if (event.button === 2) {
+			paths[selected].pop(); // right-click: undo last checkpoint
+		} else {
+			paths[selected].push({ east: round1(east), north: round1(north) });
+		}
+		rebuildOperatorVisual(selected);
+		updateHud();
+	});
+
+	// --- Render loop (static camera, no drift/animation) -----------------
+
+	let rafId = 0;
+	function animate() {
+		rafId = requestAnimationFrame(animate);
+		camera.updateMatrixWorld();
+		tiles.setResolutionFromRenderer(camera, renderer);
+		tiles.setCamera(camera);
+		tiles.update();
+		controls.update();
+		renderer.render(scene, camera);
+	}
+
+	animate();
+
+	// Tears everything path-editor-specific down (including the listeners
+	// above on persistent HUD elements/window) so cinematic mode (or a fresh
+	// path editor run) can take over the page cleanly.
+	return function dispose() {
+		cancelAnimationFrame(rafId);
+		window.removeEventListener('resize', onResize);
+		window.removeEventListener('keydown', onKeyDown);
+		copyBtn?.removeEventListener('click', onCopyClick);
+		copyAllBtn?.removeEventListener('click', onCopyAllClick);
+		addBtn?.removeEventListener('click', onAddClick);
+		deleteBtn?.removeEventListener('click', onDeleteClick);
+		operatorGroups.forEach(disposeGroup);
+		tiles.dispose();
+		renderer.dispose();
+		renderer.domElement.remove();
+
+		document.body.classList.remove('mode-edit');
+		if (recordBtn) recordBtn.style.display = '';
+		if (coordsPanel) coordsPanel.style.display = '';
+		if (subtitleEl) subtitleEl.textContent = originalSubtitle;
+		editorPanel?.setAttribute('hidden', '');
+	};
+}

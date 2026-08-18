@@ -20,7 +20,11 @@ const rayDirection = new THREE.Vector3(0, -1, 0);
 // Sets up the photorealistic 3D Tiles renderer, re-orients it so the given
 // site coordinates sit at the world origin (+Y up), and swaps loaded tile
 // materials to unlit so the night grading pass has full control over lighting.
-export function createTiles(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) {
+// Pass `dim: false` (the path editor does) to keep the raw daylight imagery
+// at full brightness instead, since spotting obstacles for checkpoint
+// placement matters more there than matching the night-feed look.
+export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer, options: { dim?: boolean } = {}) {
+	const dim = options.dim ?? true;
 	const tiles = new TilesRenderer();
 
 	if (CONST.GOOGLE_MAPS_API_KEY) {
@@ -48,9 +52,9 @@ export function createTiles(camera: THREE.PerspectiveCamera, renderer: THREE.Web
 	});
 	tiles.registerPlugin(reorient);
 
-	// The captured imagery already bakes in daylight; render it unlit and
-	// tinted dark so the NightGradingPass fully controls how the scene reads,
-	// instead of three.js re-lighting an already-lit, full-brightness photo.
+	// The captured imagery already bakes in daylight; render it unlit (and, in
+	// cinematic mode, tinted dark so the NightGradingPass fully controls how
+	// the scene reads) instead of three.js re-lighting an already-lit photo.
 	tiles.addEventListener('load-model', ({ scene }: any) => {
 		scene.traverse((child: THREE.Object3D) => {
 			const mesh = child as THREE.Mesh;
@@ -58,7 +62,7 @@ export function createTiles(camera: THREE.PerspectiveCamera, renderer: THREE.Web
 			const prev = mesh.material as THREE.MeshStandardMaterial;
 			mesh.material = new THREE.MeshBasicMaterial({
 				map: prev.map ?? null,
-				color: prev.map ? CONST.TERRAIN_DIM_COLOR : prev.color,
+				color: prev.map ? (dim ? CONST.TERRAIN_DIM_COLOR : 0xffffff) : prev.color,
 			});
 			prev.dispose();
 		});

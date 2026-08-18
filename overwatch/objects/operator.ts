@@ -3,20 +3,11 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { enuToLocal } from '../tiles.ts';
 import * as CONST from '../constants.ts';
 
-export interface SpawnPoint {
+// A single checkpoint in an operator's patrol path.
+export interface Checkpoint {
 	east: number; // metres east of the site origin
 	north: number; // metres north of the site origin
 }
-
-const UP = new THREE.Vector3(0, 1, 0);
-
-// The shared heading every operator drifts toward, derived once from the
-// compass bearing constant (0 = north/+Z, clockwise; tiles frame has +X west).
-const SHARED_DIRECTION = new THREE.Vector3(
-	-Math.sin(THREE.MathUtils.degToRad(CONST.PATROL_BEARING_DEG)),
-	0,
-	Math.cos(THREE.MathUtils.degToRad(CONST.PATROL_BEARING_DEG)),
-).normalize();
 
 let sharedShadowTexture: THREE.Texture | null = null;
 
@@ -66,9 +57,9 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 
 // A single operator, rendered as a dark, matte silhouette — grounded by a
 // soft shadow decal and tagged with a bright square tactical reticle — that
-// steadily drifts in the shared patrol direction, creeping cautiously most
-// of the time and dashing in occasional brisk bursts, but never stopping.
-// Stays clamped to the streaming tiles' ground height.
+// walks its configured patrol path, creeping cautiously most of the time and
+// dashing in occasional brisk bursts, but never stopping. Stays clamped to
+// the streaming tiles' ground height.
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
@@ -80,19 +71,20 @@ export class Operator extends THREE.Group {
 	private leaderMaterial: THREE.LineBasicMaterial;
 	private labelEl: HTMLDivElement;
 
-	private spawn = new THREE.Vector3();
 	private dashing = false;
 	private dashRemaining = 0;
 	private groundY = 0;
-	private swayPhase = Math.random() * Math.PI * 2;
 	private groundSampleCooldown = Math.random() * CONST.GROUND_SAMPLE_INTERVAL;
 	private pulsePhase = Math.random() * Math.PI * 2;
-	private avoidYaw = 0; // current steering deviation (radians) off the shared heading, going around an obstacle
-	private avoidSide = 0; // -1/1 once committed to a side to turn toward, 0 while undecided
-	private clearHold = 0; // seconds the path ahead has read clear, gated before straightening back out
+
+	// Patrol path (world-local positions) walked in order, reversing
+	// direction at either end (ping-pong) once it reaches either checkpoint.
+	private path: THREE.Vector3[];
+	private pathIndex = 0;
+	private pathDirection = 1;
 
 	constructor(
-		spawnPoint: SpawnPoint,
+		trajectory: Checkpoint[],
 		name: string,
 		color: number = CONST.OPERATOR_COLOR,
 	) {
@@ -153,86 +145,11 @@ export class Operator extends THREE.Group {
 		label.center.set(0, 0.5);
 		this.add(label);
 
-		enuToLocal(spawnPoint.east, spawnPoint.north, 0, this.position);
-		this.spawn.copy(this.position);
+		this.path = trajectory.map((checkpoint) => enuToLocal(checkpoint.east, checkpoint.north, 0));
+
+		// the first checkpoint doubles as the spawn point
+		this.position.copy(this.path[0] ?? new THREE.Vector3());
 		this.dashRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_DASH_INTERVAL_MIN, CONST.OPERATOR_DASH_INTERVAL_MAX);
-	}
-
-	// Blends the shared patrol direction with a pull back toward the spawn
-	// point once the operator has wandered past the leash radius, so the group
-	// keeps advancing together while still looping within the mapped area.
-	private computeBaseDirection(): THREE.Vector3 {
-		const toSpawn = new THREE.Vector3().subVectors(this.spawn, this.position);
-		toSpawn.y = 0;
-		const distance = toSpawn.length();
-		if (distance <= CONST.PATROL_LEASH_RADIUS) return SHARED_DIRECTION.clone();
-
-		const towardSpawn = toSpawn.normalize();
-		const overshoot = THREE.MathUtils.clamp((distance - CONST.PATROL_LEASH_RADIUS) / CONST.PATROL_LEASH_RADIUS, 0, 1);
-
-		// rotate the shared heading toward "back to spawn" by an angle rather
-		// than linearly blending the two vectors — once an operator has walked
-		// straight out for a while, "back to spawn" ends up nearly opposite
-		// SHARED_DIRECTION, and a linear lerp between near-opposite vectors
-		// passes through a near-zero vector, stalling the operator in place
-		let angle = SHARED_DIRECTION.angleTo(towardSpawn);
-		if (SHARED_DIRECTION.x * towardSpawn.z - SHARED_DIRECTION.z * towardSpawn.x < 0) angle = -angle;
-
-		return SHARED_DIRECTION.clone().applyAxisAngle(UP, angle * overshoot);
-	}
-
-	// Samples the ground height a bit further along a candidate heading, to
-	// check whether walking that way would step onto/off a misclassified
-	// rooftop, since the tiles mesh has no road/building tags.
-	private probeHeight(heading: THREE.Vector3, sampleGround: (x: number, z: number) => number): number {
-		const probe = this.position.clone().addScaledVector(heading, CONST.OBSTACLE_LOOKAHEAD_DISTANCE);
-		return sampleGround(probe.x, probe.z);
-	}
-
-	// Turns the desired heading away from the direct line to the target by up
-	// to a wide angle for as long as the ground ahead keeps stepping up/down
-	// (walking around the obstacle's silhouette instead of just offsetting a
-	// fixed distance, so even large rooftops get fully skirted), easing back
-	// onto the direct heading once the path ahead is flat again. Since this
-	// only ever rotates the (unit-length) goal direction, walking speed stays
-	// perfectly constant whether avoiding or not.
-	private steerAroundObstacles(delta: number, goalDir: THREE.Vector3, sampleGround: (x: number, z: number) => number): THREE.Vector3 {
-		const heading = goalDir.clone().applyAxisAngle(UP, this.avoidYaw);
-
-		// check a small fan of angles around the heading, not just dead ahead, so
-		// a building edge that isn't exactly in front is still caught early
-		const isBlocked = (dir: THREE.Vector3) => Math.abs(this.probeHeight(dir, sampleGround) - this.groundY) > CONST.OBSTACLE_STEP_THRESHOLD;
-		const fanLeft = heading.clone().applyAxisAngle(UP, CONST.OBSTACLE_FAN_ANGLE);
-		const fanRight = heading.clone().applyAxisAngle(UP, -CONST.OBSTACLE_FAN_ANGLE);
-		const blocked = isBlocked(heading) || isBlocked(fanLeft) || isBlocked(fanRight);
-
-		if (blocked) {
-			this.clearHold = 0;
-			if (this.avoidSide === 0) {
-				// first sighting of the obstacle: commit to whichever side looks flatter
-				const left = goalDir.clone().applyAxisAngle(UP, CONST.OBSTACLE_PROBE_ANGLE);
-				const right = goalDir.clone().applyAxisAngle(UP, -CONST.OBSTACLE_PROBE_ANGLE);
-				const leftDiff = Math.abs(this.probeHeight(left, sampleGround) - this.groundY);
-				const rightDiff = Math.abs(this.probeHeight(right, sampleGround) - this.groundY);
-				this.avoidSide = leftDiff <= rightDiff ? 1 : -1;
-			}
-			this.avoidYaw = THREE.MathUtils.clamp(
-				this.avoidYaw + this.avoidSide * CONST.OBSTACLE_TURN_SPEED * delta,
-				-CONST.OBSTACLE_MAX_YAW,
-				CONST.OBSTACLE_MAX_YAW,
-			);
-		} else {
-			// require a short run of clear readings before straightening out, so
-			// a corner glimpsed as briefly clear doesn't turn straight back into it
-			this.clearHold += delta;
-			if (this.clearHold >= CONST.OBSTACLE_CLEAR_HOLD) {
-				this.avoidSide = 0;
-				const step = CONST.OBSTACLE_TURN_SPEED * delta;
-				this.avoidYaw = Math.abs(this.avoidYaw) <= step ? 0 : this.avoidYaw - Math.sign(this.avoidYaw) * step;
-			}
-		}
-
-		return goalDir.clone().applyAxisAngle(UP, this.avoidYaw);
 	}
 
 	// Toggles between a steady creep and a brisk dash on a randomized cadence,
@@ -253,24 +170,32 @@ export class Operator extends THREE.Group {
 		}
 	}
 
+	// Walks straight toward the current checkpoint, advancing (and reversing
+	// direction at either end, ping-pong style) once arrived. Checkpoints
+	// were hand-placed to dodge obstacles, so no avoidance steering is
+	// applied here — the path itself is trusted.
+	private tickPath(delta: number, speed: number) {
+		const target = this.path[this.pathIndex];
+		const toTarget = new THREE.Vector3().subVectors(target, this.position);
+		toTarget.y = 0;
+		const distance = toTarget.length();
+
+		if (distance <= CONST.PATH_ARRIVAL_RADIUS) {
+			const next = this.pathIndex + this.pathDirection;
+			if (next < 0 || next >= this.path.length) this.pathDirection *= -1;
+			this.pathIndex += this.pathDirection;
+			return;
+		}
+
+		const heading = toTarget.normalize();
+		this.position.addScaledVector(heading, Math.min(speed * delta, distance));
+	}
+
 	public tick(delta: number, sampleGround: (x: number, z: number) => number) {
 		this.updateDash(delta);
 		const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
-		const baseDir = this.computeBaseDirection();
-		const heading = this.steerAroundObstacles(delta, baseDir, sampleGround);
 
-		if (!this.dashing) {
-			// cautious lateral sway while creeping, as a small nudge to the
-			// heading (renormalized below) rather than an extra speed component
-			this.swayPhase += delta * 0.9;
-			const side = new THREE.Vector3(-heading.z, 0, heading.x);
-			heading.addScaledVector(side, Math.sin(this.swayPhase) * CONST.OPERATOR_SWAY).normalize();
-		}
-
-		// heading is always unit length, so speed stays exactly constant whether
-		// walking straight, swaying, or steering around an obstacle — the operator
-		// is always moving, never stopping
-		this.position.addScaledVector(heading, speed * delta);
+		if (this.path.length >= 2) this.tickPath(delta, speed);
 
 		this.groundSampleCooldown -= delta;
 		if (this.groundSampleCooldown <= 0) {
@@ -278,8 +203,7 @@ export class Operator extends THREE.Group {
 			this.groundY = sampleGround(this.position.x, this.position.z);
 		}
 		// ease toward the sampled ground height instead of snapping, so any
-		// residual step (the avoidance above can't catch every case) reads as a
-		// climb rather than a sudden pop
+		// terrain step reads as a climb rather than a sudden pop
 		const maxVerticalStep = CONST.OPERATOR_VERTICAL_SPEED * delta;
 		this.position.y += THREE.MathUtils.clamp(this.groundY - this.position.y, -maxVerticalStep, maxVerticalStep);
 
@@ -292,5 +216,21 @@ export class Operator extends THREE.Group {
 		// the ID tag reads brightest while dashing across open ground
 		this.leaderMaterial.opacity = 0.4 + 0.4 * pulse;
 		this.labelEl.style.opacity = `${0.5 + 0.5 * pulse}`;
+	}
+
+	// Frees GPU resources and the CSS2D label DOM node — called when tearing
+	// down cinematic mode (see main.ts's mode toggle) so switching back and
+	// forth doesn't leak geometry/materials/labels each time.
+	public dispose() {
+		this.body.geometry.dispose();
+		this.head.geometry.dispose();
+		(this.body.material as THREE.Material).dispose();
+		this.shadowDecal.geometry.dispose();
+		this.shadowMaterial.dispose();
+		this.reticle.geometry.dispose();
+		this.reticleMaterial.dispose();
+		this.leaderLine.geometry.dispose();
+		this.leaderMaterial.dispose();
+		this.labelEl.remove();
 	}
 }

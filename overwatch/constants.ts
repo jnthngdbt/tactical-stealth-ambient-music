@@ -43,27 +43,16 @@ export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 
 // Operator movement — steady walking pace most of the time, with occasional
 // brisker dash bursts for visual variety. Movement is a continuous steering
-// model (heading is always a unit vector scaled by speed), so sway/avoidance
-// steering never adds extra speed on top.
+// model (heading is always a unit vector scaled by speed).
 export const OPERATOR_CREEP_SPEED = 0.85; // m/s, slow deliberate walk
 export const OPERATOR_DASH_SPEED = 1.4; // m/s, brisk walk
-export const OPERATOR_SWAY = 0.05; // small steering nudge blended into heading while creeping, then renormalized
 
-// All operators drift toward this same shared compass bearing (degrees,
-// 0 = north/+Z, clockwise) so the whole patrol group reads as advancing
-// together — obstacle avoidance is the only thing that ever pulls an
-// operator off this heading, and it always eases back once clear.
-export const PATROL_BEARING_DEG = 35;
+// The operator just walks its checkpoints in order, reversing direction
+// once it reaches either end (a ping-pong loop).
+export const PATH_ARRIVAL_RADIUS = 1.2; // metres from a checkpoint counted as "arrived"
 
-// Past this distance from its spawn point, an operator's heading gradually
-// blends toward heading back to spawn instead of a hard turnaround, so the
-// shared-direction drift loops within the mapped area instead of the
-// operator marching off into unstreamed tiles forever.
-export const PATROL_LEASH_RADIUS = 35; // metres
-
-// Movement is continuous drift rather than point-to-point waypoints, so
-// brisk dash bursts happen on a randomized cadence instead of at specific
-// waypoints. Operators never stop moving.
+// Dash bursts happen on a randomized cadence rather than at specific
+// checkpoints. Operators never stop moving along their path.
 export const OPERATOR_DASH_INTERVAL_MIN = 10; // seconds of creeping between dash bursts
 export const OPERATOR_DASH_INTERVAL_MAX = 20;
 export const OPERATOR_DASH_DURATION_MIN = 2; // seconds a dash burst lasts
@@ -98,28 +87,8 @@ export const LABEL_ANCHOR_OFFSET = 4.4; // metres, horizontal reach of the diago
 export const GROUND_RAYCAST_HEIGHT = 400;
 export const GROUND_SAMPLE_INTERVAL = 0.25; // seconds between probes, staggered per operator
 
-// The tiles mesh has no semantic road/building tags, so ground raycasts can
-// occasionally land on a rooftop. Rather than snapping straight up onto it,
-// operators probe well ahead along their current heading (plus a small fan
-// to each side, so an edge that isn't exactly dead-ahead still gets caught)
-// and, if it steps up/down too much, turn away from the shared drift
-// direction by up to a wide angle — actually walking around the obstacle's
-// silhouette (however large) rather than a small fixed sideways nudge —
-// holding that turn until a short run of clear readings confirms it's safe
-// to ease back onto the shared heading (avoids clipping back into a corner).
-// The step threshold is set well above curb/car/tree-sized bumps so only
-// real building-scale steps trigger a detour (fewer, steadier direction
-// changes overall).
-export const OBSTACLE_LOOKAHEAD_DISTANCE = 5; // metres ahead probed for a step, far enough to react before reaching it
-export const OBSTACLE_FAN_ANGLE = 0.35; // radians left/right of heading also probed when checking if blocked
-export const OBSTACLE_PROBE_ANGLE = 0.6; // radians left/right sampled to pick which side to turn toward
-export const OBSTACLE_STEP_THRESHOLD = 1.4; // metres of height change considered an obstacle
-export const OBSTACLE_TURN_SPEED = 2.2; // radians/sec the steering angle turns by
-export const OBSTACLE_MAX_YAW = 2.7; // radians, max steering deviation from the direct heading
-export const OBSTACLE_CLEAR_HOLD = 0.6; // seconds the path ahead must read clear before straightening back out
-
-// Any remaining height change (e.g. a step the avoidance above didn't catch)
-// is eased into at this rate instead of snapped, so it reads as a climb.
+// Height changes between ground samples (terrain slopes, curbs, etc.) are
+// eased into at this rate instead of snapped, so they read as a climb.
 export const OPERATOR_VERTICAL_SPEED = 2.5; // m/s max climb/descend rate
 
 // Camera
@@ -141,3 +110,20 @@ export const CAMERA_DRIFT_ALTITUDE = 85; // metres, fixed hover height above the
 // How quickly the orbit target eases toward the true centroid of the
 // operators (rather than snapping straight to it every frame).
 export const CAMERA_LOOKAT_EASE = 1.5;
+
+// Callsign pool one is randomly assigned from, per trajectory, in mission.ts
+// (see OPERATOR_NAMES there) — shared by the cinematic view and path editor.
+export const OPERATOR_NAME_POOL = ['Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle'];
+
+// Path editor (pathEditor.ts) — active whenever mission.ts's TRAJECTORIES has
+// any operator with fewer than 2 checkpoints. A static, straight-down,
+// unlit/ungraded orthographic view (no drift, no bloom/night grade) so
+// terrain, trees and rooftops read clearly for precise checkpoint placement.
+export const EDIT_CAMERA_HEIGHT = 220; // metres, straight above the operators' centroid
+export const EDIT_VIEW_HALF_SIZE = 70; // metres, half the visible height at zoom 1
+export const EDIT_MARKER_RADIUS = 0.6; // metres, flat disc drawn at each checkpoint
+export const EDIT_MARKER_START_RADIUS = 0.95; // metres, first checkpoint of a path drawn bigger
+export const EDIT_MARKER_HEIGHT = 0.05; // metres above ground, avoids z-fighting with terrain
+export const EDIT_PATH_OPACITY_ACTIVE = 0.95; // selected operator's path/markers
+export const EDIT_PATH_OPACITY_INACTIVE = 0.35; // other operators' paths/markers, dimmed for reference
+export const EDIT_CLICK_DRAG_THRESHOLD_PX = 6; // pointer movement above this counts as a pan, not a click

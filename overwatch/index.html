@@ -39,17 +39,35 @@
 			<div class="hud-coords-panel">
 				<div class="hud-coords-label">SITE COORDS</div>
 				<div class="hud-coords" id="hudCoords">--.-----, --.-----</div>
-				<div class="hud-hint">Double-click ground to log spawn point coords</div>
 			</div>
 
 			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
 			<div class="hud-attribution" id="hudAttribution"></div>
+
+			<!-- Path editor mode only (see pathEditor.ts): hidden/populated via JS -->
+			<div class="hud-editor-panel" id="editorPanel" hidden>
+				<div class="hud-editor-title">PATH EDITOR</div>
+				<div class="hud-editor-operator" id="editorOperator"></div>
+				<div class="hud-editor-count" id="editorCount"></div>
+				<div class="hud-hint">
+					Click ground: add checkpoint · Right-click: undo · Keys 1-9: select operator
+				</div>
+				<div class="hud-editor-buttons">
+					<button id="editorCopyBtn" class="hud-editor-btn" type="button">Copy path</button>
+					<button id="editorCopyAllBtn" class="hud-editor-btn" type="button">Copy all</button>
+					<button id="editorAddBtn" class="hud-editor-btn" type="button">Add</button>
+					<button id="editorDeleteBtn" class="hud-editor-btn" type="button">Delete</button>
+				</div>
+			</div>
 		</div>
 
 		<!-- Save the looping animation as a video -->
 		<button id="recordBtn" class="util-button" title="Record one loop as video">
 			<i class="fas fa-circle"></i>
 		</button>
+
+		<!-- Switches between cinematic playback and the top-down path editor (main.ts) -->
+		<button id="modeToggleBtn" class="hud-mode-toggle" type="button"></button>
 
 	</body>
 </html>
