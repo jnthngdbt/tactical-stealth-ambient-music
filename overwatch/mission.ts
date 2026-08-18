@@ -50,9 +50,6 @@ export const TRAJECTORIES: Checkpoint[][] = [
 		{ east: 166.5, north: 115.8 },
 		{ east: 199.7, north: 120.1 },
 	],
-	[
-
-	],
 ];
 
 // At least one operator with a real (2+ checkpoint) path is required before

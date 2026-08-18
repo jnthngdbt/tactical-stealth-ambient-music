@@ -68,6 +68,21 @@ function runCinematic(): () => void {
 	const coordsEl = document.getElementById('hudCoords');
 	if (coordsEl) coordsEl.textContent = `${CONST.SITE_LAT.toFixed(5)}, ${CONST.SITE_LON.toFixed(5)}`;
 
+	const timecodeEl = document.getElementById('hudTimecode');
+	const altEl = document.getElementById('hudAlt');
+	const hdgEl = document.getElementById('hudHdg');
+	const spdEl = document.getElementById('hudSpd');
+	const batteryEl = document.getElementById('hudBattery');
+	const lastCameraPos = app.camera.position.clone();
+
+	const formatTimecode = (seconds: number) => {
+		const s = Math.floor(seconds);
+		const hh = String(Math.floor(s / 3600)).padStart(2, '0');
+		const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+		const ss = String(s % 60).padStart(2, '0');
+		return `${hh}:${mm}:${ss}`;
+	};
+
 	const recorder = new Recorder(app.renderer.domElement);
 	const recordBtn = document.getElementById('recordBtn') as HTMLButtonElement;
 	function onRecordClick() {
@@ -83,6 +98,7 @@ function runCinematic(): () => void {
 	const operatorsCentroid = new THREE.Vector3();
 	let frame = 0;
 	let rafId = 0;
+	let elapsed = 0;
 
 	function animate() {
 		rafId = requestAnimationFrame(animate);
@@ -90,6 +106,7 @@ function runCinematic(): () => void {
 
 		// clamp delta so a backgrounded tab doesn't make operators jump on return
 		const delta = Math.min(clock.getDelta(), 0.1);
+		elapsed += delta;
 
 		app.camera.updateMatrixWorld();
 		tiles.setResolutionFromRenderer(app.camera, app.renderer);
@@ -124,6 +141,27 @@ function runCinematic(): () => void {
 		}
 
 		app.render(delta, operatorsCentroid, groundReady);
+
+		// Faux flight telemetry, driven by the camera's actual motion so it
+		// reads as a live drone feed rather than static decoration.
+		if (timecodeEl) timecodeEl.textContent = formatTimecode(elapsed);
+		if (groundReady) {
+			if (altEl) altEl.textContent = Math.round(app.camera.position.y - operatorsCentroid.y).toString();
+
+			const dx = app.controls.target.x - app.camera.position.x;
+			const dz = app.controls.target.z - app.camera.position.z;
+			// site is reoriented so +X = west, +Z = north (see tiles.ts/ReorientationPlugin),
+			// i.e. east = -X — bearing is measured clockwise from north.
+			const bearing = (Math.atan2(-dx, dz) * (180 / Math.PI) + 360) % 360;
+			if (hdgEl) hdgEl.textContent = Math.round(bearing).toString().padStart(3, '0');
+
+			const speed = app.camera.position.distanceTo(lastCameraPos) / delta;
+			if (spdEl) spdEl.textContent = speed.toFixed(1);
+		}
+		lastCameraPos.copy(app.camera.position);
+
+		// Slow, steady drain for a believable in-flight battery readout.
+		if (batteryEl) batteryEl.textContent = `${Math.max(61, Math.round(98 - elapsed * 0.015))}%`;
 	}
 
 	animate();

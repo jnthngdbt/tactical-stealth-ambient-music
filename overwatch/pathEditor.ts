@@ -141,6 +141,8 @@ export function runPathEditor(): () => void {
 	if (recordBtn) recordBtn.style.display = 'none';
 	const coordsPanel = document.querySelector<HTMLElement>('.hud-coords-panel');
 	if (coordsPanel) coordsPanel.style.display = 'none';
+	const telemetryEl = document.getElementById('hudTelemetry');
+	if (telemetryEl) telemetryEl.style.display = 'none';
 	const subtitleEl = document.querySelector('.hud-subtitle');
 	const originalSubtitle = subtitleEl?.textContent ?? '';
 	if (subtitleEl) subtitleEl.textContent = 'PATH EDITOR // TOP-DOWN';
@@ -317,6 +319,7 @@ export function runPathEditor(): () => void {
 		document.body.classList.remove('mode-edit');
 		if (recordBtn) recordBtn.style.display = '';
 		if (coordsPanel) coordsPanel.style.display = '';
+		if (telemetryEl) telemetryEl.style.display = '';
 		if (subtitleEl) subtitleEl.textContent = originalSubtitle;
 		editorPanel?.setAttribute('hidden', '');
 	};

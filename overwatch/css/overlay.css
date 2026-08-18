@@ -44,35 +44,117 @@
 
 .hud-header {
   position: absolute;
-  top: 4%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
+  top: 6%;
+  left: 6%;
+  right: 6%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hud-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hud-status-right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.hud-rec {
+  font-size: 13px;
+  color: #ff5b4d;
+  letter-spacing: 0.15em;
+}
+
+.hud-rec-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #ff5b4d;
+  box-shadow: 0 0 6px rgba(255, 91, 77, 0.8);
+  animation: hud-blink 1.4s steps(1) infinite;
+}
+
+@keyframes hud-blink {
+  50% { opacity: 0.15; }
 }
 
 .hud-callsign {
   font-size: 12px;
-  opacity: 0.55;
-  letter-spacing: 0.3em;
-}
-
-.hud-title {
-  font-family: 'Russo One', sans-serif;
-  font-size: 28px;
-  margin: 4px 0;
-  color: #d8fff8;
-  text-shadow: 0 0 12px rgba(53, 240, 208, 0.55);
+  opacity: 0.8;
+  letter-spacing: 0.2em;
 }
 
 .hud-subtitle {
-  font-size: 13px;
+  opacity: 1;
+}
+
+.hud-gps {
+  font-size: 12px;
   opacity: 0.75;
 }
 
-.hud-coords-panel {
+.hud-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hud-signal-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.hud-signal-bars i {
+  display: block;
+  width: 3px;
+  background: #b7f3ea;
+  box-shadow: 0 0 4px rgba(53, 240, 208, 0.5);
+}
+
+.hud-signal-bars i:nth-child(1) { height: 4px; }
+.hud-signal-bars i:nth-child(2) { height: 7px; }
+.hud-signal-bars i:nth-child(3) { height: 10px; }
+.hud-signal-bars i:nth-child(4) { height: 12px; }
+
+.hud-battery {
+  color: #7ffff0;
+}
+
+.hud-bottom-left {
   position: absolute;
-  left: 4%;
-  bottom: 5%;
+  left: 6%;
+  bottom: 7%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hud-telemetry {
+  display: flex;
+  gap: 16px;
+}
+
+.hud-telem-item {
+  font-size: 13px;
+  color: #7ffff0;
+  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
+}
+
+.hud-telem-label {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-right: 4px;
+  color: #b7f3ea;
+  text-shadow: none;
 }
 
 .hud-coords-label {
@@ -96,8 +178,8 @@
 
 .hud-attribution {
   position: absolute;
-  right: 4%;
-  bottom: 5%;
+  right: 6%;
+  bottom: 7%;
   max-width: 50vw;
   text-align: right;
   font-size: 10px;
@@ -110,8 +192,8 @@
    so it opts back into pointer events despite #hud's pointer-events: none. */
 .hud-editor-panel {
   position: absolute;
-  left: 4%;
-  bottom: 5%;
+  left: 6%;
+  bottom: 7%;
   pointer-events: auto;
 }
 
