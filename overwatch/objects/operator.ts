@@ -66,9 +66,9 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 
 // A single operator, rendered as a dark, matte silhouette — grounded by a
 // soft shadow decal and tagged with a bright square tactical reticle — that
-// drifts in the shared patrol direction, creeping cautiously most of the
-// time, pausing to "check the corner", and dashing in occasional brisk
-// bursts. Stays clamped to the streaming tiles' ground height.
+// steadily drifts in the shared patrol direction, creeping cautiously most
+// of the time and dashing in occasional brisk bursts, but never stopping.
+// Stays clamped to the streaming tiles' ground height.
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
@@ -81,9 +81,6 @@ export class Operator extends THREE.Group {
 	private labelEl: HTMLDivElement;
 
 	private spawn = new THREE.Vector3();
-	private mode: 'move' | 'hold' = 'hold';
-	private holdRemaining: number;
-	private walkRemaining: number; // seconds until the next "check the corner" pause
 	private dashing = false;
 	private dashRemaining = 0;
 	private groundY = 0;
@@ -158,8 +155,6 @@ export class Operator extends THREE.Group {
 
 		enuToLocal(spawnPoint.east, spawnPoint.north, 0, this.position);
 		this.spawn.copy(this.position);
-		this.holdRemaining = CONST.OPERATOR_DEFAULT_HOLD;
-		this.walkRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_HOLD_INTERVAL_MIN, CONST.OPERATOR_HOLD_INTERVAL_MAX);
 		this.dashRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_DASH_INTERVAL_MIN, CONST.OPERATOR_DASH_INTERVAL_MAX);
 	}
 
@@ -172,8 +167,18 @@ export class Operator extends THREE.Group {
 		const distance = toSpawn.length();
 		if (distance <= CONST.PATROL_LEASH_RADIUS) return SHARED_DIRECTION.clone();
 
+		const towardSpawn = toSpawn.normalize();
 		const overshoot = THREE.MathUtils.clamp((distance - CONST.PATROL_LEASH_RADIUS) / CONST.PATROL_LEASH_RADIUS, 0, 1);
-		return SHARED_DIRECTION.clone().lerp(toSpawn.normalize(), overshoot).normalize();
+
+		// rotate the shared heading toward "back to spawn" by an angle rather
+		// than linearly blending the two vectors — once an operator has walked
+		// straight out for a while, "back to spawn" ends up nearly opposite
+		// SHARED_DIRECTION, and a linear lerp between near-opposite vectors
+		// passes through a near-zero vector, stalling the operator in place
+		let angle = SHARED_DIRECTION.angleTo(towardSpawn);
+		if (SHARED_DIRECTION.x * towardSpawn.z - SHARED_DIRECTION.z * towardSpawn.x < 0) angle = -angle;
+
+		return SHARED_DIRECTION.clone().applyAxisAngle(UP, angle * overshoot);
 	}
 
 	// Samples the ground height a bit further along a candidate heading, to
@@ -249,34 +254,23 @@ export class Operator extends THREE.Group {
 	}
 
 	public tick(delta: number, sampleGround: (x: number, z: number) => number) {
-		if (this.mode === 'hold') {
-			this.holdRemaining -= delta;
-			if (this.holdRemaining <= 0) this.mode = 'move';
-		} else {
-			this.walkRemaining -= delta;
-			if (this.walkRemaining <= 0) {
-				this.mode = 'hold';
-				this.holdRemaining = CONST.OPERATOR_DEFAULT_HOLD;
-				this.walkRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_HOLD_INTERVAL_MIN, CONST.OPERATOR_HOLD_INTERVAL_MAX);
-			} else {
-				this.updateDash(delta);
-				const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
-				const baseDir = this.computeBaseDirection();
-				const heading = this.steerAroundObstacles(delta, baseDir, sampleGround);
+		this.updateDash(delta);
+		const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
+		const baseDir = this.computeBaseDirection();
+		const heading = this.steerAroundObstacles(delta, baseDir, sampleGround);
 
-				if (!this.dashing) {
-					// cautious lateral sway while creeping, as a small nudge to the
-					// heading (renormalized below) rather than an extra speed component
-					this.swayPhase += delta * 0.9;
-					const side = new THREE.Vector3(-heading.z, 0, heading.x);
-					heading.addScaledVector(side, Math.sin(this.swayPhase) * CONST.OPERATOR_SWAY).normalize();
-				}
-
-				// heading is always unit length, so speed stays exactly constant
-				// whether walking straight, swaying, or steering around an obstacle
-				this.position.addScaledVector(heading, speed * delta);
-			}
+		if (!this.dashing) {
+			// cautious lateral sway while creeping, as a small nudge to the
+			// heading (renormalized below) rather than an extra speed component
+			this.swayPhase += delta * 0.9;
+			const side = new THREE.Vector3(-heading.z, 0, heading.x);
+			heading.addScaledVector(side, Math.sin(this.swayPhase) * CONST.OPERATOR_SWAY).normalize();
 		}
+
+		// heading is always unit length, so speed stays exactly constant whether
+		// walking straight, swaying, or steering around an obstacle — the operator
+		// is always moving, never stopping
+		this.position.addScaledVector(heading, speed * delta);
 
 		this.groundSampleCooldown -= delta;
 		if (this.groundSampleCooldown <= 0) {
@@ -289,16 +283,14 @@ export class Operator extends THREE.Group {
 		const maxVerticalStep = CONST.OPERATOR_VERTICAL_SPEED * delta;
 		this.position.y += THREE.MathUtils.clamp(this.groundY - this.position.y, -maxVerticalStep, maxVerticalStep);
 
-		// slow "breathing" pulse on the reticle while holding, sharper pulse while dashing across the open
-		this.pulsePhase += delta * (this.mode === 'move' && this.dashing ? 6 : 2.2);
+		// slow "breathing" pulse on the reticle while creeping, sharper pulse while dashing across the open
+		this.pulsePhase += delta * (this.dashing ? 6 : 2.2);
 		const pulse = 0.65 + 0.35 * Math.sin(this.pulsePhase);
-		const intensity = this.mode === 'hold' ? pulse * 0.6 : pulse;
-		this.reticleMaterial.opacity = 0.55 + 0.4 * intensity;
-		this.shadowMaterial.opacity = 0.55 + 0.25 * intensity;
+		this.reticleMaterial.opacity = 0.55 + 0.4 * pulse;
+		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
 
-		// the ID tag fades down (but never fully vanishes) while the operator is
-		// hunkered down, and reads brightest while dashing across open ground
-		this.leaderMaterial.opacity = 0.4 + 0.4 * intensity;
-		this.labelEl.style.opacity = `${0.5 + 0.5 * intensity}`;
+		// the ID tag reads brightest while dashing across open ground
+		this.leaderMaterial.opacity = 0.4 + 0.4 * pulse;
+		this.labelEl.style.opacity = `${0.5 + 0.5 * pulse}`;
 	}
 }

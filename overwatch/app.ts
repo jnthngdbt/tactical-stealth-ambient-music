@@ -8,9 +8,10 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
 import * as CONST from './constants.ts';
 
-// Renders the overwatch feed: an orbiting camera over photorealistic 3D map
-// tiles, with bloom for the operators' glow and a night grading pass applied
-// last so the (daylight-captured) imagery reads as a dark tactical night feed.
+// Renders the overwatch feed: a camera drifting along a slow figure-eight
+// flight path but always looking at the operators' centroid, with bloom for
+// their glow and a night grading pass applied last so the (daylight-captured)
+// imagery reads as a dark tactical night feed.
 export class App {
 	public scene = new THREE.Scene();
 	public camera: THREE.PerspectiveCamera;
@@ -19,7 +20,9 @@ export class App {
 	public composer: EffectComposer;
 	public labelRenderer = new CSS2DRenderer();
 	private driftElapsed = 0;
-	private lastDrift = new THREE.Vector3();
+	private lastAnchor = new THREE.Vector3();
+	private anchorInitialized = false;
+	private lookAtTarget = new THREE.Vector3(0, 1.5, 0); // eases toward the operators' centroid
 
 	constructor() {
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -86,26 +89,44 @@ export class App {
 		this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
 
-	// Drifts the camera rig (position + orbit target together) along a slow
-	// figure-eight, as if a helicopter were gliding over the site — the relative
-	// angle/distance OrbitControls dragging left in place is preserved.
-	private updateDrift(delta: number) {
+	// Drifts the camera position along a slow figure-eight centered on the
+	// operators' centroid (at a fixed hover altitude above them), as if a
+	// helicopter were circling the group. The orbit target is handled
+	// separately (see updateLookAt) so the drone keeps flying this pattern
+	// while still always facing the operators.
+	private updateDrift(delta: number, centroid: THREE.Vector3) {
 		this.driftElapsed += delta;
 		const t = this.driftElapsed * CONST.FLIGHT_DRIFT_SPEED;
-		const drift = new THREE.Vector3(
-			Math.sin(t) * CONST.FLIGHT_DRIFT_RADIUS_X,
-			Math.sin(t * 0.5) * CONST.FLIGHT_DRIFT_HEIGHT,
-			Math.sin(t * 2) * CONST.FLIGHT_DRIFT_RADIUS_Z,
+		const anchor = new THREE.Vector3(
+			centroid.x + Math.sin(t) * CONST.FLIGHT_DRIFT_RADIUS_X,
+			centroid.y + CONST.CAMERA_DRIFT_ALTITUDE + Math.sin(t * 0.5) * CONST.FLIGHT_DRIFT_HEIGHT,
+			centroid.z + Math.sin(t * 2) * CONST.FLIGHT_DRIFT_RADIUS_Z,
 		);
 
-		const step = new THREE.Vector3().subVectors(drift, this.lastDrift);
+		// the first frame just synchronizes to the anchor instead of stepping
+		// toward it, so the camera doesn't jump on load
+		if (!this.anchorInitialized) {
+			this.lastAnchor.copy(anchor);
+			this.anchorInitialized = true;
+			return;
+		}
+
+		const step = new THREE.Vector3().subVectors(anchor, this.lastAnchor);
 		this.camera.position.add(step);
-		this.controls.target.add(step);
-		this.lastDrift.copy(drift);
+		this.lastAnchor.copy(anchor);
 	}
 
-	public render(delta: number) {
-		this.updateDrift(delta);
+	// Eases the orbit target toward the true centroid of the operators instead
+	// of snapping to it, so the drone always keeps them framed no matter where
+	// its own flight drift (or the user's manual orbit/zoom) takes it.
+	private updateLookAt(delta: number, centroid: THREE.Vector3) {
+		this.lookAtTarget.lerp(centroid, Math.min(1, CONST.CAMERA_LOOKAT_EASE * delta));
+		this.controls.target.copy(this.lookAtTarget);
+	}
+
+	public render(delta: number, centroid: THREE.Vector3) {
+		this.updateDrift(delta, centroid);
+		this.updateLookAt(delta, centroid);
 		this.controls.update();
 		this.composer.render();
 		this.labelRenderer.render(this.scene, this.camera);

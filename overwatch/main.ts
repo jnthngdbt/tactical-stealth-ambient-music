@@ -55,6 +55,7 @@ app.renderer.domElement.addEventListener('dblclick', (event) => {
 });
 
 const clock = new THREE.Clock();
+const operatorsCentroid = new THREE.Vector3();
 let frame = 0;
 
 function animate() {
@@ -81,7 +82,13 @@ function animate() {
 	const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, 0);
 	operators.forEach((operator) => operator.tick(delta, groundSample));
 
-	app.render(delta);
+	// the drone always looks at (and flies its figure-eight centered on) the
+	// operators' true center, wherever they wander
+	operatorsCentroid.set(0, 0, 0);
+	operators.forEach((operator) => operatorsCentroid.add(operator.position));
+	operatorsCentroid.divideScalar(operators.length);
+
+	app.render(delta, operatorsCentroid);
 }
 
 animate();

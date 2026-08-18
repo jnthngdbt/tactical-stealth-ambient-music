@@ -47,7 +47,6 @@ export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 // steering never adds extra speed on top.
 export const OPERATOR_CREEP_SPEED = 0.85; // m/s, slow deliberate walk
 export const OPERATOR_DASH_SPEED = 1.4; // m/s, brisk walk
-export const OPERATOR_DEFAULT_HOLD = 2.5; // seconds paused when "checking the corner"
 export const OPERATOR_SWAY = 0.05; // small steering nudge blended into heading while creeping, then renormalized
 
 // All operators drift toward this same shared compass bearing (degrees,
@@ -63,10 +62,8 @@ export const PATROL_BEARING_DEG = 35;
 export const PATROL_LEASH_RADIUS = 35; // metres
 
 // Movement is continuous drift rather than point-to-point waypoints, so
-// pauses ("checking the corner") and brisk dash bursts happen on randomized
-// cadences instead of at specific waypoints.
-export const OPERATOR_HOLD_INTERVAL_MIN = 6; // seconds of walking between pauses
-export const OPERATOR_HOLD_INTERVAL_MAX = 14;
+// brisk dash bursts happen on a randomized cadence instead of at specific
+// waypoints. Operators never stop moving.
 export const OPERATOR_DASH_INTERVAL_MIN = 10; // seconds of creeping between dash bursts
 export const OPERATOR_DASH_INTERVAL_MAX = 20;
 export const OPERATOR_DASH_DURATION_MIN = 2; // seconds a dash burst lasts
@@ -130,10 +127,17 @@ export const CAMERA_FOV = 50;
 export const CAMERA_NEAR = 0.5;
 export const CAMERA_FAR = 8000;
 
-// Slow autonomous "helicopter" drift: the whole camera rig (position + orbit
-// target) glides along a lazy figure-eight over the site instead of orbiting
-// in place, while OrbitControls dragging/zooming still works on top of it.
+// Slow autonomous "helicopter" drift: the camera position glides along a
+// lazy figure-eight centered on the operators' group (at a fixed hover
+// altitude above them), while the orbit target always tracks the operators
+// directly (see CAMERA_LOOKAT_EASE below) and OrbitControls dragging/zooming
+// still works on top of both.
 export const FLIGHT_DRIFT_SPEED = 0.05; // radians/sec of the underlying Lissajous path
-export const FLIGHT_DRIFT_RADIUS_X = 45; // metres
-export const FLIGHT_DRIFT_RADIUS_Z = 30; // metres
-export const FLIGHT_DRIFT_HEIGHT = 6; // metres of slow vertical bob
+export const FLIGHT_DRIFT_RADIUS_X = 56; // metres
+export const FLIGHT_DRIFT_RADIUS_Z = 38; // metres
+export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
+export const CAMERA_DRIFT_ALTITUDE = 85; // metres, fixed hover height above the operators' centroid
+
+// How quickly the orbit target eases toward the true centroid of the
+// operators (rather than snapping straight to it every frame).
+export const CAMERA_LOOKAT_EASE = 1.5;
