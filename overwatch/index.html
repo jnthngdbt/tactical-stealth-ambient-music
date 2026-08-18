@@ -4,19 +4,20 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<title>TSAM // OBJECTIVE // MAIN</title>
+		<title>TSAM // OVERWATCH</title>
 
 		<!-- CSS -->
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 		<link href="https://fonts.googleapis.com/css?family=Russo+One" rel="stylesheet">
 		<link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
 
-		<script type="module" crossorigin src="../assets/objectives-By_MsQ2Z.js"></script>
+		<script type="module" crossorigin src="../assets/overwatch-CGo1hQ5k.js"></script>
 		<link rel="modulepreload" crossorigin href="../assets/three.module-BleRAe9S.js">
 		<link rel="modulepreload" crossorigin href="../assets/RenderPass-DkOysteU.js">
 		<link rel="modulepreload" crossorigin href="../assets/recorder-b2Joe_YC.js">
+		<link rel="modulepreload" crossorigin href="../assets/OrbitControls-C3rLktYR.js">
 		<link rel="stylesheet" crossorigin href="../assets/recorder-D4ulSiD-.css">
-		<link rel="stylesheet" crossorigin href="../assets/objectives-UJ6d2iWT.css">
+		<link rel="stylesheet" crossorigin href="../assets/overwatch--GooLbCe.css">
 	</head>
 	<body>
 
@@ -33,22 +34,19 @@
 			<div class="hud-corner br"></div>
 
 			<header class="hud-header">
-				<div class="hud-callsign">TSAM // GHOST-6</div>
-				<h1 class="hud-title">OPERATION NIGHTGLASS</h1>
-				<div class="hud-subtitle" id="hudSubtitle">FACILITY OVERVIEW</div>
+				<div class="hud-callsign">TSAM // OVERWATCH-1</div>
+				<h1 class="hud-title">MISSION MONITORING</h1>
+				<div class="hud-subtitle">LIVE FEED // NIGHT MODE</div>
 			</header>
 
-			<div class="hud-objective-panel" id="hudPanel">
-				<div class="hud-objective-code" id="hudCode">OBJ-00</div>
-				<div class="hud-objective-title" id="hudObjTitle">STANDBY</div>
-				<div class="hud-objective-desc" id="hudDesc"></div>
-				<div class="hud-progress-track"><div class="hud-progress-fill" id="hudProgress"></div></div>
+			<div class="hud-coords-panel">
+				<div class="hud-coords-label">SITE COORDS</div>
+				<div class="hud-coords" id="hudCoords">--.-----, --.-----</div>
+				<div class="hud-hint">Double-click ground to log spawn point coords</div>
 			</div>
 
-			<div class="hud-footer">
-				<div class="hud-dots" id="hudDots"></div>
-				<div class="hud-counter" id="hudCounter">00 / 05</div>
-			</div>
+			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
+			<div class="hud-attribution" id="hudAttribution"></div>
 		</div>
 
 		<!-- Save the looping animation as a video -->
