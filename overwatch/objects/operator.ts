@@ -58,8 +58,11 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 // A single operator, rendered as a dark, matte silhouette — grounded by a
 // soft shadow decal and tagged with a bright square tactical reticle — that
 // walks its configured patrol path, creeping cautiously most of the time and
-// dashing in occasional brisk bursts, but never stopping. Stays clamped to
-// the streaming tiles' ground height.
+// dashing in occasional brisk bursts, but never stopping. Altitude is linearly
+// interpolated between the current leg's two checkpoints (each sampled once
+// against the streaming tiles) rather than raycast continuously at the
+// operator's own position, so a stray prop/tree mesh between checkpoints
+// can't yank the operator up onto it.
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
@@ -73,8 +76,6 @@ export class Operator extends THREE.Group {
 
 	private dashing = false;
 	private dashRemaining = 0;
-	private groundY = 0;
-	private groundSampleCooldown = Math.random() * CONST.GROUND_SAMPLE_INTERVAL;
 	private pulsePhase = Math.random() * Math.PI * 2;
 
 	// Patrol path (world-local positions) walked in order, reversing
@@ -82,6 +83,18 @@ export class Operator extends THREE.Group {
 	private path: THREE.Vector3[];
 	private pathIndex = 0;
 	private pathDirection = 1;
+
+	// Altitude of the current leg's two endpoints (checkpoint indices), each
+	// sampled once against the tiles rather than re-raycast every frame along
+	// the way — the operator's height is linearly interpolated between them
+	// based on how far along the leg it has walked.
+	private legFromIndex = 0;
+	private legFromAltitude = 0;
+	private legToAltitude = 0;
+	private legFromReady = false; // the leg's *start* checkpoint has a real (non-NaN) sample
+	private legToReady = false; // the leg's *end* checkpoint has a real (non-NaN) sample
+	private hasSnappedToGround = false; // true once the very first real sample has placed the operator
+	private altitudeSampleCooldown = Math.random() * CONST.GROUND_SAMPLE_INTERVAL;
 
 	constructor(
 		trajectory: Checkpoint[],
@@ -181,9 +194,16 @@ export class Operator extends THREE.Group {
 		const distance = toTarget.length();
 
 		if (distance <= CONST.PATH_ARRIVAL_RADIUS) {
+			this.legFromIndex = this.pathIndex;
 			const next = this.pathIndex + this.pathDirection;
 			if (next < 0 || next >= this.path.length) this.pathDirection *= -1;
 			this.pathIndex += this.pathDirection;
+			// the new leg's start is exactly the checkpoint we just left, whose
+			// altitude we already know — carry it over instead of losing
+			// readiness and waiting on a fresh sample for a spot already visited
+			this.legFromAltitude = this.legToAltitude;
+			this.legFromReady = this.legToReady;
+			this.legToReady = false;
 			return;
 		}
 
@@ -195,17 +215,61 @@ export class Operator extends THREE.Group {
 		this.updateDash(delta);
 		const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
 
+		const legBefore = this.legFromIndex;
+		const targetBefore = this.pathIndex;
 		if (this.path.length >= 2) this.tickPath(delta, speed);
+		const legChanged = this.legFromIndex !== legBefore || this.pathIndex !== targetBefore;
 
-		this.groundSampleCooldown -= delta;
-		if (this.groundSampleCooldown <= 0) {
-			this.groundSampleCooldown = CONST.GROUND_SAMPLE_INTERVAL;
-			this.groundY = sampleGround(this.position.x, this.position.z);
+		let targetY: number | null = null;
+		if (this.path.length >= 2) {
+			this.altitudeSampleCooldown -= delta;
+			if (!this.legFromReady || !this.legToReady || legChanged || this.altitudeSampleCooldown <= 0) {
+				this.altitudeSampleCooldown = CONST.GROUND_SAMPLE_INTERVAL;
+				const from = this.path[this.legFromIndex];
+				const to = this.path[this.pathIndex];
+				const fromSample = sampleGround(from.x, from.z);
+				const toSample = sampleGround(to.x, to.z);
+				// keep the last real sample instead of overwriting it with NaN
+				// (an unloaded spot), which would otherwise pull the leg flat
+				if (!Number.isNaN(fromSample)) { this.legFromAltitude = fromSample; this.legFromReady = true; }
+				if (!Number.isNaN(toSample)) { this.legToAltitude = toSample; this.legToReady = true; }
+			}
+
+			// only the *start* checkpoint needs to be ready to place the operator —
+			// right at spawn/leg-start the walked fraction is ~0, so the still-
+			// loading far endpoint doesn't matter yet (and self-corrects once its
+			// own sample arrives, well before the operator gets close to it)
+			if (this.legFromReady) {
+				// interpolate by how far along the leg we've walked (horizontal
+				// distance only — this.position.y already carries real altitude,
+				// so mixing it into a 3D distanceTo would throw off the ratio)
+				const from = this.path[this.legFromIndex];
+				const to = this.path[this.pathIndex];
+				const legLength = Math.hypot(to.x - from.x, to.z - from.z);
+				const remaining = Math.hypot(to.x - this.position.x, to.z - this.position.z);
+				const t = legLength > 1e-4 ? THREE.MathUtils.clamp(1 - remaining / legLength, 0, 1) : 1;
+				targetY = THREE.MathUtils.lerp(this.legFromAltitude, this.legToAltitude, t) + CONST.OPERATOR_GROUND_OFFSET;
+			}
+		} else {
+			// no real path (defensive edge case, not a real movement mode):
+			// fall back to sampling directly under the operator
+			const sample = sampleGround(this.position.x, this.position.z);
+			if (!Number.isNaN(sample)) targetY = sample + CONST.OPERATOR_GROUND_OFFSET;
 		}
-		// ease toward the sampled ground height instead of snapping, so any
-		// terrain step reads as a climb rather than a sudden pop
-		const maxVerticalStep = CONST.OPERATOR_VERTICAL_SPEED * delta;
-		this.position.y += THREE.MathUtils.clamp(this.groundY - this.position.y, -maxVerticalStep, maxVerticalStep);
+
+		if (targetY !== null) {
+			if (!this.hasSnappedToGround) {
+				// snap straight to the checkpoint's altitude the first time tiles
+				// have actually loaded here, instead of easing/falling from y=0
+				this.hasSnappedToGround = true;
+				this.position.y = targetY;
+			} else {
+				// ease toward the target altitude instead of snapping, so any
+				// change still reads as a climb rather than a sudden pop
+				const maxVerticalStep = CONST.OPERATOR_VERTICAL_SPEED * delta;
+				this.position.y += THREE.MathUtils.clamp(targetY - this.position.y, -maxVerticalStep, maxVerticalStep);
+			}
+		}
 
 		// slow "breathing" pulse on the reticle while creeping, sharper pulse while dashing across the open
 		this.pulsePhase += delta * (this.dashing ? 6 : 2.2);
@@ -216,6 +280,15 @@ export class Operator extends THREE.Group {
 		// the ID tag reads brightest while dashing across open ground
 		this.leaderMaterial.opacity = 0.4 + 0.4 * pulse;
 		this.labelEl.style.opacity = `${0.5 + 0.5 * pulse}`;
+	}
+
+	// True once this operator's altitude reflects a real tile sample rather
+	// than its coordinate-space y=0 default — lets the camera (see app.ts)
+	// hold off following the group centroid until every operator's real
+	// ground height is known, instead of chasing a moving target while
+	// tiles are still streaming in.
+	public isGroundReady(): boolean {
+		return this.hasSnappedToGround;
 	}
 
 	// Frees GPU resources and the CSS2D label DOM node — called when tearing

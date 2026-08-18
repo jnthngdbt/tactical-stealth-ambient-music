@@ -42,12 +42,28 @@ function runCinematic(): () => void {
 	const { tiles } = createTiles(app.camera, app.renderer);
 	app.scene.add(tiles.group);
 
-	// exactly one operator per TRAJECTORIES entry (see mission.ts)
+	// exactly one operator per TRAJECTORIES entry (see mission.ts) — hidden
+	// until the tileset below reports its initial load complete, so nobody is
+	// ever shown floating over a map that hasn't streamed in yet
 	const operators = TRAJECTORIES.map((trajectory, i) => {
 		const operator = new Operator(trajectory, OPERATOR_NAMES[i], CONST.OPERATOR_COLOR);
+		operator.visible = false;
 		app.scene.add(operator);
 		return operator;
 	});
+
+	// nothing is ticked or shown until the tiles needed for the current view
+	// have actually finished downloading/parsing — 3d-tiles-renderer fires this
+	// once its load queues drain, which may still leave far-away, not-yet-
+	// visited parts of a long patrol route unloaded (handled by Operator's own
+	// per-leg ground-sample readiness once it walks there)
+	let mapReady = false;
+	function onTilesLoadEnd() {
+		mapReady = true;
+		operators.forEach((operator) => (operator.visible = true));
+		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
+	}
+	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);
 
 	const coordsEl = document.getElementById('hudCoords');
 	if (coordsEl) coordsEl.textContent = `${CONST.SITE_LAT.toFixed(5)}, ${CONST.SITE_LON.toFixed(5)}`;
@@ -89,16 +105,25 @@ function runCinematic(): () => void {
 				.join(' · ');
 		}
 
-		const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, 0);
-		operators.forEach((operator) => operator.tick(delta, groundSample));
+		let groundReady = false;
+		if (mapReady) {
+			// NaN (not 0) marks "tiles haven't streamed in here yet", so operators
+			// never treat an unloaded spot as sea-level ground.
+			const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, NaN);
+			operators.forEach((operator) => operator.tick(delta, groundSample));
 
-		// the drone always looks at (and flies its figure-eight centered on) the
-		// operators' true center, wherever they wander
-		operatorsCentroid.set(0, 0, 0);
-		operators.forEach((operator) => operatorsCentroid.add(operator.position));
-		operatorsCentroid.divideScalar(operators.length);
+			// the drone always looks at (and flies its figure-eight centered on) the
+			// operators' true center, wherever they wander
+			operatorsCentroid.set(0, 0, 0);
+			operators.forEach((operator) => operatorsCentroid.add(operator.position));
+			operatorsCentroid.divideScalar(operators.length);
 
-		app.render(delta, operatorsCentroid);
+			// held off until every operator has a real ground sample, so the camera
+			// doesn't start drifting/following before it knows their true altitude
+			groundReady = operators.every((operator) => operator.isGroundReady());
+		}
+
+		app.render(delta, operatorsCentroid, groundReady);
 	}
 
 	animate();
@@ -107,6 +132,7 @@ function runCinematic(): () => void {
 	// fresh cinematic run) can take over the page cleanly.
 	return function dispose() {
 		cancelAnimationFrame(rafId);
+		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 		recordBtn.removeEventListener('click', onRecordClick);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');

@@ -86,9 +86,21 @@ export const LABEL_ANCHOR_OFFSET = 4.4; // metres, horizontal reach of the diago
 export const GROUND_RAYCAST_HEIGHT = 400;
 export const GROUND_SAMPLE_INTERVAL = 0.25; // seconds between probes, staggered per operator
 
+// Any raycast hit outside this range (metres, relative to the site origin) is
+// rejected as bogus rather than trusted — partially-loaded/placeholder tile
+// geometry can occasionally return a wildly wrong hit (e.g. thousands of
+// metres below ground), which would otherwise get baked in as a "real"
+// ground sample and drag an operator (and the camera following it) miles away.
+export const GROUND_SAMPLE_PLAUSIBLE_MIN = -100;
+export const GROUND_SAMPLE_PLAUSIBLE_MAX = 400;
+
 // Height changes between ground samples (terrain slopes, curbs, etc.) are
 // eased into at this rate instead of snapped, so they read as a climb.
 export const OPERATOR_VERTICAL_SPEED = 2.5; // m/s max climb/descend rate
+
+// Added on top of the sampled/interpolated ground altitude so the operator's
+// feet never clip into the mesh (e.g. a slightly stale sample on a slope).
+export const OPERATOR_GROUND_OFFSET = 1.5; // metres above the ground surface
 
 // Camera
 export const CAMERA_FOV = 50;
@@ -105,6 +117,12 @@ export const FLIGHT_DRIFT_RADIUS_X = 56; // metres
 export const FLIGHT_DRIFT_RADIUS_Z = 38; // metres
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
 export const CAMERA_DRIFT_ALTITUDE = 85; // metres, fixed hover height above the operators' centroid
+
+// Caps how far the camera is allowed to jump in a single frame while
+// following the anchor above (e.g. if an operator's altitude snaps once
+// tiles finish streaming in) — any excess is carried over and caught up on
+// following frames instead of teleporting the camera off into empty space.
+export const CAMERA_DRIFT_MAX_STEP = 1.5; // metres per frame
 
 // How quickly the orbit target eases toward the true centroid of the
 // operators (rather than snapping straight to it every frame).

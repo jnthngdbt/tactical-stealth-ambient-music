@@ -89,10 +89,15 @@ export function localToEnu(x: number, z: number): { east: number; north: number 
 
 // Raycasts straight down onto the (progressively streaming) tiles to find the
 // street/terrain surface height at a given local X/Z. Falls back to the
-// provided height when nothing has loaded there yet.
+// provided height when nothing has loaded there yet, or when the hit falls
+// outside the plausible range (partially-loaded/placeholder tile geometry can
+// occasionally produce a wildly wrong hit).
 export function sampleGroundHeight(tiles: TilesRenderer, x: number, z: number, fallback: number): number {
 	rayOrigin.set(x, CONST.GROUND_RAYCAST_HEIGHT, z);
 	raycaster.set(rayOrigin, rayDirection);
 	const hits = raycaster.intersectObject(tiles.group, true);
-	return hits.length ? hits[0].point.y : fallback;
+	if (!hits.length) return fallback;
+	const y = hits[0].point.y;
+	if (y < CONST.GROUND_SAMPLE_PLAUSIBLE_MIN || y > CONST.GROUND_SAMPLE_PLAUSIBLE_MAX) return fallback;
+	return y;
 }

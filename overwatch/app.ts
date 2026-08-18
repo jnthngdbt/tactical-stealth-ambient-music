@@ -104,7 +104,7 @@ export class App {
 	// helicopter were circling the group. The orbit target is handled
 	// separately (see updateLookAt) so the drone keeps flying this pattern
 	// while still always facing the operators.
-	private updateDrift(delta: number, centroid: THREE.Vector3) {
+	private updateDrift(delta: number, centroid: THREE.Vector3, groundReady: boolean) {
 		this.driftElapsed += delta;
 		const t = this.driftElapsed * CONST.FLIGHT_DRIFT_SPEED;
 		const anchor = new THREE.Vector3(
@@ -113,17 +113,24 @@ export class App {
 			centroid.z + Math.sin(t * 2) * CONST.FLIGHT_DRIFT_RADIUS_Z,
 		);
 
-		// the first frame just synchronizes to the anchor instead of stepping
-		// toward it, so the camera doesn't jump on load
-		if (!this.anchorInitialized) {
+		// until every operator's real ground altitude is known, the centroid's
+		// height is still just a placeholder — keep re-syncing to it instead of
+		// stepping the camera, so drift only starts once there's nothing left
+		// to "catch up" to (avoids a multi-second camera chase once tiles load)
+		if (!this.anchorInitialized || !groundReady) {
 			this.lastAnchor.copy(anchor);
-			this.anchorInitialized = true;
+			this.anchorInitialized = groundReady;
 			return;
 		}
 
 		const step = new THREE.Vector3().subVectors(anchor, this.lastAnchor);
+		const stepLength = step.length();
+		if (stepLength > CONST.CAMERA_DRIFT_MAX_STEP) step.multiplyScalar(CONST.CAMERA_DRIFT_MAX_STEP / stepLength);
 		this.camera.position.add(step);
-		this.lastAnchor.copy(anchor);
+		// advance lastAnchor by only the (possibly clamped) applied step, not the
+		// full unclamped anchor, so any leftover distance is caught up gradually
+		// over the following frames instead of being silently dropped
+		this.lastAnchor.add(step);
 	}
 
 	// Eases the orbit target toward the true centroid of the operators instead
@@ -134,8 +141,8 @@ export class App {
 		this.controls.target.copy(this.lookAtTarget);
 	}
 
-	public render(delta: number, centroid: THREE.Vector3) {
-		this.updateDrift(delta, centroid);
+	public render(delta: number, centroid: THREE.Vector3, groundReady: boolean) {
+		this.updateDrift(delta, centroid, groundReady);
 		this.updateLookAt(delta, centroid);
 		this.controls.update();
 		this.composer.render();
