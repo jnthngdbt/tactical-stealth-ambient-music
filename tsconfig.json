@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["planning", "binoculars", "sneak", "objectives"]
+  "include": ["planning", "binoculars", "sneak", "objectives", "overwatch"]
 }

@@ -9,6 +9,7 @@ export default {
         binoculars: 'binoculars/index.html',
         sneak: 'sneak/index.html',
         objectives: 'objectives/index.html',
+        overwatch: 'overwatch/index.html',
       },
     },
   },

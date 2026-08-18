@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>TSAM // OVERWATCH</title>
+
+		<!-- CSS -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+		<link href="https://fonts.googleapis.com/css?family=Russo+One" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
+		<link rel="stylesheet" href="index.css">
+		<link rel="stylesheet" href="css/overlay.css">
+		<link rel="stylesheet" href="../objectives/css/util-button.css">
+
+	</head>
+	<body>
+
+		<!-- 3D scene -->
+		<script type="module" src="main.ts"></script>
+
+		<!-- Tactical HUD overlay (display only, no interaction) -->
+		<div id="hud">
+			<div class="hud-vignette"></div>
+			<div class="hud-scanlines"></div>
+
+			<div class="hud-corner tl"></div>
+			<div class="hud-corner tr"></div>
+			<div class="hud-corner bl"></div>
+			<div class="hud-corner br"></div>
+
+			<header class="hud-header">
+				<div class="hud-callsign">TSAM // OVERWATCH-1</div>
+				<h1 class="hud-title">MISSION MONITORING</h1>
+				<div class="hud-subtitle">LIVE FEED // NIGHT MODE</div>
+			</header>
+
+			<div class="hud-coords-panel">
+				<div class="hud-coords-label">SITE COORDS</div>
+				<div class="hud-coords" id="hudCoords">--.-----, --.-----</div>
+				<div class="hud-hint">Double-click ground to log spawn point coords</div>
+			</div>
+
+			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
+			<div class="hud-attribution" id="hudAttribution"></div>
+		</div>
+
+		<!-- Save the looping animation as a video -->
+		<button id="recordBtn" class="util-button" title="Record one loop as video">
+			<i class="fas fa-circle"></i>
+		</button>
+
+	</body>
+</html>

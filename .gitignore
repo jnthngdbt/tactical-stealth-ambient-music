@@ -57,6 +57,11 @@ web_modules/
 # Optional eslint cache
 .eslintcache
 
+# Local secrets (e.g. VITE_ION_KEY / VITE_GOOGLE_MAPS_API_KEY for overwatch/)
+.env
+.env.*
+!.env.local.example
+
 # Optional stylelint cache
 .stylelintcache
 
