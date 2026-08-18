@@ -183,6 +183,12 @@
   border-color: rgba(183, 243, 234, 0.8);
 }
 
+.hud-mode-toggle:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: rgba(183, 243, 234, 0.2);
+}
+
 
 /* Drone-feed style ID tag rendered via CSS2DObject, anchored to each operator */
 .operator-label {

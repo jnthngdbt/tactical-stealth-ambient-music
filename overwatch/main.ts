@@ -11,8 +11,9 @@ type Mode = 'cinematic' | 'edit';
 
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
-// first so those paths can be built by hand (see pathEditor.ts). Either way,
-// the HUD toggle button below can switch modes at any time.
+// first so those paths can be built by hand (see pathEditor.ts). The HUD
+// toggle button below switches modes, except pathEditor.ts disables it while
+// there are unsaved edits (use its "Copy all" button first).
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 
@@ -43,8 +44,7 @@ function runCinematic(): () => void {
 
 	// exactly one operator per TRAJECTORIES entry (see mission.ts)
 	const operators = TRAJECTORIES.map((trajectory, i) => {
-		const color = i % 2 === 0 ? CONST.OPERATOR_COLOR : CONST.OPERATOR_ALT_COLOR;
-		const operator = new Operator(trajectory, OPERATOR_NAMES[i], color);
+		const operator = new Operator(trajectory, OPERATOR_NAMES[i], CONST.OPERATOR_COLOR);
 		app.scene.add(operator);
 		return operator;
 	});

@@ -10,9 +10,10 @@ import * as CONST from './constants.ts';
 // mode. A static, straight-down, full-brightness view — no camera drift, no
 // operator movement, no night grading — so terrain, trees and rooftops read
 // clearly enough to place checkpoints that avoid them. Click the ground to
-// add a checkpoint for the selected operator; the copy buttons below produce
-// ready-to-paste arrays for mission.ts's TRAJECTORIES. Returns a dispose()
-// function that tears this mode down so another mode can take over the page.
+// add a checkpoint for the selected operator; the "Copy paths" button copies
+// the contents of mission.ts's TRAJECTORIES array (one `[...]` per operator),
+// ready to paste between its brackets. Returns a dispose() function that
+// tears this mode down so another mode can take over the page.
 export function runPathEditor(): () => void {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -81,7 +82,6 @@ export function runPathEditor(): () => void {
 		return pool[Math.floor(Math.random() * pool.length)];
 	}
 
-	const operatorColor = (index: number) => (index % 2 === 0 ? CONST.OPERATOR_COLOR : CONST.OPERATOR_ALT_COLOR);
 	const operatorGroups: THREE.Group[] = paths.map(() => {
 		const group = new THREE.Group();
 		scene.add(group);
@@ -104,7 +104,7 @@ export function runPathEditor(): () => void {
 		disposeGroup(group);
 
 		const path = paths[index];
-		const color = operatorColor(index);
+		const color = CONST.OPERATOR_COLOR;
 		const opacity = index === selected ? CONST.EDIT_PATH_OPACITY_ACTIVE : CONST.EDIT_PATH_OPACITY_INACTIVE;
 
 		const points: THREE.Vector3[] = [];
@@ -150,9 +150,18 @@ export function runPathEditor(): () => void {
 	const editorOperatorEl = document.getElementById('editorOperator');
 	const editorCountEl = document.getElementById('editorCount');
 	const copyBtn = document.getElementById('editorCopyBtn');
-	const copyAllBtn = document.getElementById('editorCopyAllBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
+
+	// Play (cinematic mode) reads TRAJECTORIES straight from mission.ts, so it
+	// would silently discard any in-progress edits here — disable it as soon
+	// as something changes, and only re-enable once "Copy paths" has been
+	// used to get the edits out (to be pasted back into mission.ts).
+	const modeToggleBtn = document.getElementById('modeToggleBtn') as HTMLButtonElement | null;
+	if (modeToggleBtn) modeToggleBtn.disabled = false;
+	function markDirty() {
+		if (modeToggleBtn) modeToggleBtn.disabled = true;
+	}
 
 	function updateHud() {
 		if (paths.length === 0) {
@@ -165,7 +174,7 @@ export function runPathEditor(): () => void {
 		}
 
 		const name = names[selected] ?? '';
-		const hex = `#${new THREE.Color(operatorColor(selected)).getHexString()}`;
+		const hex = `#${new THREE.Color(CONST.OPERATOR_COLOR).getHexString()}`;
 		if (editorOperatorEl) {
 			editorOperatorEl.textContent = `${name} [${selected + 1}/${paths.length}]`;
 			editorOperatorEl.style.color = hex;
@@ -192,6 +201,7 @@ export function runPathEditor(): () => void {
 		}
 		if ((event.key === 'Backspace' || event.key === 'Delete') && paths.length > 0) {
 			paths[selected].pop();
+			markDirty();
 			rebuildOperatorVisual(selected);
 			updateHud();
 		}
@@ -204,13 +214,9 @@ export function runPathEditor(): () => void {
 		`${indent}[\n${path.map((cp) => `${indent}\t${formatCheckpoint(cp)},`).join('\n')}\n${indent}],`;
 
 	function onCopyClick() {
-		if (paths.length === 0) return;
-		navigator.clipboard?.writeText(formatPath(paths[selected], '')).catch(() => { });
-	}
-	function onCopyAllClick() {
-		const body = paths.map((path) => formatPath(path, '\t')).join('\n');
-		const text = `export const TRAJECTORIES: Checkpoint[][] = [\n${body}\n];`;
+		const text = paths.map((path) => formatPath(path, '')).join('\n');
 		navigator.clipboard?.writeText(text).catch(() => { });
+		if (modeToggleBtn) modeToggleBtn.disabled = false;
 	}
 	function onAddClick() {
 		paths.push([]);
@@ -219,6 +225,7 @@ export function runPathEditor(): () => void {
 		scene.add(group);
 		operatorGroups.push(group);
 		selected = paths.length - 1;
+		markDirty();
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 		updateHud();
 	}
@@ -232,11 +239,11 @@ export function runPathEditor(): () => void {
 		names.splice(selected, 1);
 
 		selected = Math.min(selected, paths.length - 1);
+		markDirty();
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 		updateHud();
 	}
 	copyBtn?.addEventListener('click', onCopyClick);
-	copyAllBtn?.addEventListener('click', onCopyAllClick);
 	addBtn?.addEventListener('click', onAddClick);
 	deleteBtn?.addEventListener('click', onDeleteClick);
 
@@ -272,6 +279,7 @@ export function runPathEditor(): () => void {
 		} else {
 			paths[selected].push({ east: round1(east), north: round1(north) });
 		}
+		markDirty();
 		rebuildOperatorVisual(selected);
 		updateHud();
 	});
@@ -299,7 +307,6 @@ export function runPathEditor(): () => void {
 		window.removeEventListener('resize', onResize);
 		window.removeEventListener('keydown', onKeyDown);
 		copyBtn?.removeEventListener('click', onCopyClick);
-		copyAllBtn?.removeEventListener('click', onCopyAllClick);
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
 		operatorGroups.forEach(disposeGroup);

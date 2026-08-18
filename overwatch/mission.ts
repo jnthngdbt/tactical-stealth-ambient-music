@@ -8,8 +8,9 @@ import * as CONST from './constants.ts';
 // in the path editor (see pathEditor.ts) rather than by hand: as long as any
 // entry has fewer than 2 checkpoints, the app runs in path-editing mode
 // instead of the normal cinematic view — a top-down, static, obstacle-
-// friendly view for placing checkpoints. Its "copy" buttons produce
-// ready-to-paste arrays for this file.
+// friendly view for placing checkpoints. Its "Copy paths" button copies the
+// contents of this array (one `[...]` per operator) ready to paste between
+// the brackets below.
 export const TRAJECTORIES: Checkpoint[][] = [
 	[
 		{ east: -48.3, north: 8.8 },
@@ -48,6 +49,9 @@ export const TRAJECTORIES: Checkpoint[][] = [
 		{ east: 116.3, north: 87.9 },
 		{ east: 166.5, north: 115.8 },
 		{ east: 199.7, north: 120.1 },
+	],
+	[
+
 	],
 ];
 

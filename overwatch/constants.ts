@@ -4,7 +4,6 @@
 export const BACKGROUND_COLOR = 0x03060a;
 
 export const OPERATOR_COLOR = 0x35f0d0;
-export const OPERATOR_ALT_COLOR = 0x9be7ff; // used for every other operator, for visual variety
 
 // The tiles' own texture is a full-brightness daylight photo. Multiplying it
 // by this dark, cool tint (via the unlit material's color) dims it directly
