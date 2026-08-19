@@ -1,4 +1,4 @@
-import { URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
+import { URL_FLIGHT_ALTITUDE, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
@@ -184,7 +184,8 @@ export const FLIGHT_DRIFT_RADIUS_X = 20; // metres
 export const FLIGHT_DRIFT_RADIUS_Z = 20; // metres
 export const FLIGHT_DRIFT_SIDE_OFFSET = 30; // metres, minimum lateral distance kept from the centroid
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
-export const CAMERA_DRIFT_ALTITUDE = 60; // metres, fixed hover height above the operators' centroid
+// Overridable via `?alt=<metres>` URL query param (see urlParams.ts).
+export const CAMERA_DRIFT_ALTITUDE = URL_FLIGHT_ALTITUDE ?? 60; // metres, fixed hover height above the operators' centroid
 
 // Caps how far the camera is allowed to jump in a single frame while
 // following the anchor above (e.g. if an operator's altitude snaps once
