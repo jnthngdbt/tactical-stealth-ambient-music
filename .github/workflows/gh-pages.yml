@@ -15,31 +15,31 @@ jobs:
     environment: github-pages
 
     steps:
-    # Check out the repository code
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Set up Node.js
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    # Install dependencies
-    - name: Install dependencies
-      run: npm install
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # Build the project
-    - name: Build project
-      run: npx vite build
-      env:
-        VITE_ION_KEY: ${{ secrets.VITE_ION_KEY }}
+      # Build the project
+      - name: Build project
+        run: npx vite build
+        env:
+          VITE_ION_KEY: ${{ secrets.VITE_ION_KEY }}
 
-    # Deploy to GitHub Pages
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        # This token is provided by Actions and is auto-generated
-        github_token: ${{ secrets.GITHUB_TOKEN }} 
-        # Doesn't need to exist in the repository; must fit with `outDir` in vite.config.js
-        publish_dir: ./docs 
+      # Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # This token is provided by Actions and is auto-generated
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Doesn't need to exist in the repository; must fit with `outDir` in vite.config.js
+          publish_dir: ./docs

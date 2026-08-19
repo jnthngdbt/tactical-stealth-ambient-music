@@ -1,18 +1,17 @@
 import type { Checkpoint } from './objects/operator.ts';
 
-// Optional URL query-string overrides so a whole mission (Ion token, site
-// location, operator paths) can be described entirely by a shareable link
-// instead of editing constants.ts/mission.ts and rebuilding — handy since
-// this is a static site (no server to keep a secret in) where the same
-// build already ships with whatever key/site/paths were baked in at build
-// time. Consumed once here, then imported by constants.ts/mission.ts so
-// nothing else needs to know these can come from the URL.
+// Optional URL query-string overrides so a mission (site location, operator
+// paths) can be described entirely by a shareable link instead of editing
+// constants.ts/mission.ts and rebuilding. The Cesium Ion token itself is NOT
+// carried here — it's baked in at build time (VITE_ION_KEY, see
+// constants.ts) instead, so it never appears in a shared link. Consumed once
+// here, then imported by constants.ts/mission.ts so nothing else needs to
+// know these can come from the URL.
 //
-// Supported params: `token` (Cesium Ion token), `lat`/`lon` (site origin),
-// `paths` (operator trajectories, see parseTrajectories below). All are
-// optional — anything not present in the URL falls back to the existing
-// constants.ts/mission.ts defaults. If/when a single encrypted `data` param
-// replaces these, only this file needs to change.
+// Supported params: `lat`/`lon` (site origin), `paths` (operator
+// trajectories, see parseTrajectories below). All are optional — anything
+// not present in the URL falls back to the existing constants.ts/mission.ts
+// defaults.
 const params = new URLSearchParams(window.location.search);
 
 function parseNumber(raw: string | null): number | null {
@@ -40,18 +39,15 @@ function parseTrajectories(raw: string | null): Checkpoint[][] | null {
 	}
 }
 
-export const URL_CESIUM_ION_TOKEN = params.get('token');
 export const URL_SITE_LAT = parseNumber(params.get('lat'));
 export const URL_SITE_LON = parseNumber(params.get('lon'));
 export const URL_TRAJECTORIES = parseTrajectories(params.get('paths'));
 
 // Inverse of parseTrajectories, used by the path editor's "Save" button to
-// build a shareable mission link out of the token/site/paths currently in
-// effect.
-export function buildMissionUrl(token: string, lat: number, lon: number, trajectories: Checkpoint[][]): string {
+// build a shareable mission link out of the site/paths currently in effect.
+export function buildMissionUrl(lat: number, lon: number, trajectories: Checkpoint[][]): string {
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
-	if (token) query.set('token', token);
 	query.set('lat', String(lat));
 	query.set('lon', String(lon));
 	query.set('paths', JSON.stringify(trajectories.map((path) => path.map((cp) => [cp.east, cp.north]))));

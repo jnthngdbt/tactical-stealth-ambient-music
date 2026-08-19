@@ -18,7 +18,7 @@ import * as CONST from './constants.ts';
 // — but otherwise the same bloom + night-grading render pipeline as cinematic
 // mode, so switching modes doesn't change how the scene looks. Click the
 // ground to add a checkpoint for the selected operator; the "Save" button
-// builds a mission URL (token + site + these paths) and navigates there,
+// builds a mission URL (site + these paths, no token) and navigates there,
 // which starts cinematic mode straight from the saved link once every
 // operator has 2+ checkpoints. Returns a dispose() function that tears this
 // mode down so another mode can take over the page.
@@ -297,7 +297,7 @@ export function runPathEditor(): () => void {
 	const round1 = (v: number) => Math.round(v * 10) / 10;
 
 	function onSaveClick() {
-		window.location.href = buildMissionUrl(CONST.CESIUM_ION_TOKEN, CONST.SITE_LAT, CONST.SITE_LON, paths);
+		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths);
 	}
 	function onAddClick() {
 		paths.push([]);

@@ -1,4 +1,4 @@
-import { URL_CESIUM_ION_TOKEN, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
+import { URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
@@ -39,10 +39,10 @@ export const SITE_LON = URL_SITE_LON ?? -74.017;
 // default, so it only needs a Cesium Ion access token to get started. Set
 // VITE_GOOGLE_MAPS_API_KEY instead to stream tiles directly from Google Maps
 // Platform (Map Tiles API) if you'd rather manage billing/quotas yourself.
-// A `?token=` URL query param (see urlParams.ts) takes priority over both —
-// useful for a statically hosted build that has no baked-in key at all, with
-// the token instead carried by whatever mission link is shared.
-export const CESIUM_ION_TOKEN = URL_CESIUM_ION_TOKEN ?? import.meta.env.VITE_ION_KEY ?? '';
+// Always baked in at build time (.env.local locally, the `github-pages`
+// environment secret in CI) — never carried in the URL, so it's never
+// exposed by a shared mission link.
+export const CESIUM_ION_TOKEN = import.meta.env.VITE_ION_KEY ?? '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 
