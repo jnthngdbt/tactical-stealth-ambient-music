@@ -82,7 +82,7 @@ export function enuToLocal(east: number, north: number, up: number, target = new
 }
 
 // Inverse of enuToLocal: turns a local tile-frame X/Z back into East/North
-// metre offsets from the site origin, used by the waypoint-picking tool.
+// metre offsets from the site origin, used by the path editor's checkpoint picker.
 export function localToEnu(x: number, z: number): { east: number; north: number } {
 	return { east: -x, north: z };
 }

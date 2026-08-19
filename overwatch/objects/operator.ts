@@ -291,44 +291,37 @@ export class Operator extends THREE.Group {
 
 		const legBefore = this.legFromIndex;
 		const targetBefore = this.pathIndex;
-		if (this.path.length >= 2) this.tickPath(delta, speed);
+		this.tickPath(delta, speed);
 		const legChanged = this.legFromIndex !== legBefore || this.pathIndex !== targetBefore;
 
 		let targetY: number | null = null;
-		if (this.path.length >= 2) {
-			this.altitudeSampleCooldown -= delta;
-			if (!this.legFromReady || !this.legToReady || legChanged || this.altitudeSampleCooldown <= 0) {
-				this.altitudeSampleCooldown = CONST.GROUND_SAMPLE_INTERVAL;
-				const from = this.path[this.legFromIndex];
-				const to = this.path[this.pathIndex];
-				const fromSample = sampleGround(from.x, from.z);
-				const toSample = sampleGround(to.x, to.z);
-				// keep the last real sample instead of overwriting it with NaN
-				// (an unloaded spot), which would otherwise pull the leg flat
-				if (!Number.isNaN(fromSample)) { this.legFromAltitude = fromSample; this.legFromReady = true; }
-				if (!Number.isNaN(toSample)) { this.legToAltitude = toSample; this.legToReady = true; }
-			}
+		this.altitudeSampleCooldown -= delta;
+		if (!this.legFromReady || !this.legToReady || legChanged || this.altitudeSampleCooldown <= 0) {
+			this.altitudeSampleCooldown = CONST.GROUND_SAMPLE_INTERVAL;
+			const from = this.path[this.legFromIndex];
+			const to = this.path[this.pathIndex];
+			const fromSample = sampleGround(from.x, from.z);
+			const toSample = sampleGround(to.x, to.z);
+			// keep the last real sample instead of overwriting it with NaN
+			// (an unloaded spot), which would otherwise pull the leg flat
+			if (!Number.isNaN(fromSample)) { this.legFromAltitude = fromSample; this.legFromReady = true; }
+			if (!Number.isNaN(toSample)) { this.legToAltitude = toSample; this.legToReady = true; }
+		}
 
-			// only the *start* checkpoint needs to be ready to place the operator —
-			// right at spawn/leg-start the walked fraction is ~0, so the still-
-			// loading far endpoint doesn't matter yet (and self-corrects once its
-			// own sample arrives, well before the operator gets close to it)
-			if (this.legFromReady) {
-				// interpolate by how far along the leg we've walked (horizontal
-				// distance only — this.position.y already carries real altitude,
-				// so mixing it into a 3D distanceTo would throw off the ratio)
-				const from = this.path[this.legFromIndex];
-				const to = this.path[this.pathIndex];
-				const legLength = Math.hypot(to.x - from.x, to.z - from.z);
-				const remaining = Math.hypot(to.x - this.position.x, to.z - this.position.z);
-				const t = legLength > 1e-4 ? THREE.MathUtils.clamp(1 - remaining / legLength, 0, 1) : 1;
-				targetY = THREE.MathUtils.lerp(this.legFromAltitude, this.legToAltitude, t) + CONST.OPERATOR_GROUND_OFFSET;
-			}
-		} else {
-			// no real path (defensive edge case, not a real movement mode):
-			// fall back to sampling directly under the operator
-			const sample = sampleGround(this.position.x, this.position.z);
-			if (!Number.isNaN(sample)) targetY = sample + CONST.OPERATOR_GROUND_OFFSET;
+		// only the *start* checkpoint needs to be ready to place the operator —
+		// right at spawn/leg-start the walked fraction is ~0, so the still-
+		// loading far endpoint doesn't matter yet (and self-corrects once its
+		// own sample arrives, well before the operator gets close to it)
+		if (this.legFromReady) {
+			// interpolate by how far along the leg we've walked (horizontal
+			// distance only — this.position.y already carries real altitude,
+			// so mixing it into a 3D distanceTo would throw off the ratio)
+			const from = this.path[this.legFromIndex];
+			const to = this.path[this.pathIndex];
+			const legLength = Math.hypot(to.x - from.x, to.z - from.z);
+			const remaining = Math.hypot(to.x - this.position.x, to.z - this.position.z);
+			const t = legLength > 1e-4 ? THREE.MathUtils.clamp(1 - remaining / legLength, 0, 1) : 1;
+			targetY = THREE.MathUtils.lerp(this.legFromAltitude, this.legToAltitude, t) + CONST.OPERATOR_GROUND_OFFSET;
 		}
 
 		if (targetY !== null) {
