@@ -63,11 +63,33 @@
   text-align: right;
 }
 
+/* Doubles as the record button, so it opts back into pointer events despite
+   #hud's pointer-events: none (see also .hud-editor-panel below). Dimmed and
+   the dot held steady until actually recording, so it reads as a toggle. */
 .hud-rec {
-  font-size: 13px;
-  color: #ff5b4d;
+  font: inherit;
+  text-transform: inherit;
   letter-spacing: 0.15em;
+  color: #ff5b4d;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0.55;
+  transition: opacity 0.3s ease;
+  /* buttons default to centered text and shrink-to-fit width in Chrome's
+     UA stylesheet; .hud-status stretches flex items to its full cross-axis
+     width, so without these two it renders centered instead of left-aligned
+     like .hud-callsign below it. */
+  display: block;
+  text-align: left;
 }
+
+.hud-rec:hover { opacity: 0.8; }
+
+.hud-rec.recording { opacity: 1; }
 
 .hud-rec-dot {
   display: inline-block;
@@ -77,6 +99,9 @@
   border-radius: 50%;
   background: #ff5b4d;
   box-shadow: 0 0 6px rgba(255, 91, 77, 0.8);
+}
+
+.hud-rec.recording .hud-rec-dot {
   animation: hud-blink 1.4s steps(1) infinite;
 }
 
@@ -241,7 +266,8 @@
 }
 
 /* Always-visible switch between cinematic playback and the path editor
-   (outside #hud, like recordBtn, so it stays interactive in both modes). */
+   (outside #hud, so it stays interactive in both modes; .hud-rec above opts
+   into pointer events itself instead of living outside #hud). */
 .hud-mode-toggle {
   position: fixed;
   bottom: 4%;

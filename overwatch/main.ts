@@ -84,10 +84,17 @@ function runCinematic(): () => void {
 	};
 
 	const recorder = new Recorder(app.renderer.domElement);
-	const recordBtn = document.getElementById('recordBtn') as HTMLButtonElement;
-	function onRecordClick() {
-		if (recorder.isRecording) recorder.stop();
-		else recorder.start();
+	const recordBtn = document.getElementById('hudRec') as HTMLButtonElement;
+	let recordingElapsed = 0;
+	// start() is async (it awaits the tab-capture permission prompt), so the
+	// class toggle must wait for it too or isRecording still reads false.
+	async function onRecordClick() {
+		if (recorder.isRecording) {
+			recorder.stop();
+		} else {
+			recordingElapsed = 0;
+			await recorder.start();
+		}
 		recordBtn.classList.toggle('recording', recorder.isRecording);
 	}
 	recordBtn.addEventListener('click', onRecordClick);
@@ -107,6 +114,7 @@ function runCinematic(): () => void {
 		// clamp delta so a backgrounded tab doesn't make operators jump on return
 		const delta = Math.min(clock.getDelta(), 0.1);
 		elapsed += delta;
+		if (recorder.isRecording) recordingElapsed += delta;
 
 		app.camera.updateMatrixWorld();
 		tiles.setResolutionFromRenderer(app.camera, app.renderer);
@@ -144,7 +152,7 @@ function runCinematic(): () => void {
 
 		// Faux flight telemetry, driven by the camera's actual motion so it
 		// reads as a live drone feed rather than static decoration.
-		if (timecodeEl) timecodeEl.textContent = formatTimecode(elapsed);
+		if (timecodeEl) timecodeEl.textContent = formatTimecode(recordingElapsed);
 		if (groundReady) {
 			if (altEl) altEl.textContent = Math.round(app.camera.position.y - operatorsCentroid.y).toString();
 
@@ -174,6 +182,7 @@ function runCinematic(): () => void {
 		recordBtn.removeEventListener('click', onRecordClick);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
+		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);
 		operators.forEach((operator) => operator.dispose());
 		tiles.dispose();
 		app.dispose();

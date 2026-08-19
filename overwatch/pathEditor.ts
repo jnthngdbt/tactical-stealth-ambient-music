@@ -137,7 +137,7 @@ export function runPathEditor(): () => void {
 	// --- HUD wiring -----------------------------------------------------
 
 	document.body.classList.add('mode-edit');
-	const recordBtn = document.getElementById('recordBtn');
+	const recordBtn = document.getElementById('hudRec');
 	if (recordBtn) recordBtn.style.display = 'none';
 	const coordsPanel = document.querySelector<HTMLElement>('.hud-coords-panel');
 	if (coordsPanel) coordsPanel.style.display = 'none';
