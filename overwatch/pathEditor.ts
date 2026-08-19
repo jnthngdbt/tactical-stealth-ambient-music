@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { NightGradingPass } from './NightGradingPass.ts';
 import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, OPERATOR_NAMES } from './mission.ts';
@@ -7,13 +12,13 @@ import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
 // PATHS_READY), or whenever the HUD mode toggle switches into path-editing
-// mode. A static, straight-down, full-brightness view — no camera drift, no
-// operator movement, no night grading — so terrain, trees and rooftops read
-// clearly enough to place checkpoints that avoid them. Click the ground to
-// add a checkpoint for the selected operator; the "Copy paths" button copies
-// the contents of mission.ts's TRAJECTORIES array (one `[...]` per operator),
-// ready to paste between its brackets. Returns a dispose() function that
-// tears this mode down so another mode can take over the page.
+// mode. A static, straight-down view — no camera drift, no operator movement
+// — but otherwise the same bloom + night-grading render pipeline as cinematic
+// mode, so switching modes doesn't change how the scene looks. Click the
+// ground to add a checkpoint for the selected operator; the "Copy paths"
+// button copies the contents of mission.ts's TRAJECTORIES array (one `[...]`
+// per operator), ready to paste between its brackets. Returns a dispose()
+// function that tears this mode down so another mode can take over the page.
 export function runPathEditor(): () => void {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -47,8 +52,29 @@ export function runPathEditor(): () => void {
 	camera.position.set(centroid.x, CONST.EDIT_CAMERA_HEIGHT, centroid.z);
 	camera.lookAt(centroid.x, 0, centroid.z);
 
-	const { tiles } = createTiles(camera, renderer, { dim: false });
+	const { tiles } = createTiles(camera, renderer);
 	scene.add(tiles.group);
+
+	// Same bloom + night-grading pipeline as cinematic mode (see app.ts).
+	const composer = new EffectComposer(renderer);
+	composer.addPass(new RenderPass(scene, camera));
+	composer.addPass(
+		new UnrealBloomPass(
+			new THREE.Vector2(window.innerWidth, window.innerHeight),
+			CONST.BLOOM_STRENGTH,
+			CONST.BLOOM_RADIUS,
+			CONST.BLOOM_THRESHOLD,
+		),
+	);
+	composer.addPass(
+		new NightGradingPass({
+			exposure: CONST.NIGHT_EXPOSURE,
+			tint: CONST.NIGHT_TINT,
+			saturation: CONST.NIGHT_SATURATION,
+			vignette: CONST.NIGHT_VIGNETTE,
+		}),
+	);
+	composer.addPass(new OutputPass());
 
 	const controls = new OrbitControls(camera, renderer.domElement);
 	controls.enableRotate = false; // locked top-down, no angle/animation
@@ -65,6 +91,7 @@ export function runPathEditor(): () => void {
 		camera.right = CONST.EDIT_VIEW_HALF_SIZE * newAspect;
 		camera.updateProjectionMatrix();
 		renderer.setSize(window.innerWidth, window.innerHeight);
+		composer.setSize(window.innerWidth, window.innerHeight);
 	}
 	window.addEventListener('resize', onResize);
 
@@ -107,27 +134,35 @@ export function runPathEditor(): () => void {
 		const color = CONST.OPERATOR_COLOR;
 		const opacity = index === selected ? CONST.EDIT_PATH_OPACITY_ACTIVE : CONST.EDIT_PATH_OPACITY_INACTIVE;
 
-		const points: THREE.Vector3[] = [];
+		// Line points sit well above ground (EDIT_LINE_HEIGHT_OFFSET) so the path
+		// stays visible over buildings/terrain instead of ducking behind the mesh
+		// between two ground-hugging checkpoints; markers stay flush with the ground.
+		const linePoints: THREE.Vector3[] = [];
 		path.forEach((checkpoint, i) => {
 			const local = enuToLocal(checkpoint.east, checkpoint.north, 0);
-			local.y = sampleGroundHeight(tiles, local.x, local.z, local.y) + CONST.EDIT_MARKER_HEIGHT;
-			points.push(local);
+			const groundY = sampleGroundHeight(tiles, local.x, local.z, local.y);
+			local.y = groundY + CONST.EDIT_MARKER_HEIGHT;
+			linePoints.push(new THREE.Vector3(local.x, groundY + CONST.EDIT_LINE_HEIGHT_OFFSET, local.z));
 
 			const radius = i === 0 ? CONST.EDIT_MARKER_START_RADIUS : CONST.EDIT_MARKER_RADIUS;
 			const marker = new THREE.Mesh(
 				new THREE.CircleGeometry(radius, 20),
-				new THREE.MeshBasicMaterial({ color, transparent: true, opacity, toneMapped: false }),
+				// depthTest off (same as the path line) so markers sitting flush with
+				// the ground aren't occluded by building meshes at that spot.
+				new THREE.MeshBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: false }),
 			);
 			marker.rotation.x = -Math.PI / 2;
 			marker.position.copy(local);
+			marker.renderOrder = 2;
 			group.add(marker);
 		});
 
-		if (points.length >= 2) {
+		if (linePoints.length >= 2) {
 			const line = new THREE.Line(
-				new THREE.BufferGeometry().setFromPoints(points),
-				new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false }),
+				new THREE.BufferGeometry().setFromPoints(linePoints),
+				new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: false }),
 			);
+			line.renderOrder = 1;
 			group.add(line);
 		}
 	}
@@ -296,7 +331,7 @@ export function runPathEditor(): () => void {
 		tiles.setCamera(camera);
 		tiles.update();
 		controls.update();
-		renderer.render(scene, camera);
+		composer.render();
 	}
 
 	animate();

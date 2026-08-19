@@ -20,9 +20,9 @@ const rayDirection = new THREE.Vector3(0, -1, 0);
 // Sets up the photorealistic 3D Tiles renderer, re-orients it so the given
 // site coordinates sit at the world origin (+Y up), and swaps loaded tile
 // materials to unlit so the night grading pass has full control over lighting.
-// Pass `dim: false` (the path editor does) to keep the raw daylight imagery
-// at full brightness instead, since spotting obstacles for checkpoint
-// placement matters more there than matching the night-feed look.
+// Both cinematic mode and the path editor use the default dimmed look so the
+// two modes render identically; pass `dim: false` only if a full-brightness
+// daylight view is ever needed again.
 export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer, options: { dim?: boolean } = {}) {
 	const dim = options.dim ?? true;
 	const tiles = new TilesRenderer();
