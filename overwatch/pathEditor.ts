@@ -8,7 +8,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { NightGradingPass } from './NightGradingPass.ts';
 import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
-import { TRAJECTORIES, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
+import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
 import * as CONST from './constants.ts';
 
@@ -20,9 +20,12 @@ import * as CONST from './constants.ts';
 // ground to add a checkpoint for the selected operator; the "Save" button
 // builds a mission URL (site + these paths, no token) and navigates there,
 // which starts cinematic mode straight from the saved link once every
-// operator has 2+ checkpoints. Returns a dispose() function that tears this
-// mode down so another mode can take over the page.
-export function runPathEditor(): () => void {
+// operator has 2+ checkpoints. "Cancel" instead discards any in-progress
+// edits and calls onCancel (only shown when mission.ts's TRAJECTORIES were
+// already valid, i.e. there's a cinematic view to go back to). Returns a
+// dispose() function that tears this mode down so another mode can take over
+// the page.
+export function runPathEditor(onCancel: () => void): () => void {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -251,6 +254,9 @@ export function runPathEditor(): () => void {
 	document.body.classList.add('mode-edit');
 	const recordBtn = document.getElementById('hudRec');
 	if (recordBtn) recordBtn.style.display = 'none';
+	// Also the cinematic/edit mode toggle (main.ts) — hidden entirely while
+	// editing, since previewing in-progress edits in cinematic mode isn't
+	// meaningful; "Save" (below) is the only way out, via a mission URL.
 	const coordsPanel = document.querySelector<HTMLElement>('.hud-coords-panel');
 	if (coordsPanel) coordsPanel.style.display = 'none';
 	const telemetryEl = document.getElementById('hudTelemetry');
@@ -269,12 +275,10 @@ export function runPathEditor(): () => void {
 	const saveBtn = document.getElementById('editorSaveBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
-
-	// Cinematic mode reads TRAJECTORIES straight from mission.ts, so previewing
-	// in-progress edits there isn't meaningful — hidden entirely while editing;
-	// "Save" (below) is the only way out, via a mission URL carrying the edits.
-	const modeToggleBtn = document.getElementById('modeToggleBtn') as HTMLButtonElement | null;
-	if (modeToggleBtn) modeToggleBtn.style.display = 'none';
+	const cancelBtn = document.getElementById('editorCancelBtn');
+	// Nothing to cancel back to if mission.ts didn't already have valid paths
+	// (i.e. the editor started because PATHS_READY was false at load).
+	if (cancelBtn) cancelBtn.style.display = PATHS_READY ? '' : 'none';
 
 	function updateHud() {
 		if (paths.length === 0) {
@@ -359,9 +363,13 @@ export function runPathEditor(): () => void {
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 		updateHud();
 	}
+	function onCancelClick() {
+		onCancel();
+	}
 	saveBtn?.addEventListener('click', onSaveClick);
 	addBtn?.addEventListener('click', onAddClick);
 	deleteBtn?.addEventListener('click', onDeleteClick);
+	cancelBtn?.addEventListener('click', onCancelClick);
 
 	// --- Checkpoint placement --------------------------------------------
 	// A pointerdown/pointerup pair with a movement threshold, so a pan-drag
@@ -501,6 +509,7 @@ export function runPathEditor(): () => void {
 		saveBtn?.removeEventListener('click', onSaveClick);
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
+		cancelBtn?.removeEventListener('click', onCancelClick);
 		operatorGroups.forEach(disposeGroup);
 		labelElements.forEach((els) => els.forEach((el) => el.remove()));
 		tiles.dispose();
@@ -514,7 +523,6 @@ export function runPathEditor(): () => void {
 		if (telemetryEl) telemetryEl.style.display = '';
 		if (vitalsPanel) vitalsPanel.style.display = '';
 		if (subtitleEl) subtitleEl.textContent = originalSubtitle;
-		if (modeToggleBtn) modeToggleBtn.style.display = '';
 		editorPanel?.setAttribute('hidden', '');
 	};
 }

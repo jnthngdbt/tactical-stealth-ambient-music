@@ -11,29 +11,28 @@ type Mode = 'cinematic' | 'edit';
 
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
-// first so those paths can be built by hand (see pathEditor.ts). The HUD
-// toggle button below switches to path-editing mode; pathEditor.ts hides it
-// entirely while active (its "Save" button generates a mission URL with the
-// edited paths and navigates there instead).
+// first so those paths can be built by hand (see pathEditor.ts). The site
+// coords readout doubles as the toggle into path-editing mode; pathEditor.ts
+// hides it entirely while active (its "Save" button generates a mission URL
+// with the edited paths and navigates there instead).
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 
-const modeToggleBtn = document.getElementById('modeToggleBtn') as HTMLButtonElement | null;
+const coordsPanelToggle = document.querySelector<HTMLElement>('.hud-coords-panel');
 
 function updateModeToggleLabel() {
-	if (!modeToggleBtn) return;
-	modeToggleBtn.textContent = mode === 'cinematic' ? 'Edit paths' : 'Play';
-	modeToggleBtn.title = mode === 'cinematic' ? 'Switch to path editor' : 'Switch to cinematic view';
+	if (!coordsPanelToggle) return;
+	coordsPanelToggle.title = mode === 'cinematic' ? 'Switch to path editor' : 'Switch to cinematic view';
 }
 
 function startMode(next: Mode) {
 	stopCurrentMode?.();
 	mode = next;
-	stopCurrentMode = mode === 'cinematic' ? runCinematic() : runPathEditor();
+	stopCurrentMode = mode === 'cinematic' ? runCinematic() : runPathEditor(() => startMode('cinematic'));
 	updateModeToggleLabel();
 }
 
-modeToggleBtn?.addEventListener('click', () => startMode(mode === 'cinematic' ? 'edit' : 'cinematic'));
+coordsPanelToggle?.addEventListener('click', () => startMode(mode === 'cinematic' ? 'edit' : 'cinematic'));
 
 startMode(mode);
 
@@ -97,8 +96,6 @@ function runCinematic(): () => void {
 			await recorder.start();
 		}
 		recordBtn.classList.toggle('recording', recorder.isRecording);
-		// keeps the recording free of the mode-switch button
-		modeToggleBtn?.classList.toggle('recording', recorder.isRecording);
 	}
 	recordBtn.addEventListener('click', onRecordClick);
 
@@ -243,7 +240,6 @@ function runCinematic(): () => void {
 		recordBtn.removeEventListener('click', onRecordClick);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
-		modeToggleBtn?.classList.remove('recording');
 		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);
 		operators.forEach((operator) => operator.dispose());
 		tiles.dispose();

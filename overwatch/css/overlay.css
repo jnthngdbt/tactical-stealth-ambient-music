@@ -193,6 +193,18 @@
   text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
 }
 
+/* Doubles as the cinematic/path-editor mode toggle (see main.ts), so it opts
+   back into pointer events despite #hud's pointer-events: none. */
+.hud-coords-panel {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.hud-coords-panel:hover {
+  opacity: 0.8;
+}
+
 .hud-hint {
   margin-top: 4px;
   font-size: 10px;
@@ -325,40 +337,6 @@
   opacity: 1;
   border-color: rgba(183, 243, 234, 0.8);
 }
-
-/* Always-visible switch between cinematic playback and the path editor
-   (outside #hud, so it stays interactive in cinematic mode; .hud-rec above
-   opts into pointer events itself instead of living outside #hud). Hidden
-   entirely while the path editor is active (pathEditor.ts). */
-.hud-mode-toggle {
-  position: fixed;
-  bottom: 4%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Share Tech Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  color: #b7f3ea;
-  background: rgba(10, 14, 16, 0.6);
-  border: 1px solid rgba(183, 243, 234, 0.4);
-  border-radius: 23px;
-  padding: 12px 20px;
-  cursor: pointer;
-  opacity: 0.65;
-  transition: opacity 0.3s ease, border-color 0.3s ease;
-}
-
-.hud-mode-toggle:hover {
-  opacity: 1;
-  border-color: rgba(183, 243, 234, 0.8);
-}
-
-.hud-mode-toggle.recording {
-  display: none;
-}
-
-
 
 /* Drone-feed style ID tag: the label is a CSS2DObject anchored to the
    operator's head and laid out with a fixed pixel offset from that point, so
