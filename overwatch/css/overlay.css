@@ -299,8 +299,20 @@
 
 
 
-/* Drone-feed style ID tag rendered via CSS2DObject, anchored to each operator */
+/* Drone-feed style ID tag: the label is a CSS2DObject anchored to the
+   operator's head and laid out with a fixed pixel offset from that point, so
+   it never changes position/angle with the camera. The connecting line is a
+   separate WebGL THREE.Line (see operator.ts) rather than DOM, so it stays
+   crisp/anti-aliased and catches bloom instead of looking like a flat div. */
+.operator-tag {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
 .operator-label {
+  position: absolute;
+  transform: translateY(-50%);
   font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.05em;

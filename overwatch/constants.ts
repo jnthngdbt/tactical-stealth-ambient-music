@@ -107,11 +107,19 @@ export const OPERATOR_SHADOW_RADIUS = 0.5; // soft dark ground decal that ground
 export const OPERATOR_RETICLE_SIZE = 1.05; // half-size of the square tactical bracket around the body
 export const OPERATOR_RETICLE_CORNER = 0.5; // length of each bracket corner segment
 
-// Drone-feed ID tag: a single diagonal leader line from the operator's head
-// out to the floating callsign label, giving some breathing room between them.
-export const LABEL_LINE_START_HEIGHT = 1.0; // metres, roughly the head's apex
-export const LABEL_ANCHOR_HEIGHT = 6.3; // metres above ground
-export const LABEL_ANCHOR_OFFSET = 4.4; // metres, horizontal reach of the diagonal
+// Drone-feed ID tag: a diagonal leader line from the operator's head out to
+// the floating callsign label, both pinned to the head apex with fixed
+// screen-space pixel offsets so the tag always keeps the same length/angle
+// on screen no matter how the camera is oriented. The label is plain DOM
+// (CSS2DObject); the line is a real WebGL THREE.Line whose endpoints are
+// re-projected onto these same fixed pixels every frame (see
+// Operator.updateLeaderLine) rather than a static 3D segment, which would
+// otherwise swing with the view — this keeps its crisp, bloom-lit look.
+export const LABEL_ANCHOR_HEIGHT = 1.0; // metres, roughly the head's apex
+export const LABEL_LINE_LENGTH_PX = 46; // px, fixed screen-space distance from operator to label
+export const LABEL_LINE_ANGLE_DEG = 40; // degrees above horizontal, fixed screen-space angle
+export const LABEL_LINE_GAP_START_PX = 6; // px, gap left between the operator and the line
+export const LABEL_LINE_GAP_END_PX = 6; // px, gap left between the line and the label
 
 // Ground clamping — periodically raycasts down onto the streaming tiles so
 // operators stay pinned to the (progressively loading) street/terrain surface.

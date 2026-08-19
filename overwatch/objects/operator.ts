@@ -107,6 +107,7 @@ export class Operator extends THREE.Group {
 	private reticleMaterial: THREE.LineBasicMaterial;
 	private leaderLine: THREE.Line;
 	private leaderMaterial: THREE.LineBasicMaterial;
+	private tagEl: HTMLDivElement;
 	private labelEl: HTMLDivElement;
 
 	private dashing = false;
@@ -213,24 +214,47 @@ export class Operator extends THREE.Group {
 
 		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.shadowDecal, this.reticle);
 
-		// Drone-feed style ID tag: a single diagonal leader line off the
-		// operator's head out to a floating callsign label, rendered through
-		// CSS2D so the text stays crisp.
-		const anchor = new THREE.Vector3(CONST.LABEL_ANCHOR_OFFSET, CONST.LABEL_ANCHOR_HEIGHT, 0);
-		this.leaderMaterial = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.7, toneMapped: false });
-		const leaderPoints = [new THREE.Vector3(0, CONST.LABEL_LINE_START_HEIGHT, 0), anchor];
-		this.leaderLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(leaderPoints), this.leaderMaterial);
+		// Drone-feed style ID tag: a diagonal leader line off the operator's
+		// head out to a floating callsign label. The label is a DOM element
+		// (CSS2DObject) laid out with a fixed pixel offset from the head, so
+		// it never changes position/angle as the camera orbits. The line
+		// needs the same camera-independent screen placement, but rendering
+		// it as DOM (a rotated div) looked flat and aliased compared to the
+		// old real WebGL line — so instead it's a genuine THREE.Line (crisp,
+		// catches bloom like the reticle) whose two endpoints are recomputed
+		// every frame in updateLeaderLine() to project onto those same fixed
+		// screen pixels, keeping the "3D line" look while staying rotation-independent.
+		this.leaderMaterial = new THREE.LineBasicMaterial({
+			color,
+			transparent: true,
+			opacity: 0.7,
+			toneMapped: false,
+			depthTest: false, // always visible through terrain/buildings, like the DOM label it leads to
+		});
+		this.leaderLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), this.leaderMaterial);
+		this.leaderLine.frustumCulled = false; // endpoints are recomputed in screen space, not bounded by local geometry
+		this.leaderLine.renderOrder = 999; // draw after opaque scene geometry so depthTest:false doesn't get overpainted
 		this.add(this.leaderLine);
+
+		const angleRad = THREE.MathUtils.degToRad(CONST.LABEL_LINE_ANGLE_DEG);
+		const dx = CONST.LABEL_LINE_LENGTH_PX * Math.cos(angleRad);
+		const dy = -CONST.LABEL_LINE_LENGTH_PX * Math.sin(angleRad); // screen Y grows downward, so "up" is negative
+
+		this.tagEl = document.createElement('div');
+		this.tagEl.className = 'operator-tag';
 
 		this.labelEl = document.createElement('div');
 		this.labelEl.className = 'operator-label';
 		this.labelEl.textContent = name;
 		this.labelEl.style.color = hex;
 		this.labelEl.style.borderLeftColor = hex;
-		const label = new CSS2DObject(this.labelEl);
-		label.position.copy(anchor);
-		label.center.set(0, 0.5);
-		this.add(label);
+		this.labelEl.style.left = `${dx}px`;
+		this.labelEl.style.top = `${dy}px`;
+		this.tagEl.appendChild(this.labelEl);
+
+		const tag = new CSS2DObject(this.tagEl);
+		tag.position.set(0, CONST.LABEL_ANCHOR_HEIGHT, 0);
+		this.add(tag);
 
 		this.path = trajectory.map((checkpoint) => enuToLocal(checkpoint.east, checkpoint.north, 0));
 
@@ -285,7 +309,7 @@ export class Operator extends THREE.Group {
 		this.position.addScaledVector(heading, Math.min(speed * delta, distance));
 	}
 
-	public tick(delta: number, sampleGround: (x: number, z: number) => number) {
+	public tick(delta: number, sampleGround: (x: number, z: number) => number, camera: THREE.Camera) {
 		this.updateDash(delta);
 		const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
 
@@ -346,6 +370,44 @@ export class Operator extends THREE.Group {
 
 		this.updateIdleSway(delta);
 		this.updateLegSwing(delta, speed);
+		this.updateLeaderLine(camera);
+	}
+
+	// Recomputes the 3D leader line's two endpoints every frame so that, once
+	// projected through the current camera, they always land on the same fixed
+	// screen pixels (anchor + gap, through to anchor + gap + length) — matching
+	// the label's fixed on-screen offset above regardless of camera rotation,
+	// while still being real WebGL geometry (so it stays crisp and catches
+	// bloom like the reticle, instead of looking like a flat rotated DOM div).
+	private updateLeaderLine(camera: THREE.Camera) {
+		this.updateMatrixWorld();
+		const anchorWorld = new THREE.Vector3(0, CONST.LABEL_ANCHOR_HEIGHT, 0).applyMatrix4(this.matrixWorld);
+		const anchorNdc = anchorWorld.clone().project(camera);
+
+		const width = window.innerWidth;
+		const height = window.innerHeight;
+		const anchorPx = new THREE.Vector2((anchorNdc.x + 1) * 0.5 * width, (1 - anchorNdc.y) * 0.5 * height);
+
+		const angleRad = THREE.MathUtils.degToRad(CONST.LABEL_LINE_ANGLE_DEG);
+		const dirPx = new THREE.Vector2(Math.cos(angleRad), -Math.sin(angleRad)); // screen Y grows downward
+		const lineLength = CONST.LABEL_LINE_LENGTH_PX - CONST.LABEL_LINE_GAP_START_PX - CONST.LABEL_LINE_GAP_END_PX;
+
+		// same NDC depth as the anchor for both ends, so unprojecting places them
+		// on the screen-facing plane through the anchor (constant view-space z)
+		const pxToWorld = (px: THREE.Vector2) =>
+			new THREE.Vector3((px.x / width) * 2 - 1, 1 - (px.y / height) * 2, anchorNdc.z).unproject(camera);
+
+		const startWorld = pxToWorld(anchorPx.clone().addScaledVector(dirPx, CONST.LABEL_LINE_GAP_START_PX));
+		const endWorld = pxToWorld(anchorPx.clone().addScaledVector(dirPx, CONST.LABEL_LINE_GAP_START_PX + lineLength));
+
+		const toLocal = new THREE.Matrix4().copy(this.matrixWorld).invert();
+		const startLocal = startWorld.applyMatrix4(toLocal);
+		const endLocal = endWorld.applyMatrix4(toLocal);
+
+		const position = this.leaderLine.geometry.attributes.position as THREE.BufferAttribute;
+		position.setXYZ(0, startLocal.x, startLocal.y, startLocal.z);
+		position.setXYZ(1, endLocal.x, endLocal.y, endLocal.z);
+		position.needsUpdate = true;
 	}
 
 	// Subtle bob/sway on the head, so the operator never reads as a frozen
@@ -407,6 +469,6 @@ export class Operator extends THREE.Group {
 		this.reticleMaterial.dispose();
 		this.leaderLine.geometry.dispose();
 		this.leaderMaterial.dispose();
-		this.labelEl.remove();
+		this.tagEl.remove();
 	}
 }

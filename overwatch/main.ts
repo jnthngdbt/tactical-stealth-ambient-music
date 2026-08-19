@@ -138,7 +138,7 @@ function runCinematic(): () => void {
 			// NaN (not 0) marks "tiles haven't streamed in here yet", so operators
 			// never treat an unloaded spot as sea-level ground.
 			const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, NaN);
-			operators.forEach((operator) => operator.tick(delta, groundSample));
+			operators.forEach((operator) => operator.tick(delta, groundSample, app.camera));
 
 			// the drone always looks at (and flies its figure-eight centered on) the
 			// operators' true center, wherever they wander
