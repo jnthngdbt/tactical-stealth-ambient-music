@@ -71,17 +71,33 @@ export const OPERATOR_BODY_HEIGHT_SCALE = 1.2; // stretches it taller than wide
 export const OPERATOR_BODY_DEPTH_SCALE = 0.7; // flattens it front-to-back, like a hunched crouch
 export const OPERATOR_HEAD_RADIUS = 0.17;
 
+// Two "leg" spheres (same idea as the head) sitting under the torso, sunk
+// deep enough into it (OPERATOR_LEG_OVERLAP) to read as legs growing out of
+// the body rather than floating balls, alternately stepping forward/back in
+// sync with the current walk speed (see updateLegSwing).
+export const OPERATOR_LEG_RADIUS = 0.15;
+export const OPERATOR_LEG_OVERLAP = 0.6; // fraction of the two radii' sum buried inside the body
+export const OPERATOR_LEG_SPREAD = 0.13; // metres, left/right stance offset from centre
+export const OPERATOR_LEG_SWING_RATE = 4; // how fast the stride phase advances per metre walked
+export const OPERATOR_LEG_SWING_DISTANCE = 0.12; // metres, forward/back stride amplitude
+export const OPERATOR_LEG_SWING_LIFT = 0.03; // metres, vertical lift while stepping forward
+
+// Subtle idle bob/sway applied to the head every frame, independent of the
+// leg swing, so the operator never reads as a frozen statue.
+export const OPERATOR_IDLE_SWAY_SPEED = 1.6; // radians/sec
+export const OPERATOR_IDLE_SWAY_AMOUNT = 0.035; // metres, peak offset
+
 // Kept semi-transparent (rather than fully opaque) to soften the silhouette's
 // contrast against the terrain — a fixed opacity, no pulsing.
-export const OPERATOR_BODY_OPACITY_BASE = 0.9;
+export const OPERATOR_BODY_OPACITY_BASE = 0.8;
 
 // Soft billboard sprite behind the body/head that feathers their otherwise
 // hard sphere edge (see getHaloTexture in operator.ts) — a cheap stand-in
 // for a real blur pass.
-export const OPERATOR_HALO_SIZE = 1.6; // metres, camera-facing sprite size
+export const OPERATOR_HALO_SIZE = 1.0; // metres, camera-facing sprite size
 export const OPERATOR_HALO_OPACITY = 0.7;
 
-export const OPERATOR_SHADOW_RADIUS = 0.8; // soft dark ground decal that grounds the body visually
+export const OPERATOR_SHADOW_RADIUS = 0.5; // soft dark ground decal that grounds the body visually
 export const OPERATOR_RETICLE_SIZE = 1.05; // half-size of the square tactical bracket around the body
 export const OPERATOR_RETICLE_CORNER = 0.5; // length of each bracket corner segment
 
@@ -127,10 +143,10 @@ export const CAMERA_FAR = 8000;
 // straight down from directly overhead.
 export const FLIGHT_DRIFT_SPEED = 0.05; // radians/sec of the underlying Lissajous path
 export const FLIGHT_DRIFT_RADIUS_X = 26; // metres
-export const FLIGHT_DRIFT_RADIUS_Z = 16; // metres
+export const FLIGHT_DRIFT_RADIUS_Z = 8; // metres
 export const FLIGHT_DRIFT_SIDE_OFFSET = 30; // metres, minimum lateral distance kept from the centroid
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
-export const CAMERA_DRIFT_ALTITUDE = 65; // metres, fixed hover height above the operators' centroid
+export const CAMERA_DRIFT_ALTITUDE = 75; // metres, fixed hover height above the operators' centroid
 
 // Caps how far the camera is allowed to jump in a single frame while
 // following the anchor above (e.g. if an operator's altitude snaps once

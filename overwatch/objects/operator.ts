@@ -91,6 +91,13 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
+	private leftLeg: THREE.Mesh;
+	private rightLeg: THREE.Mesh;
+	private headBasePosition: THREE.Vector3;
+	private leftLegBasePosition: THREE.Vector3;
+	private rightLegBasePosition: THREE.Vector3;
+	private idlePhase = Math.random() * Math.PI * 2;
+	private walkPhase = Math.random() * Math.PI * 2;
 	private bodyMaterial: THREE.MeshBasicMaterial;
 	private haloSprite: THREE.Sprite;
 	private haloMaterial: THREE.SpriteMaterial;
@@ -152,6 +159,23 @@ export class Operator extends THREE.Group {
 		this.head = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_HEAD_RADIUS, 10, 8), this.bodyMaterial);
 		this.head.position.set((Math.random() - 0.5) * 0.1, bodyTopY + CONST.OPERATOR_HEAD_RADIUS * 0.5, (Math.random() - 0.5) * 0.1);
 
+		// Two "leg" spheres under the torso, sunk deep enough into it
+		// (OPERATOR_LEG_OVERLAP) to read as legs growing out of the body
+		// rather than floating balls stuck underneath.
+		const legOffsetY =
+			(CONST.OPERATOR_BODY_RADIUS * CONST.OPERATOR_BODY_HEIGHT_SCALE + CONST.OPERATOR_LEG_RADIUS) *
+			(1 - CONST.OPERATOR_LEG_OVERLAP);
+		const legY = this.body.position.y - legOffsetY;
+		this.leftLeg = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_LEG_RADIUS, 10, 8), this.bodyMaterial);
+		this.leftLeg.position.set(-CONST.OPERATOR_LEG_SPREAD, legY, 0);
+		this.rightLeg = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_LEG_RADIUS, 10, 8), this.bodyMaterial);
+		this.rightLeg.position.set(CONST.OPERATOR_LEG_SPREAD, legY, 0);
+
+		// resting positions the idle sway / leg swing (see tick) oscillate around
+		this.headBasePosition = this.head.position.clone();
+		this.leftLegBasePosition = this.leftLeg.position.clone();
+		this.rightLegBasePosition = this.rightLeg.position.clone();
+
 		// slight random heading so a cluster of operators doesn't look copy-pasted
 		this.body.rotation.y = Math.random() * Math.PI * 2;
 
@@ -187,7 +211,7 @@ export class Operator extends THREE.Group {
 		this.reticle = new THREE.LineSegments(buildReticleGeometry(), this.reticleMaterial);
 		this.reticle.position.y = 0.04;
 
-		this.add(this.haloSprite, this.body, this.head, this.shadowDecal, this.reticle);
+		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.shadowDecal, this.reticle);
 
 		// Drone-feed style ID tag: a single diagonal leader line off the
 		// operator's head out to a floating callsign label, rendered through
@@ -326,6 +350,43 @@ export class Operator extends THREE.Group {
 		const pulse = 0.65 + 0.35 * Math.sin(this.pulsePhase);
 		this.reticleMaterial.opacity = 0.55 + 0.4 * pulse;
 		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
+
+		this.updateIdleSway(delta);
+		this.updateLegSwing(delta, speed);
+	}
+
+	// Subtle bob/sway on the head, so the operator never reads as a frozen
+	// statue even between the leg swing's steps.
+	private updateIdleSway(delta: number) {
+		this.idlePhase += delta * CONST.OPERATOR_IDLE_SWAY_SPEED;
+		const amount = CONST.OPERATOR_IDLE_SWAY_AMOUNT;
+
+		this.head.position.set(
+			this.headBasePosition.x + Math.sin(this.idlePhase) * amount,
+			this.headBasePosition.y + Math.sin(this.idlePhase * 1.6 + 1.1) * amount * 0.6,
+			this.headBasePosition.z,
+		);
+	}
+
+	// Alternating forward/back leg stride, its phase driven by distance
+	// walked (speed * delta) rather than raw time, so a dash burst visibly
+	// quickens the stride instead of just ticking a fixed-rate clock.
+	private updateLegSwing(delta: number, speed: number) {
+		this.walkPhase += delta * speed * CONST.OPERATOR_LEG_SWING_RATE;
+		const leftStride = Math.sin(this.walkPhase);
+		const rightStride = -leftStride;
+
+		this.leftLeg.position.set(
+			this.leftLegBasePosition.x,
+			this.leftLegBasePosition.y + Math.max(0, leftStride) * CONST.OPERATOR_LEG_SWING_LIFT,
+			this.leftLegBasePosition.z + leftStride * CONST.OPERATOR_LEG_SWING_DISTANCE,
+		);
+
+		this.rightLeg.position.set(
+			this.rightLegBasePosition.x,
+			this.rightLegBasePosition.y + Math.max(0, rightStride) * CONST.OPERATOR_LEG_SWING_LIFT,
+			this.rightLegBasePosition.z + rightStride * CONST.OPERATOR_LEG_SWING_DISTANCE,
+		);
 	}
 
 	// True once this operator's altitude reflects a real tile sample rather
@@ -343,6 +404,8 @@ export class Operator extends THREE.Group {
 	public dispose() {
 		this.body.geometry.dispose();
 		this.head.geometry.dispose();
+		this.leftLeg.geometry.dispose();
+		this.rightLeg.geometry.dispose();
 		(this.body.material as THREE.Material).dispose();
 		this.haloMaterial.dispose();
 		this.shadowDecal.geometry.dispose();
