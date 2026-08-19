@@ -9,6 +9,8 @@ export interface Checkpoint {
 	north: number; // metres north of the site origin
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
+
 let sharedShadowTexture: THREE.Texture | null = null;
 
 // Soft dark radial gradient used to ground the operator's blob on the
@@ -93,9 +95,18 @@ export class Operator extends THREE.Group {
 	private head: THREE.Mesh;
 	private leftLeg: THREE.Mesh;
 	private rightLeg: THREE.Mesh;
+	private rifle: THREE.Group;
+	private rifleBarrel: THREE.Mesh;
+	private rifleStock: THREE.Mesh;
 	private headBasePosition: THREE.Vector3;
-	private leftLegBasePosition: THREE.Vector3;
-	private rightLegBasePosition: THREE.Vector3;
+	private legRestHeight: number;
+	// fixed per-operator random spin around the body's own vertical axis, kept
+	// separate from the heading-driven forward tilt applied each tick (see
+	// updateBodyTilt) so the two rotations can be composed independently
+	private bodyYaw: number;
+	// last real movement direction (world/local XZ, group itself never rotates),
+	// used to keep the rifle/legs/head oriented the way the operator is walking
+	private heading = new THREE.Vector3(0, 0, 1);
 	private idlePhase = Math.random() * Math.PI * 2;
 	private walkPhase = Math.random() * Math.PI * 2;
 	private bodyMaterial: THREE.MeshBasicMaterial;
@@ -166,19 +177,45 @@ export class Operator extends THREE.Group {
 		const legOffsetY =
 			(CONST.OPERATOR_BODY_RADIUS * CONST.OPERATOR_BODY_HEIGHT_SCALE + CONST.OPERATOR_LEG_RADIUS) *
 			(1 - CONST.OPERATOR_LEG_OVERLAP);
-		const legY = this.body.position.y - legOffsetY;
+		this.legRestHeight = this.body.position.y - legOffsetY;
 		this.leftLeg = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_LEG_RADIUS, 10, 8), this.bodyMaterial);
-		this.leftLeg.position.set(-CONST.OPERATOR_LEG_SPREAD, legY, 0);
+		this.leftLeg.position.set(-CONST.OPERATOR_LEG_SPREAD, this.legRestHeight, 0);
 		this.rightLeg = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_LEG_RADIUS, 10, 8), this.bodyMaterial);
-		this.rightLeg.position.set(CONST.OPERATOR_LEG_SPREAD, legY, 0);
+		this.rightLeg.position.set(CONST.OPERATOR_LEG_SPREAD, this.legRestHeight, 0);
 
-		// resting positions the idle sway / leg swing (see tick) oscillate around
+		// resting position the idle sway (see tick) oscillates around
 		this.headBasePosition = this.head.position.clone();
-		this.leftLegBasePosition = this.leftLeg.position.clone();
-		this.rightLegBasePosition = this.rightLeg.position.clone();
 
-		// slight random heading so a cluster of operators doesn't look copy-pasted
-		this.body.rotation.y = Math.random() * Math.PI * 2;
+		// Rifle: a thin barrel + a short stock, sharing bodyMaterial like the
+		// other silhouette parts. Its own local +Z is the barrel's forward
+		// direction, so rotating the group by atan2(heading.x, heading.z) each
+		// tick (updateRifleFacing) keeps it aimed the way the operator walks.
+		const barrelGeometry = new THREE.CylinderGeometry(
+			CONST.OPERATOR_RIFLE_BARREL_RADIUS,
+			CONST.OPERATOR_RIFLE_BARREL_RADIUS,
+			CONST.OPERATOR_RIFLE_BARREL_LENGTH,
+			8,
+		);
+		barrelGeometry.rotateX(Math.PI / 2);
+		barrelGeometry.translate(0, 0, CONST.OPERATOR_RIFLE_BARREL_LENGTH / 2);
+		this.rifleBarrel = new THREE.Mesh(barrelGeometry, this.bodyMaterial);
+
+		const stockGeometry = new THREE.BoxGeometry(
+			CONST.OPERATOR_RIFLE_STOCK_WIDTH,
+			CONST.OPERATOR_RIFLE_STOCK_HEIGHT,
+			CONST.OPERATOR_RIFLE_STOCK_LENGTH,
+		);
+		stockGeometry.translate(0, 0, -CONST.OPERATOR_RIFLE_STOCK_LENGTH / 2);
+		this.rifleStock = new THREE.Mesh(stockGeometry, this.bodyMaterial);
+
+		this.rifle = new THREE.Group();
+		this.rifle.add(this.rifleBarrel, this.rifleStock);
+		this.rifle.position.y = bodyTopY * CONST.OPERATOR_RIFLE_HEIGHT_SCALE;
+
+		// slight random spin so a cluster of operators doesn't look copy-pasted;
+		// applied each tick in updateBodyTilt, combined with the heading-driven
+		// forward lean
+		this.bodyYaw = Math.random() * Math.PI * 2;
 
 		// Soft blurred fringe: a billboard sprite sitting behind the solid body/head,
 		// sized a bit larger so only its feathered edge peeks out past the hard
@@ -212,7 +249,7 @@ export class Operator extends THREE.Group {
 		this.reticle = new THREE.LineSegments(buildReticleGeometry(), this.reticleMaterial);
 		this.reticle.position.y = 0.04;
 
-		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.shadowDecal, this.reticle);
+		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.rifle, this.shadowDecal, this.reticle);
 
 		// Drone-feed style ID tag: a diagonal leader line off the operator's
 		// head out to a floating callsign label. The label is a DOM element
@@ -309,6 +346,7 @@ export class Operator extends THREE.Group {
 		}
 
 		const heading = toTarget.normalize();
+		this.heading.copy(heading);
 		this.position.addScaledVector(heading, Math.min(speed * delta, distance));
 	}
 
@@ -372,8 +410,42 @@ export class Operator extends THREE.Group {
 		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
 
 		this.updateIdleSway(delta);
+		this.updateBodyTilt();
 		this.updateLegSwing(delta, speed);
+		this.updateRifleFacing();
 		this.updateLeaderLine(camera);
+	}
+
+	// Perpendicular-to-heading "right" axis (heading rotated 90° in the XZ
+	// plane, already unit length since heading is a horizontal unit vector) —
+	// shared by the leg stance and body tilt so both stay relative to the
+	// operator's actual direction of travel instead of a fixed world axis.
+	private getHeadingRight(): THREE.Vector3 {
+		return new THREE.Vector3(this.heading.z, 0, -this.heading.x);
+	}
+
+	// Leans the operator into the current heading. The head is a perfect
+	// sphere, so rotating it has no visible effect — instead the BODY (a
+	// non-uniformly scaled ellipsoid, so a pitch actually reads visually) is
+	// tilted around the heading-right axis, and the head is nudged
+	// forward/down (on top of whatever updateIdleSway already set) to follow
+	// the tilted torso instead of floating rigidly upright above it.
+	private updateBodyTilt() {
+		const right = this.getHeadingRight();
+		const yaw = new THREE.Quaternion().setFromAxisAngle(UP, this.bodyYaw);
+		const tilt = new THREE.Quaternion().setFromAxisAngle(right, CONST.OPERATOR_HEAD_TILT_ANGLE);
+		this.body.quaternion.copy(tilt).multiply(yaw);
+
+		this.head.position.x += this.heading.x * CONST.OPERATOR_HEAD_TILT_LEAN;
+		this.head.position.z += this.heading.z * CONST.OPERATOR_HEAD_TILT_LEAN;
+		this.head.position.y -= CONST.OPERATOR_HEAD_TILT_DROP;
+	}
+
+	// Points the rifle group's local +Z (the barrel's forward direction)
+	// toward the last real direction of travel, since the operator's own body
+	// mesh keeps a fixed random rotation and the group itself never rotates.
+	private updateRifleFacing() {
+		this.rifle.rotation.y = Math.atan2(this.heading.x, this.heading.z);
 	}
 
 	// Recomputes the 3D leader line's two endpoints every frame so that, once
@@ -428,22 +500,28 @@ export class Operator extends THREE.Group {
 
 	// Alternating forward/back leg stride, its phase driven by distance
 	// walked (speed * delta) rather than raw time, so a dash burst visibly
-	// quickens the stride instead of just ticking a fixed-rate clock.
+	// quickens the stride instead of just ticking a fixed-rate clock. Slides
+	// purely along the current heading (no vertical lift), like a low crouched
+	// shuffle rather than a full walking gait. The left/right stance offset is
+	// kept perpendicular to the heading (not a fixed world axis) — otherwise a
+	// diagonal heading projects part of that fixed offset onto the direction of
+	// travel, permanently biasing one leg forward and the other back on top of
+	// (and often swamping) the actual alternating stride.
 	private updateLegSwing(delta: number, speed: number) {
 		this.walkPhase += delta * speed * CONST.OPERATOR_LEG_SWING_RATE;
-		const leftStride = Math.sin(this.walkPhase);
-		const rightStride = -leftStride;
+		const stride = Math.sin(this.walkPhase) * CONST.OPERATOR_LEG_SWING_DISTANCE;
+		const right = this.getHeadingRight();
 
 		this.leftLeg.position.set(
-			this.leftLegBasePosition.x,
-			this.leftLegBasePosition.y + Math.max(0, leftStride) * CONST.OPERATOR_LEG_SWING_LIFT,
-			this.leftLegBasePosition.z + leftStride * CONST.OPERATOR_LEG_SWING_DISTANCE,
+			-right.x * CONST.OPERATOR_LEG_SPREAD + this.heading.x * stride,
+			this.legRestHeight,
+			-right.z * CONST.OPERATOR_LEG_SPREAD + this.heading.z * stride,
 		);
 
 		this.rightLeg.position.set(
-			this.rightLegBasePosition.x,
-			this.rightLegBasePosition.y + Math.max(0, rightStride) * CONST.OPERATOR_LEG_SWING_LIFT,
-			this.rightLegBasePosition.z + rightStride * CONST.OPERATOR_LEG_SWING_DISTANCE,
+			right.x * CONST.OPERATOR_LEG_SPREAD - this.heading.x * stride,
+			this.legRestHeight,
+			right.z * CONST.OPERATOR_LEG_SPREAD - this.heading.z * stride,
 		);
 	}
 
@@ -464,6 +542,8 @@ export class Operator extends THREE.Group {
 		this.head.geometry.dispose();
 		this.leftLeg.geometry.dispose();
 		this.rightLeg.geometry.dispose();
+		this.rifleBarrel.geometry.dispose();
+		this.rifleStock.geometry.dispose();
 		(this.body.material as THREE.Material).dispose();
 		this.haloMaterial.dispose();
 		this.shadowDecal.geometry.dispose();

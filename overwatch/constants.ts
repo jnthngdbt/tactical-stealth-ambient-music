@@ -72,30 +72,49 @@ export const OPERATOR_BODY_COLOR = 0x05070a; // near-black, stays dark regardles
 // one perfect sphere, so the silhouette reads as a crouching figure instead
 // of a geometric blob.
 export const OPERATOR_BODY_RADIUS = 0.34;
-export const OPERATOR_BODY_WIDTH_SCALE = 0.85; // flattens the torso side-to-side
+export const OPERATOR_BODY_WIDTH_SCALE = 0.5; // flattens the torso side-to-side
 export const OPERATOR_BODY_HEIGHT_SCALE = 1.2; // stretches it taller than wide
-export const OPERATOR_BODY_DEPTH_SCALE = 0.7; // flattens it front-to-back, like a hunched crouch
+export const OPERATOR_BODY_DEPTH_SCALE = 0.5; // flattens it front-to-back, like a hunched crouch
 export const OPERATOR_HEAD_RADIUS = 0.17;
 
 // Two "leg" spheres (same idea as the head) sitting under the torso, sunk
 // deep enough into it (OPERATOR_LEG_OVERLAP) to read as legs growing out of
 // the body rather than floating balls, alternately stepping forward/back in
 // sync with the current walk speed (see updateLegSwing).
-export const OPERATOR_LEG_RADIUS = 0.15;
+export const OPERATOR_LEG_RADIUS = 0.12;
 export const OPERATOR_LEG_OVERLAP = 0.6; // fraction of the two radii' sum buried inside the body
-export const OPERATOR_LEG_SPREAD = 0.13; // metres, left/right stance offset from centre
-export const OPERATOR_LEG_SWING_RATE = 4; // how fast the stride phase advances per metre walked
-export const OPERATOR_LEG_SWING_DISTANCE = 0.12; // metres, forward/back stride amplitude
-export const OPERATOR_LEG_SWING_LIFT = 0.03; // metres, vertical lift while stepping forward
+export const OPERATOR_LEG_SPREAD = 0.08; // metres, left/right stance offset from centre
+export const OPERATOR_LEG_SWING_RATE = 9; // how fast the stride phase advances per metre walked
+export const OPERATOR_LEG_SWING_DISTANCE = 0.16; // metres, forward/back stride amplitude along the heading
+
+// A simple rifle silhouette, held so it always points toward the operator's
+// current direction of travel (see Operator.updateRifleFacing) rather than a
+// fixed heading, since operators otherwise never rotate to face their path.
+export const OPERATOR_RIFLE_BARREL_LENGTH = 0.55; // metres
+export const OPERATOR_RIFLE_BARREL_RADIUS = 0.035; // metres
+export const OPERATOR_RIFLE_STOCK_LENGTH = 0.22; // metres
+export const OPERATOR_RIFLE_STOCK_HEIGHT = 0.06; // metres
+export const OPERATOR_RIFLE_STOCK_WIDTH = 0.08; // metres
+export const OPERATOR_RIFLE_HEIGHT_SCALE = 0.6; // fraction of the body's top height where the rifle sits (chest)
 
 // Subtle idle bob/sway applied to the head every frame, independent of the
 // leg swing, so the operator never reads as a frozen statue.
 export const OPERATOR_IDLE_SWAY_SPEED = 1.6; // radians/sec
 export const OPERATOR_IDLE_SWAY_AMOUNT = 0.035; // metres, peak offset
 
+// Forward lean into the current heading, so the operator reads as a
+// purposeful crouched jog rather than an upright glide. The head is a
+// perfect sphere, so rotating it is visually a no-op — instead the BODY
+// (a non-uniformly scaled ellipsoid, so its rotation IS visible) is tilted by
+// this angle, and the head is translated forward/down to follow along, on
+// top of the existing idle sway.
+export const OPERATOR_HEAD_TILT_ANGLE = 0.35; // radians, body forward pitch
+export const OPERATOR_HEAD_TILT_LEAN = 0.22; // metres, head shifts forward along the heading
+export const OPERATOR_HEAD_TILT_DROP = 0.11; // metres, head dips down to match the lean
+
 // Kept semi-transparent (rather than fully opaque) to soften the silhouette's
 // contrast against the terrain — a fixed opacity, no pulsing.
-export const OPERATOR_BODY_OPACITY_BASE = 0.8;
+export const OPERATOR_BODY_OPACITY_BASE = 0.9;
 
 // Soft billboard sprite behind the body/head that feathers their otherwise
 // hard sphere edge (see getHaloTexture in operator.ts) — a cheap stand-in
