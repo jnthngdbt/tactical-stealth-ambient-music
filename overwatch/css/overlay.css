@@ -316,3 +316,15 @@
   white-space: nowrap;
   text-shadow: 0 0 6px rgba(53, 240, 208, 0.5);
 }
+
+/* Per-checkpoint estimated timestamp tag in the path editor (CSS2DObject) */
+.checkpoint-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: rgba(5, 10, 10, 0.5);
+  border-left: 2px solid rgba(53, 240, 208, 0.7);
+  padding: 1px 5px;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(53, 240, 208, 0.5);
+}

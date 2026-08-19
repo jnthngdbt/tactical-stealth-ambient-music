@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
 import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
@@ -76,6 +77,18 @@ export function runPathEditor(): () => void {
 	);
 	composer.addPass(new OutputPass());
 
+	// Checkpoint timestamp tags render through a separate CSS2D layer, same as
+	// operator nameplates in cinematic mode, so the text stays crisp regardless
+	// of zoom/bloom.
+	const labelRenderer = new CSS2DRenderer();
+	labelRenderer.setSize(window.innerWidth, window.innerHeight);
+	labelRenderer.domElement.style.position = 'fixed';
+	labelRenderer.domElement.style.top = '0';
+	labelRenderer.domElement.style.left = '0';
+	labelRenderer.domElement.style.pointerEvents = 'none';
+	labelRenderer.domElement.style.zIndex = '1';
+	document.body.appendChild(labelRenderer.domElement);
+
 	const controls = new OrbitControls(camera, renderer.domElement);
 	controls.enableRotate = false; // locked top-down, no angle/animation
 	controls.screenSpacePanning = true;
@@ -92,6 +105,7 @@ export function runPathEditor(): () => void {
 		camera.updateProjectionMatrix();
 		renderer.setSize(window.innerWidth, window.innerHeight);
 		composer.setSize(window.innerWidth, window.innerHeight);
+		labelRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
 	window.addEventListener('resize', onResize);
 
@@ -114,6 +128,10 @@ export function runPathEditor(): () => void {
 		scene.add(group);
 		return group;
 	});
+	// Checkpoint timestamp tags aren't part of `group` (CSS2DObject DOM nodes
+	// aren't cleaned up by removing them from the scene graph, see disposeGroup),
+	// so they're tracked per operator here and removed explicitly before a rebuild.
+	const labelElements: HTMLDivElement[][] = paths.map(() => []);
 
 	function disposeGroup(group: THREE.Group) {
 		group.children.forEach((child) => {
@@ -124,20 +142,35 @@ export function runPathEditor(): () => void {
 		group.clear();
 	}
 
+	const formatElapsed = (seconds: number) => {
+		const s = Math.round(seconds);
+		const mm = Math.floor(s / 60);
+		const ss = String(s % 60).padStart(2, '0');
+		return `${mm}:${ss}`;
+	};
+
 	// Redraws one operator's markers (a disc per checkpoint, the first
-	// bigger) and connecting line, dimmed unless it's the selected operator.
+	// bigger), connecting line, and per-checkpoint estimated timestamp tags,
+	// dimmed unless it's the selected operator. Timestamps assume the operator
+	// walks the whole route at its steady OPERATOR_CREEP_SPEED (dash bursts are
+	// randomized in cinematic mode, so they can't be predicted here) — a
+	// best-effort ETA for planning routes, not a guaranteed arrival time.
 	function rebuildOperatorVisual(index: number) {
 		const group = operatorGroups[index];
 		disposeGroup(group);
+		labelElements[index].forEach((el) => el.remove());
+		labelElements[index] = [];
 
 		const path = paths[index];
 		const color = CONST.OPERATOR_COLOR;
 		const opacity = index === selected ? CONST.EDIT_PATH_OPACITY_ACTIVE : CONST.EDIT_PATH_OPACITY_INACTIVE;
+		const hex = `#${new THREE.Color(color).getHexString()}`;
 
 		// Line points sit well above ground (EDIT_LINE_HEIGHT_OFFSET) so the path
 		// stays visible over buildings/terrain instead of ducking behind the mesh
 		// between two ground-hugging checkpoints; markers stay flush with the ground.
 		const linePoints: THREE.Vector3[] = [];
+		let elapsed = 0;
 		path.forEach((checkpoint, i) => {
 			const local = enuToLocal(checkpoint.east, checkpoint.north, 0);
 			const groundY = sampleGroundHeight(tiles, local.x, local.z, local.y);
@@ -155,6 +188,24 @@ export function runPathEditor(): () => void {
 			marker.position.copy(local);
 			marker.renderOrder = 2;
 			group.add(marker);
+
+			if (i > 0) {
+				const prev = path[i - 1];
+				const legDistance = Math.hypot(checkpoint.east - prev.east, checkpoint.north - prev.north);
+				elapsed += legDistance / CONST.OPERATOR_CREEP_SPEED;
+			}
+
+			const labelEl = document.createElement('div');
+			labelEl.className = 'checkpoint-label';
+			labelEl.textContent = formatElapsed(elapsed);
+			labelEl.style.color = hex;
+			labelEl.style.borderLeftColor = hex;
+			labelEl.style.opacity = String(opacity);
+			const label = new CSS2DObject(labelEl);
+			label.position.copy(local);
+			label.center.set(0.5, 1.4); // renders just above the marker, screen-space only
+			group.add(label);
+			labelElements[index].push(labelEl);
 		});
 
 		if (linePoints.length >= 2) {
@@ -261,6 +312,7 @@ export function runPathEditor(): () => void {
 		const group = new THREE.Group();
 		scene.add(group);
 		operatorGroups.push(group);
+		labelElements.push([]);
 		selected = paths.length - 1;
 		markDirty();
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
@@ -272,6 +324,8 @@ export function runPathEditor(): () => void {
 		disposeGroup(operatorGroups[selected]);
 		scene.remove(operatorGroups[selected]);
 		operatorGroups.splice(selected, 1);
+		labelElements[selected].forEach((el) => el.remove());
+		labelElements.splice(selected, 1);
 		paths.splice(selected, 1);
 		names.splice(selected, 1);
 
@@ -332,6 +386,7 @@ export function runPathEditor(): () => void {
 		tiles.update();
 		controls.update();
 		composer.render();
+		labelRenderer.render(scene, camera);
 	}
 
 	animate();
@@ -347,9 +402,11 @@ export function runPathEditor(): () => void {
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
 		operatorGroups.forEach(disposeGroup);
+		labelElements.forEach((els) => els.forEach((el) => el.remove()));
 		tiles.dispose();
 		renderer.dispose();
 		renderer.domElement.remove();
+		labelRenderer.domElement.remove();
 
 		document.body.classList.remove('mode-edit');
 		if (recordBtn) recordBtn.style.display = '';
