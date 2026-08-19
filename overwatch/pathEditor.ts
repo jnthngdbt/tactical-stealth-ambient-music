@@ -187,6 +187,7 @@ export function runPathEditor(): () => void {
 			marker.rotation.x = -Math.PI / 2;
 			marker.position.copy(local);
 			marker.renderOrder = 2;
+			marker.userData.checkpointIndex = i; // picked up by the drag hit-test below
 			group.add(marker);
 
 			if (i > 0) {
@@ -341,15 +342,56 @@ export function runPathEditor(): () => void {
 	// --- Checkpoint placement --------------------------------------------
 	// A pointerdown/pointerup pair with a movement threshold, so a pan-drag
 	// (also the left mouse button, via controls.mouseButtons above) doesn't
-	// also drop a checkpoint.
+	// also drop a checkpoint. Pointerdown on an existing marker instead starts
+	// a drag that repositions that checkpoint, taking priority over placement.
 	const raycaster = new THREE.Raycaster();
 	let downPos: { x: number; y: number } | null = null;
+	let draggingIndex: number | null = null;
+
+	function ndcFromEvent(event: PointerEvent) {
+		const rect = renderer.domElement.getBoundingClientRect();
+		return new THREE.Vector2(
+			((event.clientX - rect.left) / rect.width) * 2 - 1,
+			-((event.clientY - rect.top) / rect.height) * 2 + 1,
+		);
+	}
 
 	renderer.domElement.addEventListener('pointerdown', (event) => {
 		downPos = { x: event.clientX, y: event.clientY };
+		if (event.button !== 0 || paths.length === 0) return;
+
+		raycaster.setFromCamera(ndcFromEvent(event), camera);
+		const markerHit = raycaster.intersectObjects(operatorGroups[selected].children, false)
+			.find((hit) => hit.object.userData.checkpointIndex !== undefined);
+		if (markerHit) {
+			draggingIndex = markerHit.object.userData.checkpointIndex as number;
+			controls.enabled = false; // don't let OrbitControls pan while dragging a marker
+			renderer.domElement.style.cursor = 'grabbing';
+		}
+	});
+
+	renderer.domElement.addEventListener('pointermove', (event) => {
+		if (draggingIndex === null) return;
+		raycaster.setFromCamera(ndcFromEvent(event), camera);
+		const hit = raycaster.intersectObject(tiles.group, true)[0];
+		if (!hit) return;
+
+		const { east, north } = localToEnu(hit.point.x, hit.point.z);
+		paths[selected][draggingIndex] = { east: round1(east), north: round1(north) };
+		markDirty();
+		rebuildOperatorVisual(selected);
 	});
 
 	renderer.domElement.addEventListener('pointerup', (event) => {
+		if (draggingIndex !== null) {
+			draggingIndex = null;
+			controls.enabled = true;
+			renderer.domElement.style.cursor = '';
+			downPos = null;
+			updateHud();
+			return;
+		}
+
 		if (!downPos) return;
 		const moved = Math.hypot(event.clientX - downPos.x, event.clientY - downPos.y);
 		downPos = null;
