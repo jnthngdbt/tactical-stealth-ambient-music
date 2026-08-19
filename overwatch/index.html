@@ -11,13 +11,12 @@
 		<link href="https://fonts.googleapis.com/css?family=Russo+One" rel="stylesheet">
 		<link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
 
-		<script type="module" crossorigin src="../assets/overwatch-CGo1hQ5k.js"></script>
-		<link rel="modulepreload" crossorigin href="../assets/three.module-BleRAe9S.js">
-		<link rel="modulepreload" crossorigin href="../assets/RenderPass-DkOysteU.js">
-		<link rel="modulepreload" crossorigin href="../assets/recorder-b2Joe_YC.js">
-		<link rel="modulepreload" crossorigin href="../assets/OrbitControls-C3rLktYR.js">
-		<link rel="stylesheet" crossorigin href="../assets/recorder-D4ulSiD-.css">
-		<link rel="stylesheet" crossorigin href="../assets/overwatch--GooLbCe.css">
+		<script type="module" crossorigin src="../assets/overwatch-BD02ws1U.js"></script>
+		<link rel="modulepreload" crossorigin href="../assets/three.module-jgOKvxGV.js">
+		<link rel="modulepreload" crossorigin href="../assets/RenderPass-BEIIJ6YE.js">
+		<link rel="modulepreload" crossorigin href="../assets/recorder-D2HaKWtn.js">
+		<link rel="modulepreload" crossorigin href="../assets/OrbitControls-sXd9HdVe.js">
+		<link rel="stylesheet" crossorigin href="../assets/overwatch-CGUYepi-.css">
 	</head>
 	<body>
 
@@ -34,25 +33,54 @@
 			<div class="hud-corner br"></div>
 
 			<header class="hud-header">
-				<div class="hud-callsign">TSAM // OVERWATCH-1</div>
-				<h1 class="hud-title">MISSION MONITORING</h1>
-				<div class="hud-subtitle">LIVE FEED // NIGHT MODE</div>
+				<div class="hud-status hud-status-left">
+					<!-- Doubles as the record button: click to start/stop, timecode only runs while recording -->
+					<button class="hud-rec" id="hudRec" type="button" title="Click to record"><span class="hud-rec-dot"></span>REC <span id="hudTimecode">00:00:00</span></button>
+					<div class="hud-callsign"><span class="hud-subtitle" id="hudMode">DRONE CAMERA FEED</span></div>
+				</div>
+				<div class="hud-status hud-status-right">
+					<div class="hud-gps">GPS <span id="hudGpsStatus">LOCK</span></div>
+					<div class="hud-signal">
+						<span class="hud-signal-bars"><i></i><i></i><i></i><i></i></span>
+						<span class="hud-battery" id="hudBattery">98%</span>
+					</div>
+				</div>
 			</header>
 
-			<div class="hud-coords-panel">
-				<div class="hud-coords-label">SITE COORDS</div>
-				<div class="hud-coords" id="hudCoords">--.-----, --.-----</div>
-				<div class="hud-hint">Double-click ground to log spawn point coords</div>
+			<div class="hud-bottom-left">
+				<div class="hud-telemetry" id="hudTelemetry">
+					<div class="hud-telem-item"><span class="hud-telem-label">ALT</span><span id="hudAlt">---</span>M</div>
+					<div class="hud-telem-item"><span class="hud-telem-label">HDG</span><span id="hudHdg">---</span>&deg;</div>
+					<div class="hud-telem-item"><span class="hud-telem-label">SPD</span><span id="hudSpd">-.-</span>M/S</div>
+				</div>
+
+				<div class="hud-coords-panel">
+					<div class="hud-coords-label">SITE COORDS</div>
+					<div class="hud-coords" id="hudCoords">--.-----, --.-----</div>
+				</div>
 			</div>
 
 			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
 			<div class="hud-attribution" id="hudAttribution"></div>
+
+			<!-- Path editor mode only (see pathEditor.ts): hidden/populated via JS -->
+			<div class="hud-editor-panel" id="editorPanel" hidden>
+				<div class="hud-editor-title">PATH EDITOR</div>
+				<div class="hud-editor-operator" id="editorOperator"></div>
+				<div class="hud-editor-count" id="editorCount"></div>
+				<div class="hud-hint">
+					Click ground: add checkpoint · Drag a checkpoint: move it · Right-click: undo · Keys 1-9: select operator
+				</div>
+				<div class="hud-editor-buttons">
+					<button id="editorSaveBtn" class="hud-editor-btn" type="button">Save</button>
+					<button id="editorAddBtn" class="hud-editor-btn" type="button">Add</button>
+					<button id="editorDeleteBtn" class="hud-editor-btn" type="button">Delete</button>
+				</div>
+			</div>
 		</div>
 
-		<!-- Save the looping animation as a video -->
-		<button id="recordBtn" class="util-button" title="Record one loop as video">
-			<i class="fas fa-circle"></i>
-		</button>
+		<!-- Switches between cinematic playback and the top-down path editor (main.ts) -->
+		<button id="modeToggleBtn" class="hud-mode-toggle" type="button"></button>
 
 	</body>
 </html>
