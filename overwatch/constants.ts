@@ -27,6 +27,16 @@ export const BLOOM_STRENGTH = 0.9;
 export const BLOOM_RADIUS = 0.45;
 export const BLOOM_THRESHOLD = 0.7;
 
+// A subtle wireframe overlay traced directly over each tile's real mesh
+// triangles (see tiles.ts's load-model handler), sitting on top of the
+// texture rather than replacing it. Sells the "drone's low-res 3D
+// reconstruction" read (photogrammetry/LIDAR mesh feel) instead of the scene
+// looking like plain photographic/game footage. Kept faint (low opacity, no
+// bloom contribution) since it's meant to be noticed on close inspection, not
+// dominate the shot.
+export const TERRAIN_WIREFRAME_COLOR = 0x35f0d0; // same cyan accent as the operators, ties it to the tactical HUD language
+export const TERRAIN_WIREFRAME_OPACITY = 0; // 0 disables the wireframe entirely, which is a bit cleaner for cinematic mode
+
 // Site location — change these to point the scene at any real-world coordinates
 // that have Photorealistic 3D Tiles coverage. Default is Battery Park, NYC,
 // chosen for its dense mix of streets, trees and buildings. Overridable via

@@ -17,6 +17,21 @@ raycaster.firstHitOnly = true;
 const rayOrigin = new THREE.Vector3();
 const rayDirection = new THREE.Vector3(0, -1, 0);
 
+// Shared by every tile's wireframe overlay (see load-model below) — only the
+// geometry differs per mesh, so one material instance is reused for all of
+// them instead of allocating one per tile.
+const wireframeMaterial = new THREE.LineBasicMaterial({
+	color: CONST.TERRAIN_WIREFRAME_COLOR,
+	transparent: true,
+	opacity: CONST.TERRAIN_WIREFRAME_OPACITY,
+	depthWrite: false,
+	// pulls the lines slightly toward the camera in depth so they don't
+	// z-fight with the solid triangles they're tracing exactly on top of
+	polygonOffset: true,
+	polygonOffsetFactor: -1,
+	polygonOffsetUnits: -1,
+});
+
 // Sets up the photorealistic 3D Tiles renderer, re-orients it so the given
 // site coordinates sit at the world origin (+Y up), and swaps loaded tile
 // materials to unlit so the night grading pass has full control over lighting.
@@ -52,6 +67,8 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 	});
 	tiles.registerPlugin(reorient);
 
+	const wireframeEnabled = CONST.TERRAIN_WIREFRAME_OPACITY > 0;
+
 	// The captured imagery already bakes in daylight; render it unlit (and, in
 	// cinematic mode, tinted dark so the NightGradingPass fully controls how
 	// the scene reads) instead of three.js re-lighting an already-lit photo.
@@ -65,8 +82,32 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 				color: prev.map ? (dim ? CONST.TERRAIN_DIM_COLOR : 0xffffff) : prev.color,
 			});
 			prev.dispose();
+
+			if (!wireframeEnabled) return;
+
+			// Traces the mesh's own triangle edges on top of its texture, faking
+			// the look of the drone's low-res 3D reconstruction rather than a
+			// plain photographic surface (see TERRAIN_WIREFRAME_* in constants.ts).
+			const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry), wireframeMaterial);
+			mesh.add(wireframe);
 		});
 	});
+
+	// The wireframe overlay's geometry is created by us above, so unlike the
+	// tile's own mesh/texture data it isn't tracked by 3d-tiles-renderer's own
+	// disposal bookkeeping — dispose it ourselves or it leaks GPU buffers
+	// every time a tile streams out (the shared wireframeMaterial itself is
+	// never disposed, since it's reused across every tile for the app's
+	// lifetime). Skipped entirely alongside creation above when disabled.
+	if (wireframeEnabled) {
+		tiles.addEventListener('dispose-model', ({ scene }: any) => {
+			scene.traverse((child: THREE.Object3D) => {
+				if ((child as THREE.LineSegments).isLineSegments) {
+					(child as THREE.LineSegments).geometry.dispose();
+				}
+			});
+		});
+	}
 
 	tiles.setCamera(camera);
 	tiles.setResolutionFromRenderer(camera, renderer);
