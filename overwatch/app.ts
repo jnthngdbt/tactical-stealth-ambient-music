@@ -25,7 +25,10 @@ export class App {
 	private lookAtTarget = new THREE.Vector3(0, 1.5, 0); // eases toward the operators' centroid
 	private resizeHandler = () => this.onResize();
 
-	constructor() {
+	// Radians, clockwise map bearing set in the path editor (mission.ts's
+	// MAP_ROTATION_DEG) — rotates the flight's offset direction and
+	// figure-eight orientation below without moving any world geometry.
+	constructor(private mapRotation = 0) {
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		this.renderer.setClearColor(CONST.BACKGROUND_COLOR);
@@ -112,12 +115,21 @@ export class App {
 	private updateDrift(delta: number, centroid: THREE.Vector3, groundReady: boolean) {
 		this.driftElapsed += delta;
 		const t = this.driftElapsed * CONST.FLIGHT_DRIFT_SPEED;
-		const anchor = new THREE.Vector3(
-			centroid.x + Math.sin(t) * CONST.FLIGHT_DRIFT_RADIUS_X,
-			centroid.y + CONST.CAMERA_DRIFT_ALTITUDE + Math.sin(t * 0.5) * CONST.FLIGHT_DRIFT_HEIGHT,
-			// (1 + sin 2t) stays in [0, 2], so z - centroid.z never drops below
+		// Figure-eight + side-offset computed in an unrotated local frame, then
+		// rotated by mapRotation around the vertical axis — rotating both
+		// perpendicular axes (X = long axis, Z = side offset) by the same angle
+		// keeps them perpendicular for any bearing.
+		const local = new THREE.Vector3(
+			Math.sin(t) * CONST.FLIGHT_DRIFT_RADIUS_X,
+			0,
+			// (1 + sin 2t) stays in [0, 2], so this never drops below
 			// FLIGHT_DRIFT_SIDE_OFFSET, keeping the whole loop on one side
-			centroid.z + CONST.FLIGHT_DRIFT_SIDE_OFFSET + CONST.FLIGHT_DRIFT_RADIUS_Z * (1 + Math.sin(t * 2)),
+			CONST.FLIGHT_DRIFT_SIDE_OFFSET + CONST.FLIGHT_DRIFT_RADIUS_Z * (1 + Math.sin(t * 2)),
+		).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.mapRotation);
+		const anchor = new THREE.Vector3(
+			centroid.x + local.x,
+			centroid.y + CONST.CAMERA_DRIFT_ALTITUDE + Math.sin(t * 0.5) * CONST.FLIGHT_DRIFT_HEIGHT,
+			centroid.z + local.z,
 		);
 
 		// until every operator's real ground altitude is known, the centroid's

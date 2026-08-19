@@ -8,7 +8,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { NightGradingPass } from './NightGradingPass.ts';
 import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
-import { TRAJECTORIES, OPERATOR_NAMES } from './mission.ts';
+import { TRAJECTORIES, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
 import * as CONST from './constants.ts';
 
@@ -51,9 +51,19 @@ export function runPathEditor(): () => void {
 		1,
 		4000,
 	);
-	camera.up.set(0, 0, -1);
 	camera.position.set(centroid.x, CONST.EDIT_CAMERA_HEIGHT, centroid.z);
-	camera.lookAt(centroid.x, 0, centroid.z);
+
+	// Map bearing (radians): Ctrl-drag anywhere on the view rotates it around
+	// the vertical axis, like turning a paper map, while the camera stays
+	// locked straight down at the same spot (see the pointer handlers below).
+	// Seeded from mission.ts so a previously saved bearing resumes as-is.
+	let mapRotation = (MAP_ROTATION_DEG * Math.PI) / 180;
+	const Y_AXIS = new THREE.Vector3(0, 1, 0);
+	function applyMapRotation() {
+		camera.up.set(0, 0, -1).applyAxisAngle(Y_AXIS, mapRotation);
+		camera.lookAt(centroid.x, 0, centroid.z);
+	}
+	applyMapRotation();
 
 	const { tiles } = createTiles(camera, renderer);
 	scene.add(tiles.group);
@@ -91,13 +101,26 @@ export function runPathEditor(): () => void {
 	labelRenderer.domElement.style.zIndex = '1';
 	document.body.appendChild(labelRenderer.domElement);
 
-	const controls = new OrbitControls(camera, renderer.domElement);
-	controls.enableRotate = false; // locked top-down, no angle/animation
-	controls.screenSpacePanning = true;
-	controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-	controls.target.set(centroid.x, 0, centroid.z);
-	controls.minZoom = 0.2;
-	controls.maxZoom = 8;
+	// OrbitControls caches a quaternion derived from camera.up once at
+	// construction time (used internally for pan direction) — recreated via
+	// refreshControlsAfterRoll() below whenever a Ctrl-drag changes camera.up,
+	// so panning still tracks the screen correctly after rotating the view.
+	function createControls(target: THREE.Vector3): OrbitControls {
+		const c = new OrbitControls(camera, renderer.domElement);
+		c.enableRotate = false; // locked top-down, no angle/animation
+		c.screenSpacePanning = true;
+		c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+		c.target.copy(target);
+		c.minZoom = 0.2;
+		c.maxZoom = 8;
+		return c;
+	}
+	let controls = createControls(new THREE.Vector3(centroid.x, 0, centroid.z));
+	function refreshControlsAfterRoll() {
+		const target = controls.target.clone();
+		controls.dispose();
+		controls = createControls(target);
+	}
 	renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
 	function onResize() {
@@ -240,6 +263,7 @@ export function runPathEditor(): () => void {
 
 	const editorOperatorEl = document.getElementById('editorOperator');
 	const editorCountEl = document.getElementById('editorCount');
+	const editorBearingEl = document.getElementById('editorBearing');
 	const saveBtn = document.getElementById('editorSaveBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
@@ -273,6 +297,13 @@ export function runPathEditor(): () => void {
 	}
 	updateHud();
 
+	function updateBearingHud() {
+		if (!editorBearingEl) return;
+		const deg = Math.round((((mapRotation * 180) / Math.PI) % 360 + 360) % 360);
+		editorBearingEl.textContent = `Map bearing: ${deg}\u00b0`;
+	}
+	updateBearingHud();
+
 	function selectOperator(index: number) {
 		if (index < 0 || index >= paths.length) return;
 		selected = index;
@@ -297,7 +328,8 @@ export function runPathEditor(): () => void {
 	const round1 = (v: number) => Math.round(v * 10) / 10;
 
 	function onSaveClick() {
-		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths);
+		const rotationDeg = (mapRotation * 180) / Math.PI;
+		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg);
 	}
 	function onAddClick() {
 		paths.push([]);
@@ -338,6 +370,19 @@ export function runPathEditor(): () => void {
 	let downPos: { x: number; y: number } | null = null;
 	let draggingIndex: number | null = null;
 
+	// Ctrl-drag rotates the view (see applyMapRotation above) instead of
+	// panning/placing a checkpoint — tracked separately from marker dragging.
+	let rotating = false;
+	let rotateStartAngle = 0;
+	let rotateStartRotation = 0;
+
+	function angleFromPointer(event: PointerEvent): number {
+		const rect = renderer.domElement.getBoundingClientRect();
+		const cx = rect.left + rect.width / 2;
+		const cy = rect.top + rect.height / 2;
+		return Math.atan2(event.clientY - cy, event.clientX - cx);
+	}
+
 	function ndcFromEvent(event: PointerEvent) {
 		const rect = renderer.domElement.getBoundingClientRect();
 		return new THREE.Vector2(
@@ -347,6 +392,15 @@ export function runPathEditor(): () => void {
 	}
 
 	renderer.domElement.addEventListener('pointerdown', (event) => {
+		if (event.ctrlKey && event.button === 0) {
+			rotating = true;
+			rotateStartAngle = angleFromPointer(event);
+			rotateStartRotation = mapRotation;
+			controls.enabled = false; // rotating and panning don't mix
+			renderer.domElement.style.cursor = 'grabbing';
+			return;
+		}
+
 		downPos = { x: event.clientX, y: event.clientY };
 		if (event.button !== 0 || paths.length === 0) return;
 
@@ -361,6 +415,13 @@ export function runPathEditor(): () => void {
 	});
 
 	renderer.domElement.addEventListener('pointermove', (event) => {
+		if (rotating) {
+			mapRotation = rotateStartRotation + (angleFromPointer(event) - rotateStartAngle);
+			applyMapRotation();
+			updateBearingHud();
+			return;
+		}
+
 		if (draggingIndex === null) return;
 		raycaster.setFromCamera(ndcFromEvent(event), camera);
 		const hit = raycaster.intersectObject(tiles.group, true)[0];
@@ -372,6 +433,13 @@ export function runPathEditor(): () => void {
 	});
 
 	renderer.domElement.addEventListener('pointerup', (event) => {
+		if (rotating) {
+			rotating = false;
+			refreshControlsAfterRoll(); // camera.up changed, its cached pan quat needs refreshing
+			renderer.domElement.style.cursor = '';
+			return;
+		}
+
 		if (draggingIndex !== null) {
 			draggingIndex = null;
 			controls.enabled = true;

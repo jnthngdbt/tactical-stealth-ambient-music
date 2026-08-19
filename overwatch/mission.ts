@@ -1,6 +1,6 @@
 import type { Checkpoint } from './objects/operator.ts';
 import * as CONST from './constants.ts';
-import { URL_TRAJECTORIES } from './urlParams.ts';
+import { URL_TRAJECTORIES, URL_MAP_ROTATION_DEG } from './urlParams.ts';
 
 // Per-operator patrol path, expressed as metre offsets (east, north) from the
 // SITE_LAT/SITE_LON origin in constants.ts, walked in order and ping-ponged
@@ -56,6 +56,13 @@ export const TRAJECTORIES: Checkpoint[][] = URL_TRAJECTORIES ?? [
 // cinematic mode can run — an empty TRAJECTORIES would otherwise vacuously
 // pass `.every(...)` with zero operators to show.
 export const PATHS_READY = TRAJECTORIES.length > 0 && TRAJECTORIES.every((path) => path.length >= 2);
+
+// Map bearing (degrees, clockwise) set in the path editor by Ctrl-dragging the
+// top-down view (see pathEditor.ts) — rotates the drone's cinematic flight
+// (offset direction + figure-eight orientation, see App.updateDrift in
+// app.ts) to match, without touching any operator/terrain world coordinates.
+// Carried through the "Save" mission URL alongside TRAJECTORIES.
+export const MAP_ROTATION_DEG = URL_MAP_ROTATION_DEG ?? 0;
 
 // There's exactly one operator per TRAJECTORIES entry — trim/extend the
 // array above to change how many operators appear. Each gets a random,

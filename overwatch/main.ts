@@ -3,7 +3,7 @@ import { App } from './app.ts';
 import { createTiles, sampleGroundHeight } from './tiles.ts';
 import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
-import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES } from './mission.ts';
+import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { runPathEditor } from './pathEditor.ts';
 import * as CONST from './constants.ts';
 
@@ -38,7 +38,7 @@ modeToggleBtn?.addEventListener('click', () => startMode(mode === 'cinematic' ? 
 startMode(mode);
 
 function runCinematic(): () => void {
-	const app = new App();
+	const app = new App((MAP_ROTATION_DEG * Math.PI) / 180);
 
 	const { tiles } = createTiles(app.camera, app.renderer);
 	app.scene.add(tiles.group);

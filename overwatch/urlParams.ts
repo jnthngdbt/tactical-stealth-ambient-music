@@ -9,7 +9,8 @@ import type { Checkpoint } from './objects/operator.ts';
 // know these can come from the URL.
 //
 // Supported params: `lat`/`lon` (site origin), `paths` (operator
-// trajectories, see parseTrajectories below). All are optional — anything
+// trajectories, see parseTrajectories below), `rotation` (map bearing in
+// degrees, set via Ctrl-drag in the path editor). All are optional — anything
 // not present in the URL falls back to the existing constants.ts/mission.ts
 // defaults.
 const params = new URLSearchParams(window.location.search);
@@ -42,14 +43,22 @@ function parseTrajectories(raw: string | null): Checkpoint[][] | null {
 export const URL_SITE_LAT = parseNumber(params.get('lat'));
 export const URL_SITE_LON = parseNumber(params.get('lon'));
 export const URL_TRAJECTORIES = parseTrajectories(params.get('paths'));
+export const URL_MAP_ROTATION_DEG = parseNumber(params.get('rotation'));
 
 // Inverse of parseTrajectories, used by the path editor's "Save" button to
-// build a shareable mission link out of the site/paths currently in effect.
-export function buildMissionUrl(lat: number, lon: number, trajectories: Checkpoint[][]): string {
+// build a shareable mission link out of the site/paths/map bearing currently
+// in effect.
+export function buildMissionUrl(
+	lat: number,
+	lon: number,
+	trajectories: Checkpoint[][],
+	rotationDeg: number,
+): string {
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
 	query.set('lat', String(lat));
 	query.set('lon', String(lon));
+	query.set('rotation', String(rotationDeg));
 	query.set('paths', JSON.stringify(trajectories.map((path) => path.map((cp) => [cp.east, cp.north]))));
 	url.search = query.toString();
 	return url.toString();
