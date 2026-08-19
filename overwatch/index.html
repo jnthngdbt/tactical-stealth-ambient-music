@@ -11,12 +11,12 @@
 		<link href="https://fonts.googleapis.com/css?family=Russo+One" rel="stylesheet">
 		<link href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" rel="stylesheet">
 
-		<script type="module" crossorigin src="../assets/overwatch-BiwaWVXo.js"></script>
+		<script type="module" crossorigin src="../assets/overwatch-CqWdiOxd.js"></script>
 		<link rel="modulepreload" crossorigin href="../assets/three.module-jgOKvxGV.js">
 		<link rel="modulepreload" crossorigin href="../assets/RenderPass-BEIIJ6YE.js">
 		<link rel="modulepreload" crossorigin href="../assets/recorder-D2HaKWtn.js">
 		<link rel="modulepreload" crossorigin href="../assets/OrbitControls-sXd9HdVe.js">
-		<link rel="stylesheet" crossorigin href="../assets/overwatch-CGUYepi-.css">
+		<link rel="stylesheet" crossorigin href="../assets/overwatch-CBdR-1NU.css">
 	</head>
 	<body>
 
@@ -60,8 +60,11 @@
 				</div>
 			</div>
 
-			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
-			<div class="hud-attribution" id="hudAttribution"></div>
+			<!-- Cinematic mode only: per-operator name + simulated biometrics, populated by main.ts -->
+			<div class="hud-vitals-panel" id="hudVitalsPanel">
+				<div class="hud-vitals-label">OPERATOR VITALS</div>
+				<div class="hud-operators-panel" id="hudOperators"></div>
+			</div>
 
 			<!-- Path editor mode only (see pathEditor.ts): hidden/populated via JS -->
 			<div class="hud-editor-panel" id="editorPanel" hidden>
