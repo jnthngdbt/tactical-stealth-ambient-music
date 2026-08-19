@@ -201,16 +201,77 @@
   letter-spacing: 0.02em;
 }
 
-.hud-attribution {
+.hud-vitals-panel {
   position: absolute;
   right: 6%;
   bottom: 7%;
-  max-width: 50vw;
-  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.hud-vitals-label {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.hud-operators-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.hud-operator-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.hud-operator-name {
+  color: #b7f3ea;
+  opacity: 0.85;
+}
+
+.hud-operator-vitals {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #7ffff0;
+  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
+}
+
+/* Blip radius/duration are driven from JS (animation-duration set to match
+   the operator's actual current bpm), so it reads as a live pulse rather
+   than a decorative loop. */
+.hud-operator-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7ffff0;
+  box-shadow: 0 0 5px rgba(53, 240, 208, 0.8);
+  animation: hud-heartbeat 1s ease-in-out infinite;
+}
+
+.hud-operator-hr-unit {
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.hud-operator-o2 {
   font-size: 10px;
-  letter-spacing: 0.03em;
-  text-transform: none;
-  opacity: 0.55;
+  opacity: 0.65;
+  margin-left: 2px;
+}
+
+@keyframes hud-heartbeat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  25% { transform: scale(1.5); opacity: 0.5; }
+  50% { transform: scale(1); opacity: 1; }
 }
 
 /* Path editor mode (pathEditor.ts) — the only interactive part of the HUD,

@@ -57,8 +57,11 @@
 				</div>
 			</div>
 
-			<!-- Required by Google/Cesium's terms of service when their imagery is on screen -->
-			<div class="hud-attribution" id="hudAttribution"></div>
+			<!-- Cinematic mode only: per-operator name + simulated biometrics, populated by main.ts -->
+			<div class="hud-vitals-panel" id="hudVitalsPanel">
+				<div class="hud-vitals-label">OPERATOR VITALS</div>
+				<div class="hud-operators-panel" id="hudOperators"></div>
+			</div>
 
 			<!-- Path editor mode only (see pathEditor.ts): hidden/populated via JS -->
 			<div class="hud-editor-panel" id="editorPanel" hidden>

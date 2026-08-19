@@ -102,7 +102,56 @@ function runCinematic(): () => void {
 	}
 	recordBtn.addEventListener('click', onRecordClick);
 
-	const attributionEl = document.getElementById('hudAttribution');
+	// Per-operator name + simulated biometrics (bpm, blood-oxygen), replacing
+	// the map's own attribution text (removed) with something relevant to the
+	// mission instead. Rows are built dynamically since operator count varies
+	// (see mission.ts's TRAJECTORIES) rather than hardcoded in index.html.
+	interface OperatorVitals {
+		hr: number; // beats per minute, eased toward hrTarget each frame
+		hrTarget: number; // wanders on its own timer, independent of the operator's actual movement
+		hrTargetTimer: number; // seconds until hrTarget is re-rolled
+		hrEl: HTMLElement;
+		o2El: HTMLElement;
+		pulseEl: HTMLElement;
+	}
+	const vitalsPanelEl = document.getElementById('hudOperators');
+	const vitals: OperatorVitals[] = [];
+	if (vitalsPanelEl) {
+		vitalsPanelEl.innerHTML = '';
+		operators.forEach((_, i) => {
+			const row = document.createElement('div');
+			row.className = 'hud-operator-row';
+
+			const nameEl = document.createElement('span');
+			nameEl.className = 'hud-operator-name';
+			nameEl.textContent = OPERATOR_NAMES[i] ?? `OP-${i + 1}`;
+
+			const vitalsEl = document.createElement('span');
+			vitalsEl.className = 'hud-operator-vitals';
+
+			const pulseEl = document.createElement('i');
+			pulseEl.className = 'hud-operator-pulse';
+
+			const hrEl = document.createElement('span');
+			hrEl.className = 'hud-operator-hr';
+			hrEl.textContent = '--';
+
+			const hrUnitEl = document.createElement('span');
+			hrUnitEl.className = 'hud-operator-hr-unit';
+			hrUnitEl.textContent = 'BPM';
+
+			const o2El = document.createElement('span');
+			o2El.className = 'hud-operator-o2';
+			o2El.textContent = '--%';
+
+			vitalsEl.append(pulseEl, hrEl, hrUnitEl, o2El);
+			row.append(nameEl, vitalsEl);
+			vitalsPanelEl.appendChild(row);
+
+			const hr = 68 + Math.random() * 8;
+			vitals.push({ hr, hrTarget: hr, hrTargetTimer: Math.random() * 5, hrEl, o2El, pulseEl });
+		});
+	}
 
 	const clock = new THREE.Clock();
 	const operatorsCentroid = new THREE.Vector3();
@@ -124,14 +173,23 @@ function runCinematic(): () => void {
 		tiles.setCamera(app.camera);
 		tiles.update();
 
-		// Google/Cesium's terms require crediting the data source when it's on screen.
-		if (attributionEl && frame % 30 === 0) {
-			attributionEl.textContent = tiles
-				.getAttributions()
-				.map((a) => a.value)
-				.filter(Boolean)
-				.join(' · ');
-		}
+		// Simulated biometrics — bpm wanders on its own randomized timer rather
+		// than tracking the operator's actual movement, and only repaints every
+		// few seconds, so it reads as a slow-drifting vital sign, not a live wire.
+		vitals.forEach((v, i) => {
+			v.hrTargetTimer -= delta;
+			if (v.hrTargetTimer <= 0) {
+				v.hrTarget = 65 + Math.random() * 45;
+				v.hrTargetTimer = 12 + Math.random() * 10;
+			}
+			v.hr += (v.hrTarget - v.hr) * Math.min(1, delta * 0.15);
+			if (frame % 45 === 0) {
+				v.hrEl.textContent = Math.round(v.hr).toString();
+				v.pulseEl.style.animationDuration = `${(60 / v.hr).toFixed(2)}s`;
+				const o2 = 97 + Math.sin(elapsed * 0.25 + i * 1.7) * 1.3;
+				v.o2El.textContent = `O2 ${Math.round(o2)}%`;
+			}
+		});
 
 		let groundReady = false;
 		if (mapReady) {
