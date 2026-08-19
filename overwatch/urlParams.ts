@@ -8,7 +8,7 @@ import type { Checkpoint } from './objects/operator.ts';
 // here, then imported by constants.ts/mission.ts so nothing else needs to
 // know these can come from the URL.
 //
-// Supported params: `lat`/`lon` (site origin), `paths` (operator
+// Supported params: `coord` (site origin, as `lat,lon`), `paths` (operator
 // trajectories, see parseTrajectories below), `rotation` (map bearing in
 // degrees, set via Ctrl-drag in the path editor). All are optional — anything
 // not present in the URL falls back to the existing constants.ts/mission.ts
@@ -19,6 +19,15 @@ function parseNumber(raw: string | null): number | null {
 	if (raw === null) return null;
 	const value = Number(raw);
 	return Number.isFinite(value) ? value : null;
+}
+
+function parseCoord(raw: string | null): { lat: number; lon: number } | null {
+	if (!raw) return null;
+	const [latRaw, lonRaw] = raw.split(',');
+	const lat = parseNumber(latRaw ?? null);
+	const lon = parseNumber(lonRaw ?? null);
+	if (lat === null || lon === null) return null;
+	return { lat, lon };
 }
 
 // Compact encoding: an array of paths, each an array of [east, north] pairs
@@ -40,8 +49,9 @@ function parseTrajectories(raw: string | null): Checkpoint[][] | null {
 	}
 }
 
-export const URL_SITE_LAT = parseNumber(params.get('lat'));
-export const URL_SITE_LON = parseNumber(params.get('lon'));
+const URL_COORD = parseCoord(params.get('coord'));
+export const URL_SITE_LAT = URL_COORD?.lat ?? null;
+export const URL_SITE_LON = URL_COORD?.lon ?? null;
 export const URL_TRAJECTORIES = parseTrajectories(params.get('paths'));
 export const URL_MAP_ROTATION_DEG = parseNumber(params.get('rotation'));
 
@@ -56,8 +66,7 @@ export function buildMissionUrl(
 ): string {
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
-	query.set('lat', String(lat));
-	query.set('lon', String(lon));
+	query.set('coord', `${lat},${lon}`);
 	query.set('rotation', String(rotationDeg));
 	query.set('paths', JSON.stringify(trajectories.map((path) => path.map((cp) => [cp.east, cp.north]))));
 	url.search = query.toString();

@@ -44,7 +44,7 @@ Instead of (or in addition to) baking location/paths into the build,
 `overwatch/urlParams.ts` and preferred over the `constants.ts`/`mission.ts`
 defaults when present:
 
-- `lat` / `lon` — site origin, overrides `SITE_LAT`/`SITE_LON`
+- `coord` — site origin, as `lat,lon`, overrides `SITE_LAT`/`SITE_LON`
 - `paths` — operator trajectories, as JSON `[[[east,north],...], ...]` (one
   array of `[east, north]` pairs per operator) — e.g.
   `?paths=[[[-48.9,15.1],[-43.6,25.4]]]`

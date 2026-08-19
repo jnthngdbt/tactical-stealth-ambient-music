@@ -30,7 +30,7 @@ export const BLOOM_THRESHOLD = 0.7;
 // Site location — change these to point the scene at any real-world coordinates
 // that have Photorealistic 3D Tiles coverage. Default is Battery Park, NYC,
 // chosen for its dense mix of streets, trees and buildings. Overridable via
-// `?lat=`/`?lon=` URL query params (see urlParams.ts).
+// `?coord=lat,lon` URL query param (see urlParams.ts).
 export const SITE_LAT = URL_SITE_LAT ?? 40.7033;
 export const SITE_LON = URL_SITE_LON ?? -74.017;
 
