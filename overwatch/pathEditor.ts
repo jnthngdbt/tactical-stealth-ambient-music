@@ -9,6 +9,7 @@ import { NightGradingPass } from './NightGradingPass.ts';
 import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, OPERATOR_NAMES } from './mission.ts';
+import { buildMissionUrl } from './urlParams.ts';
 import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
@@ -16,10 +17,11 @@ import * as CONST from './constants.ts';
 // mode. A static, straight-down view — no camera drift, no operator movement
 // — but otherwise the same bloom + night-grading render pipeline as cinematic
 // mode, so switching modes doesn't change how the scene looks. Click the
-// ground to add a checkpoint for the selected operator; the "Copy paths"
-// button copies the contents of mission.ts's TRAJECTORIES array (one `[...]`
-// per operator), ready to paste between its brackets. Returns a dispose()
-// function that tears this mode down so another mode can take over the page.
+// ground to add a checkpoint for the selected operator; the "Save" button
+// builds a mission URL (token + site + these paths) and navigates there,
+// which starts cinematic mode straight from the saved link once every
+// operator has 2+ checkpoints. Returns a dispose() function that tears this
+// mode down so another mode can take over the page.
 export function runPathEditor(): () => void {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -238,19 +240,15 @@ export function runPathEditor(): () => void {
 
 	const editorOperatorEl = document.getElementById('editorOperator');
 	const editorCountEl = document.getElementById('editorCount');
-	const copyBtn = document.getElementById('editorCopyBtn');
+	const saveBtn = document.getElementById('editorSaveBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
 
-	// Play (cinematic mode) reads TRAJECTORIES straight from mission.ts, so it
-	// would silently discard any in-progress edits here — disable it as soon
-	// as something changes, and only re-enable once "Copy paths" has been
-	// used to get the edits out (to be pasted back into mission.ts).
+	// Cinematic mode reads TRAJECTORIES straight from mission.ts, so previewing
+	// in-progress edits there isn't meaningful — hidden entirely while editing;
+	// "Save" (below) is the only way out, via a mission URL carrying the edits.
 	const modeToggleBtn = document.getElementById('modeToggleBtn') as HTMLButtonElement | null;
-	if (modeToggleBtn) modeToggleBtn.disabled = false;
-	function markDirty() {
-		if (modeToggleBtn) modeToggleBtn.disabled = true;
-	}
+	if (modeToggleBtn) modeToggleBtn.style.display = 'none';
 
 	function updateHud() {
 		if (paths.length === 0) {
@@ -290,7 +288,6 @@ export function runPathEditor(): () => void {
 		}
 		if ((event.key === 'Backspace' || event.key === 'Delete') && paths.length > 0) {
 			paths[selected].pop();
-			markDirty();
 			rebuildOperatorVisual(selected);
 			updateHud();
 		}
@@ -298,14 +295,9 @@ export function runPathEditor(): () => void {
 	window.addEventListener('keydown', onKeyDown);
 
 	const round1 = (v: number) => Math.round(v * 10) / 10;
-	const formatCheckpoint = (cp: Checkpoint) => `{ east: ${cp.east.toFixed(1)}, north: ${cp.north.toFixed(1)} }`;
-	const formatPath = (path: Checkpoint[], indent: string) =>
-		`${indent}[\n${path.map((cp) => `${indent}\t${formatCheckpoint(cp)},`).join('\n')}\n${indent}],`;
 
-	function onCopyClick() {
-		const text = paths.map((path) => formatPath(path, '')).join('\n');
-		navigator.clipboard?.writeText(text).catch(() => { });
-		if (modeToggleBtn) modeToggleBtn.disabled = false;
+	function onSaveClick() {
+		window.location.href = buildMissionUrl(CONST.CESIUM_ION_TOKEN, CONST.SITE_LAT, CONST.SITE_LON, paths);
 	}
 	function onAddClick() {
 		paths.push([]);
@@ -315,7 +307,6 @@ export function runPathEditor(): () => void {
 		operatorGroups.push(group);
 		labelElements.push([]);
 		selected = paths.length - 1;
-		markDirty();
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 		updateHud();
 	}
@@ -331,11 +322,10 @@ export function runPathEditor(): () => void {
 		names.splice(selected, 1);
 
 		selected = Math.min(selected, paths.length - 1);
-		markDirty();
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 		updateHud();
 	}
-	copyBtn?.addEventListener('click', onCopyClick);
+	saveBtn?.addEventListener('click', onSaveClick);
 	addBtn?.addEventListener('click', onAddClick);
 	deleteBtn?.addEventListener('click', onDeleteClick);
 
@@ -378,7 +368,6 @@ export function runPathEditor(): () => void {
 
 		const { east, north } = localToEnu(hit.point.x, hit.point.z);
 		paths[selected][draggingIndex] = { east: round1(east), north: round1(north) };
-		markDirty();
 		rebuildOperatorVisual(selected);
 	});
 
@@ -412,7 +401,6 @@ export function runPathEditor(): () => void {
 		} else {
 			paths[selected].push({ east: round1(east), north: round1(north) });
 		}
-		markDirty();
 		rebuildOperatorVisual(selected);
 		updateHud();
 	});
@@ -440,7 +428,7 @@ export function runPathEditor(): () => void {
 		cancelAnimationFrame(rafId);
 		window.removeEventListener('resize', onResize);
 		window.removeEventListener('keydown', onKeyDown);
-		copyBtn?.removeEventListener('click', onCopyClick);
+		saveBtn?.removeEventListener('click', onSaveClick);
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
 		operatorGroups.forEach(disposeGroup);
@@ -455,6 +443,7 @@ export function runPathEditor(): () => void {
 		if (coordsPanel) coordsPanel.style.display = '';
 		if (telemetryEl) telemetryEl.style.display = '';
 		if (subtitleEl) subtitleEl.textContent = originalSubtitle;
+		if (modeToggleBtn) modeToggleBtn.style.display = '';
 		editorPanel?.setAttribute('hidden', '');
 	};
 }

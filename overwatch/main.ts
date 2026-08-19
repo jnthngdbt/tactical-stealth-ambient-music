@@ -12,8 +12,9 @@ type Mode = 'cinematic' | 'edit';
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
 // first so those paths can be built by hand (see pathEditor.ts). The HUD
-// toggle button below switches modes, except pathEditor.ts disables it while
-// there are unsaved edits (use its "Copy all" button first).
+// toggle button below switches to path-editing mode; pathEditor.ts hides it
+// entirely while active (its "Save" button generates a mission URL with the
+// edited paths and navigates there instead).
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 

@@ -1,3 +1,5 @@
+import { URL_CESIUM_ION_TOKEN, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
+
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
 // (daylight-captured) photorealistic tiles by NightGradingPass.
@@ -27,16 +29,20 @@ export const BLOOM_THRESHOLD = 0.7;
 
 // Site location — change these to point the scene at any real-world coordinates
 // that have Photorealistic 3D Tiles coverage. Default is Battery Park, NYC,
-// chosen for its dense mix of streets, trees and buildings.
-export const SITE_LAT = 40.7033;
-export const SITE_LON = -74.017;
+// chosen for its dense mix of streets, trees and buildings. Overridable via
+// `?lat=`/`?lon=` URL query params (see urlParams.ts).
+export const SITE_LAT = URL_SITE_LAT ?? 40.7033;
+export const SITE_LON = URL_SITE_LON ?? -74.017;
 
 // Tiles data source. The Cesium Ion asset below is a copy of Google's
 // Photorealistic 3D Tiles that Cesium exposes to every (free) Ion account by
 // default, so it only needs a Cesium Ion access token to get started. Set
 // VITE_GOOGLE_MAPS_API_KEY instead to stream tiles directly from Google Maps
 // Platform (Map Tiles API) if you'd rather manage billing/quotas yourself.
-export const CESIUM_ION_TOKEN = import.meta.env.VITE_ION_KEY ?? '';
+// A `?token=` URL query param (see urlParams.ts) takes priority over both —
+// useful for a statically hosted build that has no baked-in key at all, with
+// the token instead carried by whatever mission link is shared.
+export const CESIUM_ION_TOKEN = URL_CESIUM_ION_TOKEN ?? import.meta.env.VITE_ION_KEY ?? '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 
@@ -142,8 +148,8 @@ export const CAMERA_FAR = 8000;
 // the centroid — the drone always views the operators at an angle, never
 // straight down from directly overhead.
 export const FLIGHT_DRIFT_SPEED = 0.05; // radians/sec of the underlying Lissajous path
-export const FLIGHT_DRIFT_RADIUS_X = 26; // metres
-export const FLIGHT_DRIFT_RADIUS_Z = 8; // metres
+export const FLIGHT_DRIFT_RADIUS_X = 20; // metres
+export const FLIGHT_DRIFT_RADIUS_Z = 20; // metres
 export const FLIGHT_DRIFT_SIDE_OFFSET = 30; // metres, minimum lateral distance kept from the centroid
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
 export const CAMERA_DRIFT_ALTITUDE = 75; // metres, fixed hover height above the operators' centroid

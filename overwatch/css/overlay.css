@@ -266,8 +266,9 @@
 }
 
 /* Always-visible switch between cinematic playback and the path editor
-   (outside #hud, so it stays interactive in both modes; .hud-rec above opts
-   into pointer events itself instead of living outside #hud). */
+   (outside #hud, so it stays interactive in cinematic mode; .hud-rec above
+   opts into pointer events itself instead of living outside #hud). Hidden
+   entirely while the path editor is active (pathEditor.ts). */
 .hud-mode-toggle {
   position: fixed;
   bottom: 4%;
@@ -292,15 +293,10 @@
   border-color: rgba(183, 243, 234, 0.8);
 }
 
-.hud-mode-toggle:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  border-color: rgba(183, 243, 234, 0.2);
-}
-
 .hud-mode-toggle.recording {
   display: none;
 }
+
 
 
 /* Drone-feed style ID tag rendered via CSS2DObject, anchored to each operator */

@@ -1,5 +1,6 @@
 import type { Checkpoint } from './objects/operator.ts';
 import * as CONST from './constants.ts';
+import { URL_TRAJECTORIES } from './urlParams.ts';
 
 // Per-operator patrol path, expressed as metre offsets (east, north) from the
 // SITE_LAT/SITE_LON origin in constants.ts, walked in order and ping-ponged
@@ -8,10 +9,14 @@ import * as CONST from './constants.ts';
 // in the path editor (see pathEditor.ts) rather than by hand: as long as any
 // entry has fewer than 2 checkpoints, the app runs in path-editing mode
 // instead of the normal cinematic view — a top-down, static, obstacle-
-// friendly view for placing checkpoints. Its "Copy paths" button copies the
-// contents of this array (one `[...]` per operator) ready to paste between
-// the brackets below.
-export const TRAJECTORIES: Checkpoint[][] = [
+// friendly view for placing checkpoints. Its "Save" button builds a mission
+// URL out of this data and navigates there instead of editing this array
+// directly.
+//
+// A `?paths=` URL query param (see urlParams.ts) overrides this whole array
+// wholesale when present, letting a mission's routes be carried entirely by
+// a shareable link instead of a code change.
+export const TRAJECTORIES: Checkpoint[][] = URL_TRAJECTORIES ?? [
 	[
 		{ east: -48.9, north: 15.1 },
 		{ east: -43.6, north: 25.4 },
