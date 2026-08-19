@@ -9,6 +9,10 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Environment "github-pages" holds the VITE_ION_KEY secret (Settings >
+    # Environments in the repo) so the Cesium Ion token is injected at build
+    # time instead of being carried in the mission URL's `?token=` param.
+    environment: github-pages
 
     steps:
     # Check out the repository code
@@ -28,6 +32,8 @@ jobs:
     # Build the project
     - name: Build project
       run: npx vite build
+      env:
+        VITE_ION_KEY: ${{ secrets.VITE_ION_KEY }}
 
     # Deploy to GitHub Pages
     - name: Deploy to GitHub Pages

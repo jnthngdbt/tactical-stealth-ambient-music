@@ -19,9 +19,26 @@ patrol routes in `overwatch/mission.ts` to match the actual streets/cover.
 
 Because this is a static site, whatever key is present at build time gets
 bundled into the published JS. Restrict the key/token (HTTP referrer or Ion's
-domain allowlist) before wiring it into the Github Pages deploy, and only add
-it as a repo secret to the Actions workflow if you're fine with it being
-usable by anyone visiting the published page.
+domain allowlist) regardless of how it's supplied, since it will still be
+plain-text-readable in the published bundle.
+
+### Github Pages deploy
+
+The `gh-pages.yml` workflow builds with a `github-pages` [Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)
+so `VITE_ION_KEY` doesn't have to live in `.env.local` or be passed as a
+`?token=` URL param to be picked up by the deployed site:
+
+1. Repository > Settings > Environments > New environment, name it
+   `github-pages` (matches the `environment:` value in `gh-pages.yml`).
+2. Add an environment secret named `VITE_ION_KEY` with your Cesium Ion token.
+3. Push to `main` — the workflow's build step passes the secret in as
+   `VITE_ION_KEY`, so `import.meta.env.VITE_ION_KEY` picks it up the same way
+   a local `.env.local` would, and the published page works with no `?token=`
+   needed.
+
+A `?token=` in the URL (see below) still overrides whatever was baked in at
+build time, so per-mission links can hand out a different/restricted token if
+ever needed.
 
 ## Mission via URL
 
@@ -39,8 +56,11 @@ Instead of (or in addition to) baking a token/location/paths into the build,
 This makes a "mission" fully shareable as one URL — no `.env.local` and no
 rebuild needed to hand someone a different location/route, and any number of
 missions can exist as different links instead of different files. Note this
-doesn't make the token any more secret than the existing bundled-at-build-time
-approach above — it's still plain text, just carried by the link instead of
-the JS bundle (restrict the token the same way regardless). A future `data=`
+doesn't make the token any more secret than the build-time approach above —
+it's still plain text, just carried by the link instead of the JS bundle
+(restrict the token the same way regardless). Since the Github Pages build
+now bakes in `VITE_ION_KEY` from the `github-pages` environment secret (see
+above), `?token=` is only needed to override that default for a specific
+shared link, not to make the deployed page work at all. A future `data=`
 param carrying a single encoded/encrypted blob (in place of these four
 separate params) is the natural next step if that's ever needed.
