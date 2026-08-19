@@ -20,11 +20,11 @@ import * as CONST from './constants.ts';
 // ground to add a checkpoint for the selected operator; the "Save" button
 // builds a mission URL (site + these paths, no token) and navigates there,
 // which starts cinematic mode straight from the saved link once every
-// operator has 2+ checkpoints. "Cancel" instead discards any in-progress
-// edits and calls onCancel (only shown when mission.ts's TRAJECTORIES were
-// already valid, i.e. there's a cinematic view to go back to). Returns a
-// dispose() function that tears this mode down so another mode can take over
-// the page.
+// operator has at least 1 checkpoint (a single checkpoint just stands
+// there). "Cancel" instead discards any in-progress edits and calls
+// onCancel (only shown when mission.ts's TRAJECTORIES were already valid,
+// i.e. there's a cinematic view to go back to). Returns a dispose()
+// function that tears this mode down so another mode can take over the page.
 export function runPathEditor(onCancel: () => void): () => void {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -298,7 +298,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 		}
 		if (editorCountEl) {
 			const count = paths[selected].length;
-			editorCountEl.textContent = `${count} checkpoint${count === 1 ? '' : 's'}${count < 2 ? ' (need 2+)' : ''}`;
+			editorCountEl.textContent = `${count} checkpoint${count === 1 ? '' : 's'}${count === 0 ? ' (need 1+)' : ''}`;
 		}
 	}
 	updateHud();

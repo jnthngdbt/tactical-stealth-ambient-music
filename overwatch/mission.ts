@@ -4,14 +4,14 @@ import { URL_TRAJECTORIES, URL_MAP_ROTATION_DEG } from './urlParams.ts';
 
 // Per-operator patrol path, expressed as metre offsets (east, north) from the
 // SITE_LAT/SITE_LON origin in constants.ts, walked in order and ping-ponged
-// back and forth once the end is reached. There's exactly one operator per
-// entry here (the first checkpoint doubles as its spawn point) — add entries
-// in the path editor (see pathEditor.ts) rather than by hand: as long as any
-// entry has fewer than 2 checkpoints, the app runs in path-editing mode
-// instead of the normal cinematic view — a top-down, static, obstacle-
-// friendly view for placing checkpoints. Its "Save" button builds a mission
-// URL out of this data and navigates there instead of editing this array
-// directly.
+// back and forth once the end is reached (a single-checkpoint path just
+// stands there). There's exactly one operator per entry here (the first
+// checkpoint doubles as its spawn point) — add entries in the path editor
+// (see pathEditor.ts) rather than by hand: as long as any entry has no
+// checkpoints at all, the app runs in path-editing mode instead of the
+// normal cinematic view — a top-down, static, obstacle-friendly view for
+// placing checkpoints. Its "Save" button builds a mission URL out of this
+// data and navigates there instead of editing this array directly.
 //
 // A `?paths=` URL query param (see urlParams.ts) overrides this whole array
 // wholesale when present, letting a mission's routes be carried entirely by
@@ -52,10 +52,10 @@ export const TRAJECTORIES: Checkpoint[][] = URL_TRAJECTORIES ?? [
 	],
 ];
 
-// At least one operator with a real (2+ checkpoint) path is required before
+// At least one operator with a real (1+ checkpoint) path is required before
 // cinematic mode can run — an empty TRAJECTORIES would otherwise vacuously
 // pass `.every(...)` with zero operators to show.
-export const PATHS_READY = TRAJECTORIES.length > 0 && TRAJECTORIES.every((path) => path.length >= 2);
+export const PATHS_READY = TRAJECTORIES.length > 0 && TRAJECTORIES.every((path) => path.length >= 1);
 
 // Map bearing (degrees, clockwise) set in the path editor by Ctrl-dragging the
 // top-down view (see pathEditor.ts) — rotates the drone's cinematic flight

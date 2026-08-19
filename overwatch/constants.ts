@@ -177,7 +177,7 @@ export const CAMERA_LOOKAT_EASE = 1.5;
 export const OPERATOR_NAME_POOL = ['Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle'];
 
 // Path editor (pathEditor.ts) — active whenever mission.ts's TRAJECTORIES has
-// any operator with fewer than 2 checkpoints. A static, straight-down
+// any operator with no checkpoints at all. A static, straight-down
 // orthographic view (no drift, no operator movement) but the same
 // bloom/night-grade render pipeline as cinematic mode.
 export const EDIT_CAMERA_HEIGHT = 220; // metres, straight above the operators' centroid

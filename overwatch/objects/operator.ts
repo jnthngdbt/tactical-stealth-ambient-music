@@ -284,8 +284,11 @@ export class Operator extends THREE.Group {
 	// Walks straight toward the current checkpoint, advancing (and reversing
 	// direction at either end, ping-pong style) once arrived. Checkpoints
 	// were hand-placed to dodge obstacles, so no avoidance steering is
-	// applied here — the path itself is trusted.
+	// applied here — the path itself is trusted. A single-checkpoint path
+	// has nowhere to walk to, so the operator just stands there.
 	private tickPath(delta: number, speed: number) {
+		if (this.path.length < 2) return;
+
 		const target = this.path[this.pathIndex];
 		const toTarget = new THREE.Vector3().subVectors(target, this.position);
 		toTarget.y = 0;
