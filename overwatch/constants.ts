@@ -90,6 +90,7 @@ export const OPERATOR_RIFLE_STOCK_LENGTH = 0.22; // metres
 export const OPERATOR_RIFLE_STOCK_HEIGHT = 0.06; // metres
 export const OPERATOR_RIFLE_STOCK_WIDTH = 0.08; // metres
 export const OPERATOR_RIFLE_HEIGHT_SCALE = 0.9; // fraction of the body's top height where the rifle sits (chest)
+export const OPERATOR_RIFLE_FORWARD_OFFSET = 0.18; // metres, shifts the whole rifle forward so it reads as held out front rather than centred in the chest
 
 // Subtle idle bob/sway applied to the head every frame, independent of the
 // leg swing, so the operator never reads as a frozen statue.

@@ -215,6 +215,7 @@ export class Operator extends THREE.Group {
 		this.rifle = new THREE.Group();
 		this.rifle.add(this.rifleBarrel, this.rifleStock);
 		this.rifle.position.y = bodyTopY * CONST.OPERATOR_RIFLE_HEIGHT_SCALE;
+		this.rifle.position.z = CONST.OPERATOR_RIFLE_FORWARD_OFFSET;
 
 		// slight random spin so a cluster of operators doesn't look copy-pasted;
 		// applied each tick in updateBodyTilt, combined with the heading-driven
