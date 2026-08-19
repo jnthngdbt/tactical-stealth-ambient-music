@@ -99,27 +99,43 @@ export class App {
 		this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
 	}
 
-	// Drifts the camera position along a slow figure-eight centered on the
-	// operators' centroid (at a fixed hover altitude above them), as if a
-	// helicopter were circling the group. The orbit target is handled
-	// separately (see updateLookAt) so the drone keeps flying this pattern
-	// while still always facing the operators.
+	// Drifts the camera position along a slow figure-eight (Lissajous) path
+	// centered on the operators' centroid (at a fixed hover altitude above
+	// them), as if a helicopter were circling the group. The whole pattern is
+	// shifted FLIGHT_DRIFT_SIDE_OFFSET to one side along z, so z never swings
+	// back through the centroid — the drone always keeps a lateral distance
+	// of at least FLIGHT_DRIFT_SIDE_OFFSET, and so never ends up looking
+	// straight down from directly overhead, while still tracing the same
+	// looping figure-eight shape. The orbit target is handled separately (see
+	// updateLookAt) so the drone keeps flying this pattern while still always
+	// facing the operators.
 	private updateDrift(delta: number, centroid: THREE.Vector3, groundReady: boolean) {
 		this.driftElapsed += delta;
 		const t = this.driftElapsed * CONST.FLIGHT_DRIFT_SPEED;
 		const anchor = new THREE.Vector3(
 			centroid.x + Math.sin(t) * CONST.FLIGHT_DRIFT_RADIUS_X,
 			centroid.y + CONST.CAMERA_DRIFT_ALTITUDE + Math.sin(t * 0.5) * CONST.FLIGHT_DRIFT_HEIGHT,
-			centroid.z + Math.sin(t * 2) * CONST.FLIGHT_DRIFT_RADIUS_Z,
+			// (1 + sin 2t) stays in [0, 2], so z - centroid.z never drops below
+			// FLIGHT_DRIFT_SIDE_OFFSET, keeping the whole loop on one side
+			centroid.z + CONST.FLIGHT_DRIFT_SIDE_OFFSET + CONST.FLIGHT_DRIFT_RADIUS_Z * (1 + Math.sin(t * 2)),
 		);
 
 		// until every operator's real ground altitude is known, the centroid's
 		// height is still just a placeholder — keep re-syncing to it instead of
 		// stepping the camera, so drift only starts once there's nothing left
 		// to "catch up" to (avoids a multi-second camera chase once tiles load)
-		if (!this.anchorInitialized || !groundReady) {
+		if (!groundReady) {
 			this.lastAnchor.copy(anchor);
-			this.anchorInitialized = groundReady;
+			return;
+		}
+
+		// first ground-ready frame: snap straight to the anchor instead of
+		// drifting from the hardcoded constructor position, so CAMERA_DRIFT_ALTITUDE
+		// is the camera's actual hover height above the operators, not just its offset
+		if (!this.anchorInitialized) {
+			this.camera.position.copy(anchor);
+			this.lastAnchor.copy(anchor);
+			this.anchorInitialized = true;
 			return;
 		}
 

@@ -121,12 +121,16 @@ export const CAMERA_FAR = 8000;
 // lazy figure-eight centered on the operators' group (at a fixed hover
 // altitude above them), while the orbit target always tracks the operators
 // directly (see CAMERA_LOOKAT_EASE below) and OrbitControls dragging/zooming
-// still works on top of both.
+// still works on top of both. The whole figure-eight is shifted sideways by
+// FLIGHT_DRIFT_SIDE_OFFSET (see updateDrift) so it never swings back through
+// the centroid — the drone always views the operators at an angle, never
+// straight down from directly overhead.
 export const FLIGHT_DRIFT_SPEED = 0.05; // radians/sec of the underlying Lissajous path
-export const FLIGHT_DRIFT_RADIUS_X = 56; // metres
-export const FLIGHT_DRIFT_RADIUS_Z = 38; // metres
+export const FLIGHT_DRIFT_RADIUS_X = 26; // metres
+export const FLIGHT_DRIFT_RADIUS_Z = 16; // metres
+export const FLIGHT_DRIFT_SIDE_OFFSET = 30; // metres, minimum lateral distance kept from the centroid
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
-export const CAMERA_DRIFT_ALTITUDE = 85; // metres, fixed hover height above the operators' centroid
+export const CAMERA_DRIFT_ALTITUDE = 65; // metres, fixed hover height above the operators' centroid
 
 // Caps how far the camera is allowed to jump in a single frame while
 // following the anchor above (e.g. if an operator's altitude snaps once
