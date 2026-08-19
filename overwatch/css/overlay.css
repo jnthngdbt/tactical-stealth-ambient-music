@@ -271,7 +271,8 @@
 .hud-mode-toggle {
   position: fixed;
   bottom: 4%;
-  right: 4%;
+  left: 50%;
+  transform: translateX(-50%);
   font-family: 'Share Tech Mono', monospace;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -295,6 +296,10 @@
   opacity: 0.3;
   cursor: not-allowed;
   border-color: rgba(183, 243, 234, 0.2);
+}
+
+.hud-mode-toggle.recording {
+  display: none;
 }
 
 

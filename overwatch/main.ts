@@ -96,6 +96,8 @@ function runCinematic(): () => void {
 			await recorder.start();
 		}
 		recordBtn.classList.toggle('recording', recorder.isRecording);
+		// keeps the recording free of the mode-switch button
+		modeToggleBtn?.classList.toggle('recording', recorder.isRecording);
 	}
 	recordBtn.addEventListener('click', onRecordClick);
 
@@ -182,6 +184,7 @@ function runCinematic(): () => void {
 		recordBtn.removeEventListener('click', onRecordClick);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
+		modeToggleBtn?.classList.remove('recording');
 		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);
 		operators.forEach((operator) => operator.dispose());
 		tiles.dispose();
