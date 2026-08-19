@@ -32,6 +32,31 @@ function getShadowTexture(): THREE.Texture {
 	return sharedShadowTexture;
 }
 
+let sharedHaloTexture: THREE.Texture | null = null;
+
+// Same soft-edged gradient idea as the ground shadow, but opaque at its core
+// and meant to sit behind the body/head spheres — since it's a camera-facing
+// sprite (always billboarded) rather than geometry, depth testing lets only
+// the fringe beyond the solid silhouette show through, feathering the
+// otherwise hard sphere edge without a real (expensive) blur pass.
+function getHaloTexture(): THREE.Texture {
+	if (sharedHaloTexture) return sharedHaloTexture;
+
+	const size = 128;
+	const canvas = document.createElement('canvas');
+	canvas.width = canvas.height = size;
+	const ctx = canvas.getContext('2d')!;
+	const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+	gradient.addColorStop(0, 'rgba(0,0,0,0.9)');
+	gradient.addColorStop(0.35, 'rgba(0,0,0,0.5)');
+	gradient.addColorStop(1, 'rgba(0,0,0,0)');
+	ctx.fillStyle = gradient;
+	ctx.fillRect(0, 0, size, size);
+
+	sharedHaloTexture = new THREE.CanvasTexture(canvas);
+	return sharedHaloTexture;
+}
+
 // Builds the flat, ground-level square bracket (tactical "target lock"
 // reticle) around the operator, matching the HUD's own corner-bracket motif.
 function buildReticleGeometry(): THREE.BufferGeometry {
@@ -66,6 +91,9 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
+	private bodyMaterial: THREE.MeshBasicMaterial;
+	private haloSprite: THREE.Sprite;
+	private haloMaterial: THREE.SpriteMaterial;
 	private shadowDecal: THREE.Mesh;
 	private shadowMaterial: THREE.MeshBasicMaterial;
 	private reticle: THREE.LineSegments;
@@ -106,19 +134,41 @@ export class Operator extends THREE.Group {
 		// Dark, matte body silhouette — a hunched torso plus a smaller head,
 		// non-uniformly scaled and randomly rotated so it reads as a crouching
 		// figure rather than a geometric blob, grounded by a soft shadow decal
-		// instead of glowing.
-		const bodyMaterial = new THREE.MeshBasicMaterial({ color: CONST.OPERATOR_BODY_COLOR, toneMapped: false });
+		// instead of glowing. Kept semi-transparent (fixed opacity, not
+		// pulsing) rather than fully opaque, to soften the contrast against
+		// the terrain.
+		this.bodyMaterial = new THREE.MeshBasicMaterial({
+			color: CONST.OPERATOR_BODY_COLOR,
+			transparent: true,
+			opacity: CONST.OPERATOR_BODY_OPACITY_BASE,
+			toneMapped: false,
+		});
 
-		this.body = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_BODY_RADIUS, 12, 8), bodyMaterial);
+		this.body = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_BODY_RADIUS, 12, 8), this.bodyMaterial);
 		this.body.scale.set(CONST.OPERATOR_BODY_WIDTH_SCALE, CONST.OPERATOR_BODY_HEIGHT_SCALE, CONST.OPERATOR_BODY_DEPTH_SCALE);
 		this.body.position.y = CONST.OPERATOR_BODY_RADIUS * CONST.OPERATOR_BODY_HEIGHT_SCALE;
 
 		const bodyTopY = this.body.position.y + CONST.OPERATOR_BODY_RADIUS * CONST.OPERATOR_BODY_HEIGHT_SCALE;
-		this.head = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_HEAD_RADIUS, 10, 8), bodyMaterial);
+		this.head = new THREE.Mesh(new THREE.SphereGeometry(CONST.OPERATOR_HEAD_RADIUS, 10, 8), this.bodyMaterial);
 		this.head.position.set((Math.random() - 0.5) * 0.1, bodyTopY + CONST.OPERATOR_HEAD_RADIUS * 0.5, (Math.random() - 0.5) * 0.1);
 
 		// slight random heading so a cluster of operators doesn't look copy-pasted
 		this.body.rotation.y = Math.random() * Math.PI * 2;
+
+		// Soft blurred fringe: a billboard sprite sitting behind the solid body/head,
+		// sized a bit larger so only its feathered edge peeks out past the hard
+		// sphere silhouette, softening the contrast against the terrain.
+		this.haloMaterial = new THREE.SpriteMaterial({
+			map: getHaloTexture(),
+			color: CONST.OPERATOR_BODY_COLOR,
+			transparent: true,
+			depthWrite: false,
+			opacity: CONST.OPERATOR_HALO_OPACITY,
+			toneMapped: false,
+		});
+		this.haloSprite = new THREE.Sprite(this.haloMaterial);
+		this.haloSprite.scale.setScalar(CONST.OPERATOR_HALO_SIZE);
+		this.haloSprite.position.y = bodyTopY * 0.6;
 
 		this.shadowMaterial = new THREE.MeshBasicMaterial({
 			map: getShadowTexture(),
@@ -137,7 +187,7 @@ export class Operator extends THREE.Group {
 		this.reticle = new THREE.LineSegments(buildReticleGeometry(), this.reticleMaterial);
 		this.reticle.position.y = 0.04;
 
-		this.add(this.body, this.head, this.shadowDecal, this.reticle);
+		this.add(this.haloSprite, this.body, this.head, this.shadowDecal, this.reticle);
 
 		// Drone-feed style ID tag: a single diagonal leader line off the
 		// operator's head out to a floating callsign label, rendered through
@@ -276,10 +326,6 @@ export class Operator extends THREE.Group {
 		const pulse = 0.65 + 0.35 * Math.sin(this.pulsePhase);
 		this.reticleMaterial.opacity = 0.55 + 0.4 * pulse;
 		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
-
-		// the ID tag reads brightest while dashing across open ground
-		this.leaderMaterial.opacity = 0.4 + 0.4 * pulse;
-		this.labelEl.style.opacity = `${0.5 + 0.5 * pulse}`;
 	}
 
 	// True once this operator's altitude reflects a real tile sample rather
@@ -298,6 +344,7 @@ export class Operator extends THREE.Group {
 		this.body.geometry.dispose();
 		this.head.geometry.dispose();
 		(this.body.material as THREE.Material).dispose();
+		this.haloMaterial.dispose();
 		this.shadowDecal.geometry.dispose();
 		this.shadowMaterial.dispose();
 		this.reticle.geometry.dispose();

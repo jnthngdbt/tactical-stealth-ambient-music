@@ -71,6 +71,16 @@ export const OPERATOR_BODY_HEIGHT_SCALE = 1.2; // stretches it taller than wide
 export const OPERATOR_BODY_DEPTH_SCALE = 0.7; // flattens it front-to-back, like a hunched crouch
 export const OPERATOR_HEAD_RADIUS = 0.17;
 
+// Kept semi-transparent (rather than fully opaque) to soften the silhouette's
+// contrast against the terrain — a fixed opacity, no pulsing.
+export const OPERATOR_BODY_OPACITY_BASE = 0.9;
+
+// Soft billboard sprite behind the body/head that feathers their otherwise
+// hard sphere edge (see getHaloTexture in operator.ts) — a cheap stand-in
+// for a real blur pass.
+export const OPERATOR_HALO_SIZE = 1.6; // metres, camera-facing sprite size
+export const OPERATOR_HALO_OPACITY = 0.7;
+
 export const OPERATOR_SHADOW_RADIUS = 0.8; // soft dark ground decal that grounds the body visually
 export const OPERATOR_RETICLE_SIZE = 1.05; // half-size of the square tactical bracket around the body
 export const OPERATOR_RETICLE_CORNER = 0.5; // length of each bracket corner segment
