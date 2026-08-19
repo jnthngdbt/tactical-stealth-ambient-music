@@ -1,4 +1,4 @@
-import { URL_FLIGHT_ALTITUDE, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
+import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
@@ -196,6 +196,12 @@ export const CAMERA_DRIFT_MAX_STEP = 1.5; // metres per frame
 // How quickly the orbit target eases toward the true centroid of the
 // operators (rather than snapping straight to it every frame).
 export const CAMERA_LOOKAT_EASE = 1.5;
+
+// Overall opacity of the entire HUD overlay (#hud in index.html — vignette,
+// scanlines, corners, header, telemetry, everything), applied once at
+// startup in main.ts. 1 = fully opaque, 0 = fully invisible.
+// Overridable via `?hud=<0-1>` URL query param (see urlParams.ts).
+export const HUD_OPACITY = URL_HUD_OPACITY ?? 0.5;
 
 // Callsign pool one is randomly assigned from, per trajectory, in mission.ts
 // (see OPERATOR_NAMES there) — shared by the cinematic view and path editor.

@@ -292,6 +292,7 @@ export class Operator extends THREE.Group {
 		this.labelEl.style.borderLeftColor = hex;
 		this.labelEl.style.left = `${dx}px`;
 		this.labelEl.style.top = `${dy}px`;
+		this.labelEl.style.opacity = String(CONST.HUD_OPACITY); // shares the same overall HUD opacity, not part of #hud's DOM subtree itself
 		this.tagEl.appendChild(this.labelEl);
 
 		const tag = new CSS2DObject(this.tagEl);

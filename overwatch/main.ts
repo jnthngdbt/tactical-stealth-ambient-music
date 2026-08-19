@@ -18,6 +18,9 @@ type Mode = 'cinematic' | 'edit';
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 
+const hudEl = document.getElementById('hud');
+if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
+
 const coordsPanelToggle = document.querySelector<HTMLElement>('.hud-coords-panel');
 
 function updateModeToggleLabel() {

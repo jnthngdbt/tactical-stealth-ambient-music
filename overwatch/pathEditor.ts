@@ -335,7 +335,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 
 	function onSaveClick() {
 		const rotationDeg = (mapRotation * 180) / Math.PI;
-		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg, CONST.CAMERA_DRIFT_ALTITUDE);
+		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
 	}
 	function onAddClick() {
 		paths.push([]);
