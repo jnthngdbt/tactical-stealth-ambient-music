@@ -46,22 +46,15 @@ export const CESIUM_ION_TOKEN = import.meta.env.VITE_ION_KEY ?? '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 
-// Operator movement — steady walking pace most of the time, with occasional
-// brisker dash bursts for visual variety. Movement is a continuous steering
-// model (heading is always a unit vector scaled by speed).
-export const OPERATOR_CREEP_SPEED = 0.85; // m/s, slow deliberate walk
-export const OPERATOR_DASH_SPEED = 1.4; // m/s, brisk walk
+// Operator movement — a steady constant walking pace for every operator.
+// Movement is a continuous steering model (heading is always a unit vector
+// scaled by speed).
+export const OPERATOR_SPEED = 1.0; // m/s, walking pace
 
 // The operator just walks its checkpoints in order, reversing direction
-// once it reaches either end (a ping-pong loop).
+// once it reaches either end (a ping-pong loop). Operators never stop moving
+// along their path.
 export const PATH_ARRIVAL_RADIUS = 1.2; // metres from a checkpoint counted as "arrived"
-
-// Dash bursts happen on a randomized cadence rather than at specific
-// checkpoints. Operators never stop moving along their path.
-export const OPERATOR_DASH_INTERVAL_MIN = 10; // seconds of creeping between dash bursts
-export const OPERATOR_DASH_INTERVAL_MAX = 20;
-export const OPERATOR_DASH_DURATION_MIN = 2; // seconds a dash burst lasts
-export const OPERATOR_DASH_DURATION_MAX = 4;
 
 // Operator visual: a dark, matte silhouette ("there's really someone there")
 // rather than a glowing dot, tagged with a bright tactical reticle so it still
@@ -179,7 +172,7 @@ export const FLIGHT_DRIFT_RADIUS_X = 20; // metres
 export const FLIGHT_DRIFT_RADIUS_Z = 20; // metres
 export const FLIGHT_DRIFT_SIDE_OFFSET = 30; // metres, minimum lateral distance kept from the centroid
 export const FLIGHT_DRIFT_HEIGHT = 8; // metres of slow vertical bob
-export const CAMERA_DRIFT_ALTITUDE = 75; // metres, fixed hover height above the operators' centroid
+export const CAMERA_DRIFT_ALTITUDE = 60; // metres, fixed hover height above the operators' centroid
 
 // Caps how far the camera is allowed to jump in a single frame while
 // following the anchor above (e.g. if an operator's altitude snaps once

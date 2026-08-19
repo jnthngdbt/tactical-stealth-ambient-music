@@ -180,9 +180,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// Redraws one operator's markers (a disc per checkpoint, the first
 	// bigger), connecting line, and per-checkpoint estimated timestamp tags,
 	// dimmed unless it's the selected operator. Timestamps assume the operator
-	// walks the whole route at its steady OPERATOR_CREEP_SPEED (dash bursts are
-	// randomized in cinematic mode, so they can't be predicted here) — a
-	// best-effort ETA for planning routes, not a guaranteed arrival time.
+	// walks the whole route at its constant OPERATOR_SPEED (per-operator speed
+	// variance is randomized in cinematic mode, so it can't be predicted here) —
+	// a best-effort ETA for planning routes, not a guaranteed arrival time.
 	function rebuildOperatorVisual(index: number) {
 		const group = operatorGroups[index];
 		disposeGroup(group);
@@ -221,7 +221,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 			if (i > 0) {
 				const prev = path[i - 1];
 				const legDistance = Math.hypot(checkpoint.east - prev.east, checkpoint.north - prev.north);
-				elapsed += legDistance / CONST.OPERATOR_CREEP_SPEED;
+				elapsed += legDistance / CONST.OPERATOR_SPEED;
 			}
 
 			const labelEl = document.createElement('div');

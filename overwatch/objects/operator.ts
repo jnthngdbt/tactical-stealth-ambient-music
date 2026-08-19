@@ -84,12 +84,11 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 
 // A single operator, rendered as a dark, matte silhouette — grounded by a
 // soft shadow decal and tagged with a bright square tactical reticle — that
-// walks its configured patrol path, creeping cautiously most of the time and
-// dashing in occasional brisk bursts, but never stopping. Altitude is linearly
-// interpolated between the current leg's two checkpoints (each sampled once
-// against the streaming tiles) rather than raycast continuously at the
-// operator's own position, so a stray prop/tree mesh between checkpoints
-// can't yank the operator up onto it.
+// walks its configured patrol path at a constant pace, never stopping.
+// Altitude is linearly interpolated between the current leg's two checkpoints
+// (each sampled once against the streaming tiles) rather than raycast
+// continuously at the operator's own position, so a stray prop/tree mesh
+// between checkpoints can't yank the operator up onto it.
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
@@ -121,8 +120,6 @@ export class Operator extends THREE.Group {
 	private tagEl: HTMLDivElement;
 	private labelEl: HTMLDivElement;
 
-	private dashing = false;
-	private dashRemaining = 0;
 	private pulsePhase = Math.random() * Math.PI * 2;
 
 	// Patrol path (world-local positions) walked in order, reversing
@@ -297,25 +294,6 @@ export class Operator extends THREE.Group {
 
 		// the first checkpoint doubles as the spawn point
 		this.position.copy(this.path[0] ?? new THREE.Vector3());
-		this.dashRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_DASH_INTERVAL_MIN, CONST.OPERATOR_DASH_INTERVAL_MAX);
-	}
-
-	// Toggles between a steady creep and a brisk dash on a randomized cadence,
-	// since speed variety is no longer tied to specific patrol segments.
-	private updateDash(delta: number) {
-		if (this.dashing) {
-			this.dashRemaining -= delta;
-			if (this.dashRemaining <= 0) {
-				this.dashing = false;
-				this.dashRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_DASH_INTERVAL_MIN, CONST.OPERATOR_DASH_INTERVAL_MAX);
-			}
-		} else {
-			this.dashRemaining -= delta;
-			if (this.dashRemaining <= 0) {
-				this.dashing = true;
-				this.dashRemaining = THREE.MathUtils.randFloat(CONST.OPERATOR_DASH_DURATION_MIN, CONST.OPERATOR_DASH_DURATION_MAX);
-			}
-		}
 	}
 
 	// Walks straight toward the current checkpoint, advancing (and reversing
@@ -351,12 +329,9 @@ export class Operator extends THREE.Group {
 	}
 
 	public tick(delta: number, sampleGround: (x: number, z: number) => number, camera: THREE.Camera) {
-		this.updateDash(delta);
-		const speed = this.dashing ? CONST.OPERATOR_DASH_SPEED : CONST.OPERATOR_CREEP_SPEED;
-
 		const legBefore = this.legFromIndex;
 		const targetBefore = this.pathIndex;
-		this.tickPath(delta, speed);
+		this.tickPath(delta, CONST.OPERATOR_SPEED);
 		const legChanged = this.legFromIndex !== legBefore || this.pathIndex !== targetBefore;
 
 		let targetY: number | null = null;
@@ -403,15 +378,15 @@ export class Operator extends THREE.Group {
 			}
 		}
 
-		// slow "breathing" pulse on the reticle while creeping, sharper pulse while dashing across the open
-		this.pulsePhase += delta * (this.dashing ? 6 : 2.2);
+		// slow "breathing" pulse on the reticle
+		this.pulsePhase += delta * 2.2;
 		const pulse = 0.65 + 0.35 * Math.sin(this.pulsePhase);
 		this.reticleMaterial.opacity = 0.55 + 0.4 * pulse;
 		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
 
 		this.updateIdleSway(delta);
 		this.updateBodyTilt();
-		this.updateLegSwing(delta, speed);
+		this.updateLegSwing(delta, CONST.OPERATOR_SPEED);
 		this.updateRifleFacing();
 		this.updateLeaderLine(camera);
 	}
@@ -499,14 +474,14 @@ export class Operator extends THREE.Group {
 	}
 
 	// Alternating forward/back leg stride, its phase driven by distance
-	// walked (speed * delta) rather than raw time, so a dash burst visibly
-	// quickens the stride instead of just ticking a fixed-rate clock. Slides
-	// purely along the current heading (no vertical lift), like a low crouched
-	// shuffle rather than a full walking gait. The left/right stance offset is
-	// kept perpendicular to the heading (not a fixed world axis) — otherwise a
-	// diagonal heading projects part of that fixed offset onto the direction of
-	// travel, permanently biasing one leg forward and the other back on top of
-	// (and often swamping) the actual alternating stride.
+	// walked (speed * delta) rather than raw time, so it stays in sync with the
+	// operator's actual pace. Slides purely along the current heading (no
+	// vertical lift), like a low crouched shuffle rather than a full walking
+	// gait. The left/right stance offset is kept perpendicular to the heading
+	// (not a fixed world axis) — otherwise a diagonal heading projects part of
+	// that fixed offset onto the direction of travel, permanently biasing one
+	// leg forward and the other back on top of (and often swamping) the actual
+	// alternating stride.
 	private updateLegSwing(delta: number, speed: number) {
 		this.walkPhase += delta * speed * CONST.OPERATOR_LEG_SWING_RATE;
 		const stride = Math.sin(this.walkPhase) * CONST.OPERATOR_LEG_SWING_DISTANCE;
