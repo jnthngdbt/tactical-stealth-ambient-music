@@ -103,9 +103,16 @@ export class Operator extends THREE.Group {
 	// separate from the heading-driven forward tilt applied each tick (see
 	// updateBodyTilt) so the two rotations can be composed independently
 	private bodyYaw: number;
-	// last real movement direction (world/local XZ, group itself never rotates),
-	// used to keep the rifle/legs/head oriented the way the operator is walking
+	// actual direction of travel (world/local XZ, group itself never rotates) —
+	// both the position update and the rifle/legs/head orientation follow this,
+	// eased toward targetHeading (see steerHeading) rather than snapping to it,
+	// so the operator arcs smoothly through a checkpoint instead of pivoting on
+	// the spot
 	private heading = new THREE.Vector3(0, 0, 1);
+	// raw straight-line direction toward the current checkpoint, updated
+	// instantly each tick by tickPath — the corner-cutting target that heading
+	// eases toward, never used directly to move or orient the operator
+	private targetHeading = new THREE.Vector3(0, 0, 1);
 	private idlePhase = Math.random() * Math.PI * 2;
 	private walkPhase = Math.random() * Math.PI * 2;
 	private bodyMaterial: THREE.MeshBasicMaterial;
@@ -296,11 +303,13 @@ export class Operator extends THREE.Group {
 		this.position.copy(this.path[0] ?? new THREE.Vector3());
 	}
 
-	// Walks straight toward the current checkpoint, advancing (and reversing
-	// direction at either end, ping-pong style) once arrived. Checkpoints
-	// were hand-placed to dodge obstacles, so no avoidance steering is
-	// applied here — the path itself is trusted. A single-checkpoint path
-	// has nowhere to walk to, so the operator just stands there.
+	// Walks toward the current checkpoint, advancing (and reversing direction
+	// at either end, ping-pong style) once arrived. Checkpoints were
+	// hand-placed to dodge obstacles, so no avoidance steering is applied here
+	// — the path itself is trusted, only its sharp corners are rounded off (see
+	// steerHeading) by walking along the eased heading rather than snapping onto
+	// each new leg's raw straight-line direction. A single-checkpoint path has
+	// nowhere to walk to, so the operator just stands there.
 	private tickPath(delta: number, speed: number) {
 		if (this.path.length < 2) return;
 
@@ -323,9 +332,12 @@ export class Operator extends THREE.Group {
 			return;
 		}
 
-		const heading = toTarget.normalize();
-		this.heading.copy(heading);
-		this.position.addScaledVector(heading, Math.min(speed * delta, distance));
+		this.targetHeading.copy(toTarget).normalize();
+		this.steerHeading(delta);
+		// turning radius (speed / turn rate) is kept well under PATH_ARRIVAL_RADIUS
+		// so the curved heading still reliably enters the arrival circle instead of
+		// orbiting a corner it can never turn tight enough to reach
+		this.position.addScaledVector(this.heading, speed * delta);
 	}
 
 	public tick(delta: number, sampleGround: (x: number, z: number) => number, camera: THREE.Camera) {
@@ -389,6 +401,20 @@ export class Operator extends THREE.Group {
 		this.updateLegSwing(delta, CONST.OPERATOR_SPEED);
 		this.updateRifleFacing();
 		this.updateLeaderLine(camera);
+	}
+
+	// Turns heading toward targetHeading at a capped angular speed rather than
+	// snapping to it — since heading also drives the position update (see
+	// tickPath), this rounds off the actual walked corner at each checkpoint,
+	// not just the operator's visual facing.
+	private steerHeading(delta: number) {
+		const currentAngle = Math.atan2(this.heading.x, this.heading.z);
+		const targetAngle = Math.atan2(this.targetHeading.x, this.targetHeading.z);
+		const diff = Math.atan2(Math.sin(targetAngle - currentAngle), Math.cos(targetAngle - currentAngle));
+		const maxStep = CONST.OPERATOR_TURN_RATE * delta;
+		const step = THREE.MathUtils.clamp(diff, -maxStep, maxStep);
+		const newAngle = currentAngle + step;
+		this.heading.set(Math.sin(newAngle), 0, Math.cos(newAngle));
 	}
 
 	// Perpendicular-to-heading "right" axis (heading rotated 90° in the XZ

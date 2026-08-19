@@ -50,6 +50,7 @@ export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 // Movement is a continuous steering model (heading is always a unit vector
 // scaled by speed).
 export const OPERATOR_SPEED = 1.0; // m/s, walking pace
+export const OPERATOR_TURN_RATE = 0.5; // radians/s, how fast heading (and so both facing and walked path) eases into a new leg's direction
 
 // The operator just walks its checkpoints in order, reversing direction
 // once it reaches either end (a ping-pong loop). Operators never stop moving
@@ -88,7 +89,7 @@ export const OPERATOR_RIFLE_BARREL_RADIUS = 0.035; // metres
 export const OPERATOR_RIFLE_STOCK_LENGTH = 0.22; // metres
 export const OPERATOR_RIFLE_STOCK_HEIGHT = 0.06; // metres
 export const OPERATOR_RIFLE_STOCK_WIDTH = 0.08; // metres
-export const OPERATOR_RIFLE_HEIGHT_SCALE = 0.6; // fraction of the body's top height where the rifle sits (chest)
+export const OPERATOR_RIFLE_HEIGHT_SCALE = 0.9; // fraction of the body's top height where the rifle sits (chest)
 
 // Subtle idle bob/sway applied to the head every frame, independent of the
 // leg swing, so the operator never reads as a frozen statue.
