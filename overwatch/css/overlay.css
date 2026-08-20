@@ -287,12 +287,16 @@
 }
 
 /* Path editor mode (pathEditor.ts) — the only interactive part of the HUD,
-   so it opts back into pointer events despite #hud's pointer-events: none. */
+   so it opts back into pointer events despite #hud's pointer-events: none.
+   The panel itself stays non-interactive (text isn't clickable/selectable),
+   only .hud-editor-btn below opts back in, so dragging the map near this
+   text doesn't get hijacked into a text selection. */
 .hud-editor-panel {
   position: absolute;
   left: 6%;
   bottom: 7%;
-  pointer-events: auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 .hud-editor-title {
@@ -329,6 +333,7 @@
   border-radius: 4px;
   padding: 6px 10px;
   cursor: pointer;
+  pointer-events: auto;
   transition: opacity 0.3s ease, border-color 0.3s ease;
   opacity: 0.75;
 }

@@ -127,8 +127,8 @@ export function runPathEditor(onCancel: () => void): () => void {
 
 	// Left-drag pans by default; OrbitControls itself auto-switches a
 	// PAN-mapped button to ROTATE while Ctrl/Meta/Shift is held, so Ctrl+drag
-	// orbits with no extra wiring here. Right-click is left unmapped, so it
-	// does nothing at all.
+	// orbits with no extra wiring here. Right-click is left unmapped in
+	// OrbitControls, so it's free for the checkpoint-removal handling below.
 	const controls = new OrbitControls(camera, renderer.domElement);
 	controls.enableRotate = true;
 	// false keeps pan strictly on the horizontal ground plane (perpendicular
@@ -445,9 +445,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// (also the left mouse button, via controls.mouseButtons above) doesn't
 	// also drop a checkpoint. Pointerdown on an existing marker instead starts
 	// a drag that repositions that checkpoint, taking priority over placement.
-	// Right-click is unmapped entirely (see controls.mouseButtons above) and
-	// Ctrl+left-drag orbits via OrbitControls' own built-in modifier-key
-	// handling — both bail out of this logic up front.
+	// Right-click on a marker removes that checkpoint instead (see the
+	// pointerdown handler below); Ctrl+left-drag orbits via OrbitControls'
+	// own built-in modifier-key handling.
 	const raycaster = new THREE.Raycaster();
 	let downPos: { x: number; y: number } | null = null;
 	let draggingIndex: number | null = null;
@@ -461,7 +461,19 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	renderer.domElement.addEventListener('pointerdown', (event) => {
-		if (event.button !== 0 || event.ctrlKey) return; // right-click: nothing; Ctrl+left: orbit
+		if (event.button === 2) {
+			if (paths.length === 0) return;
+			raycaster.setFromCamera(ndcFromEvent(event), camera);
+			const markerHit = raycaster.intersectObjects(operatorGroups[selected].children, false)
+				.find((hit) => hit.object.userData.checkpointIndex !== undefined);
+			if (markerHit) {
+				paths[selected].splice(markerHit.object.userData.checkpointIndex as number, 1);
+				rebuildOperatorVisual(selected);
+				updateHud();
+			}
+			return;
+		}
+		if (event.button !== 0 || event.ctrlKey) return; // Ctrl+left: orbit
 
 		downPos = { x: event.clientX, y: event.clientY };
 		if (paths.length === 0) return;
