@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { App } from './app.ts';
-import { createTiles, sampleGroundHeight, updateTilesResolution } from './tiles.ts';
+import { createTiles, isTilesLoaded, sampleGroundHeight, updateTilesResolution } from './tiles.ts';
 import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
@@ -87,6 +87,11 @@ function runCinematic(): () => void {
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 	}
 	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);
+	// Tiles are shared across mode switches (see tiles.ts's createTiles) — if
+	// they already finished loading in a previous mode run, there's nothing
+	// left to trigger a fresh 'tiles-load-end' event, so check synchronously
+	// too or this would wait forever.
+	if (isTilesLoaded(tiles)) onTilesLoadEnd();
 
 	const coordsEl = document.getElementById('hudCoords');
 	if (coordsEl) coordsEl.textContent = `${CONST.SITE_LAT.toFixed(5)}, ${CONST.SITE_LON.toFixed(5)}`;
@@ -289,7 +294,9 @@ function runCinematic(): () => void {
 		recordBtn.classList.remove('recording');
 		operators.forEach((operator) => operator.dispose());
 		activeOperators = [];
-		tiles.dispose();
+		// tiles itself is intentionally NOT disposed here — it's shared across
+		// mode switches (see tiles.ts's createTiles) so already-downloaded tile
+		// data survives toggling back and forth instead of being refetched.
 		app.dispose();
 	};
 }

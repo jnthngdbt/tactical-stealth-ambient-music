@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
-import { createTiles, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution } from './tiles.ts';
+import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
@@ -272,6 +272,11 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	paths.forEach((_, i) => rebuildOperatorVisual(i));
+	// Tiles are shared across mode switches (see tiles.ts's createTiles) — if
+	// they already finished loading in a previous mode run, there's nothing
+	// left to trigger a fresh 'tiles-load-end' event, so check synchronously
+	// too or the editor would wait forever to draw checkpoints/sample ground.
+	if (isTilesLoaded(tiles)) onTilesLoadEnd();
 
 	// --- HUD wiring -----------------------------------------------------
 
@@ -570,7 +575,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 		operatorGroups.forEach(disposeGroup);
 		labelElements.forEach((els) => els.forEach((el) => el.remove()));
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
-		tiles.dispose();
 		controls.dispose();
 		renderer.dispose();
 		renderer.domElement.remove();

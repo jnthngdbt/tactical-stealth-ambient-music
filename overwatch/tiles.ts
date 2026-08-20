@@ -32,13 +32,36 @@ const wireframeMaterial = new THREE.LineBasicMaterial({
 	polygonOffsetUnits: -1,
 });
 
+// Reused across every createTiles() call (see below) so switching between
+// cinematic mode and the path editor doesn't throw away already-downloaded
+// tile data — see the comment inside createTiles for why this matters.
+let sharedTiles: { tiles: TilesRenderer; reorient: ReorientationPlugin } | null = null;
+
 // Sets up the photorealistic 3D Tiles renderer, re-orients it so the given
 // site coordinates sit at the world origin (+Y up), and swaps loaded tile
 // materials to unlit so the night grading pass has full control over lighting.
 // Both cinematic mode and the path editor use the default dimmed look so the
 // two modes render identically; pass `dim: false` only if a full-brightness
 // daylight view is ever needed again.
+//
+// Only builds a real TilesRenderer once for the page's whole lifetime — main.ts
+// and pathEditor.ts both call this on every mode switch, and a fresh
+// TilesRenderer re-authenticates with Cesium Ion and redownloads every tile
+// from scratch, which was the main driver of Ion quota usage since toggling
+// modes happens often while building/testing patrol paths. On later calls
+// this just repoints the existing instance at the new camera/renderer and
+// returns it; the caller still does `scene.add(tiles.group)`, which
+// auto-detaches the group from whichever scene it was previously in, so
+// already-downloaded/parsed tiles stay resident (in the shared LRUCache) and
+// simply get re-uploaded to the new WebGLRenderer's GPU context instead of
+// being re-fetched over the network.
 export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer, options: { dim?: boolean } = {}) {
+	if (sharedTiles) {
+		sharedTiles.tiles.setCamera(camera);
+		updateTilesResolution(sharedTiles.tiles, camera, renderer);
+		return sharedTiles;
+	}
+
 	const dim = options.dim ?? true;
 	const tiles = new TilesRenderer();
 
@@ -116,7 +139,20 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 	tiles.setCamera(camera);
 	updateTilesResolution(tiles, camera, renderer);
 
-	return { tiles, reorient };
+	sharedTiles = { tiles, reorient };
+	return sharedTiles;
+}
+
+// Whether the shared TilesRenderer has nothing left queued/downloading/parsing
+// right now. Used to detect the case where createTiles() above returns an
+// already-fully-loaded instance (e.g. switching back into a mode after the
+// tiles finished loading in a previous one) — 'tiles-load-end' only fires on
+// a busy-to-idle transition, so it never re-fires if there was nothing new to
+// load, and callers need this synchronous check to avoid waiting forever.
+export function isTilesLoaded(tiles: TilesRenderer): boolean {
+	// @ts-expect-error — `stats` exists on the runtime TilesRendererBase class but isn't in its .d.ts.
+	const { queued, downloading, parsing } = tiles.stats;
+	return queued === 0 && downloading === 0 && parsing === 0;
 }
 
 const rendererSize = new THREE.Vector2();
