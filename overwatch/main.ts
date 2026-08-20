@@ -11,17 +11,17 @@ type Mode = 'cinematic' | 'edit';
 
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
-// first so those paths can be built by hand (see pathEditor.ts). The site
-// coords readout doubles as the toggle into path-editing mode; pathEditor.ts
-// hides it entirely while active (its "Save" button generates a mission URL
-// with the edited paths and navigates there instead).
+// first so those paths can be built by hand (see pathEditor.ts). E toggles
+// between the two modes; pathEditor.ts hides the site coords readout
+// entirely while active (its "Save" button generates a mission URL with the
+// edited paths and navigates there instead).
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 
 const hudEl = document.getElementById('hud');
 if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
 
-// H toggles the HUD's readouts/panels off, leaving only the camera framing
+// M toggles the HUD's readouts/panels off, leaving only the camera framing
 // brackets (.hud-corner/.hud-target-corner) visible — see the
 // `#hud.hud-minimal` rule in overlay.css. Also strips each operator's
 // callsign label/leader line (a CSS2DObject + THREE.Line, not part of #hud's
@@ -29,28 +29,31 @@ if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
 // rather than reading a fixed array captured at module load.
 let hudMinimal = false;
 let activeOperators: Operator[] = [];
+
+// H toggles the shortcuts cheat-sheet (#shortcutsPanel, index.html) — a plain
+// top-level overlay, not a #hud child, so it stays visible even while
+// hud-minimal is on.
+let shortcutsVisible = false;
+const shortcutsPanel = document.getElementById('shortcutsPanel');
+
 window.addEventListener('keydown', (event) => {
-	if (event.key !== 'h' && event.key !== 'H') return;
-	hudMinimal = !hudMinimal;
-	hudEl?.classList.toggle('hud-minimal', hudMinimal);
-	activeOperators.forEach((operator) => operator.setLabelVisible(!hudMinimal));
+	if (event.key === 'm' || event.key === 'M') {
+		hudMinimal = !hudMinimal;
+		hudEl?.classList.toggle('hud-minimal', hudMinimal);
+		activeOperators.forEach((operator) => operator.setLabelVisible(!hudMinimal));
+	} else if (event.key === 'h' || event.key === 'H') {
+		shortcutsVisible = !shortcutsVisible;
+		shortcutsPanel?.toggleAttribute('hidden', !shortcutsVisible);
+	} else if (event.key === 'e' || event.key === 'E') {
+		startMode(mode === 'cinematic' ? 'edit' : 'cinematic');
+	}
 });
-
-const coordsPanelToggle = document.querySelector<HTMLElement>('.hud-coords-panel');
-
-function updateModeToggleLabel() {
-	if (!coordsPanelToggle) return;
-	coordsPanelToggle.title = mode === 'cinematic' ? 'Switch to path editor' : 'Switch to cinematic view';
-}
 
 function startMode(next: Mode) {
 	stopCurrentMode?.();
 	mode = next;
 	stopCurrentMode = mode === 'cinematic' ? runCinematic() : runPathEditor(() => startMode('cinematic'));
-	updateModeToggleLabel();
 }
-
-coordsPanelToggle?.addEventListener('click', () => startMode(mode === 'cinematic' ? 'edit' : 'cinematic'));
 
 startMode(mode);
 
@@ -118,6 +121,12 @@ function runCinematic(): () => void {
 		recordBtn.classList.toggle('recording', recorder.isRecording);
 	}
 	recordBtn.addEventListener('click', onRecordClick);
+
+	// R is a keyboard shortcut for the same start/stop action as clicking hudRec.
+	function onKeyDown(event: KeyboardEvent) {
+		if (event.key === 'r' || event.key === 'R') onRecordClick();
+	}
+	window.addEventListener('keydown', onKeyDown);
 
 	// Per-operator name + simulated biometrics (bpm, blood-oxygen), replacing
 	// the map's own attribution text (removed) with something relevant to the
@@ -258,6 +267,7 @@ function runCinematic(): () => void {
 		cancelAnimationFrame(rafId);
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 		recordBtn.removeEventListener('click', onRecordClick);
+		window.removeEventListener('keydown', onKeyDown);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
 		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);

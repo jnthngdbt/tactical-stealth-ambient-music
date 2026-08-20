@@ -37,7 +37,7 @@
 			<header class="hud-header">
 				<div class="hud-status hud-status-left">
 					<!-- Doubles as the record button: click to start/stop, timecode only runs while recording -->
-					<button class="hud-rec" id="hudRec" type="button" title="Click to record"><span class="hud-rec-dot"></span>REC <span id="hudTimecode">00:00:00</span></button>
+					<button class="hud-rec" id="hudRec" type="button" title="Click or press R to record"><span class="hud-rec-dot"></span>REC <span id="hudTimecode">00:00:00</span></button>
 					<div class="hud-callsign"><span class="hud-subtitle" id="hudMode">DRONE CAMERA FEED</span></div>
 				</div>
 				<div class="hud-status hud-status-right">
@@ -85,6 +85,26 @@
 					<button id="editorCancelBtn" class="hud-editor-btn" type="button">Cancel</button>
 				</div>
 			</div>
+		</div>
+
+		<!-- Shortcuts cheat-sheet, toggled by H (main.ts). Lives outside #hud so
+			 it isn't hidden by the "minimal HUD" (M) toggle's CSS rule. -->
+		<div class="hud-shortcuts-panel" id="shortcutsPanel" hidden>
+			<div class="hud-shortcuts-title">Shortcuts</div>
+			<div class="hud-shortcuts-section">General</div>
+			<div class="hud-shortcuts-row"><span>H</span><span>Toggle this list</span></div>
+			<div class="hud-shortcuts-row"><span>M</span><span>Toggle minimal HUD</span></div>
+			<div class="hud-shortcuts-row"><span>E</span><span>Switch cinematic / path editor</span></div>
+			<div class="hud-shortcuts-section">Cinematic mode</div>
+			<div class="hud-shortcuts-row"><span>R</span><span>Start / stop recording</span></div>
+			<div class="hud-shortcuts-section">Path editor mode</div>
+			<div class="hud-shortcuts-row"><span>Click</span><span>Add checkpoint</span></div>
+			<div class="hud-shortcuts-row"><span>Right-click</span><span>Remove checkpoint</span></div>
+			<div class="hud-shortcuts-row"><span>Backspace / Delete</span><span>Remove last checkpoint</span></div>
+			<div class="hud-shortcuts-row"><span>Ctrl + drag</span><span>Rotate view</span></div>
+			<div class="hud-shortcuts-row"><span>1-9</span><span>Select operator</span></div>
+			<div class="hud-shortcuts-row"><span>O</span><span>Toggle path occlusion</span></div>
+			<div class="hud-shortcuts-row"><span>T</span><span>Toggle checkpoint timestamps</span></div>
 		</div>
 
 	</body>

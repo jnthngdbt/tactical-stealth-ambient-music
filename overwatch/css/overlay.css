@@ -216,18 +216,6 @@
   text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
 }
 
-/* Doubles as the cinematic/path-editor mode toggle (see main.ts), so it opts
-   back into pointer events despite #hud's pointer-events: none. */
-.hud-coords-panel {
-  pointer-events: auto;
-  cursor: pointer;
-  transition: opacity 0.3s ease;
-}
-
-.hud-coords-panel:hover {
-  opacity: 0.8;
-}
-
 .hud-hint {
   margin-top: 4px;
   font-size: 10px;
@@ -402,4 +390,62 @@
   padding: 1px 5px;
   white-space: nowrap;
   text-shadow: 0 0 6px rgba(53, 240, 208, 0.5);
+}
+
+/* Shortcuts cheat-sheet (H toggle, main.ts). A separate top-level overlay
+   (not a #hud child) so it stays visible regardless of the minimal-HUD (M)
+   toggle. Purely informational, so no pointer-events opt-in is needed. */
+.hud-shortcuts-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  min-width: 320px;
+  padding: 20px 24px;
+  background: rgba(6, 12, 13, 0.85);
+  border: 1px solid rgba(183, 243, 234, 0.4);
+  border-radius: 6px;
+  color: #b7f3ea;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+}
+
+.hud-shortcuts-title {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #7ffff0;
+  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
+  margin-bottom: 10px;
+}
+
+.hud-shortcuts-section {
+  font-size: 11px;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin: 12px 0 4px;
+}
+
+.hud-shortcuts-section:first-of-type {
+  margin-top: 0;
+}
+
+.hud-shortcuts-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.hud-shortcuts-row span:first-child {
+  color: #7ffff0;
+  white-space: nowrap;
+}
+
+.hud-shortcuts-row span:last-child {
+  opacity: 0.8;
+  text-transform: none;
 }
