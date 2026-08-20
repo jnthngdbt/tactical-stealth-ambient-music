@@ -42,6 +42,29 @@
 .hud-corner.bl { bottom: 3%; left: 3%; border-bottom-width: 2px; border-left-width: 2px; }
 .hud-corner.br { bottom: 3%; right: 3%; border-bottom-width: 2px; border-right-width: 2px; }
 
+/* Inner target/focus bracket, sized to frame roughly the middle half of the
+   screen (corners at 25% inset) — echoes the outer .hud-corner frame but
+   smaller/dimmer, reading as a drone camera's focus box rather than the
+   overall feed frame. */
+.hud-target-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(183, 243, 234, 0.35);
+  border-style: solid;
+  border-width: 0;
+}
+.hud-target-corner.tl { top: 30%; left: 30%; border-top-width: 2px; border-left-width: 2px; }
+.hud-target-corner.tr { top: 30%; right: 30%; border-top-width: 2px; border-right-width: 2px; }
+.hud-target-corner.bl { bottom: 30%; left: 30%; border-bottom-width: 2px; border-left-width: 2px; }
+.hud-target-corner.br { bottom: 30%; right: 30%; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* "H" toggle (main.ts): hides every direct #hud child except the camera
+   framing brackets, leaving just the corner/target brackets on screen. */
+#hud.hud-minimal > *:not(.hud-corner):not(.hud-target-corner) {
+  display: none;
+}
+
 .hud-header {
   position: absolute;
   top: 6%;

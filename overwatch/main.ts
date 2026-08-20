@@ -21,6 +21,21 @@ let stopCurrentMode: (() => void) | null = null;
 const hudEl = document.getElementById('hud');
 if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
 
+// H toggles the HUD's readouts/panels off, leaving only the camera framing
+// brackets (.hud-corner/.hud-target-corner) visible — see the
+// `#hud.hud-minimal` rule in overlay.css. Also strips each operator's
+// callsign label/leader line (a CSS2DObject + THREE.Line, not part of #hud's
+// DOM subtree), so `activeOperators` is kept in sync by runCinematic below
+// rather than reading a fixed array captured at module load.
+let hudMinimal = false;
+let activeOperators: Operator[] = [];
+window.addEventListener('keydown', (event) => {
+	if (event.key !== 'h' && event.key !== 'H') return;
+	hudMinimal = !hudMinimal;
+	hudEl?.classList.toggle('hud-minimal', hudMinimal);
+	activeOperators.forEach((operator) => operator.setLabelVisible(!hudMinimal));
+});
+
 const coordsPanelToggle = document.querySelector<HTMLElement>('.hud-coords-panel');
 
 function updateModeToggleLabel() {
@@ -51,9 +66,11 @@ function runCinematic(): () => void {
 	const operators = TRAJECTORIES.map((trajectory, i) => {
 		const operator = new Operator(trajectory, OPERATOR_NAMES[i], CONST.OPERATOR_COLOR);
 		operator.visible = false;
+		operator.setLabelVisible(!hudMinimal); // honor an H toggle from a previous cinematic run
 		app.scene.add(operator);
 		return operator;
 	});
+	activeOperators = operators;
 
 	// nothing is ticked or shown until the tiles needed for the current view
 	// have actually finished downloading/parsing — 3d-tiles-renderer fires this
@@ -245,6 +262,7 @@ function runCinematic(): () => void {
 		recordBtn.classList.remove('recording');
 		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);
 		operators.forEach((operator) => operator.dispose());
+		activeOperators = [];
 		tiles.dispose();
 		app.dispose();
 	};

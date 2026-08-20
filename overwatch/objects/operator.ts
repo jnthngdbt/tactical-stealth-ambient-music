@@ -126,6 +126,7 @@ export class Operator extends THREE.Group {
 	private leaderMaterial: THREE.LineBasicMaterial;
 	private tagEl: HTMLDivElement;
 	private labelEl: HTMLDivElement;
+	private tag: CSS2DObject;
 
 	private pulsePhase = Math.random() * Math.PI * 2;
 
@@ -295,9 +296,9 @@ export class Operator extends THREE.Group {
 		this.labelEl.style.opacity = String(CONST.HUD_OPACITY); // shares the same overall HUD opacity, not part of #hud's DOM subtree itself
 		this.tagEl.appendChild(this.labelEl);
 
-		const tag = new CSS2DObject(this.tagEl);
-		tag.position.set(0, CONST.LABEL_ANCHOR_HEIGHT, 0);
-		this.add(tag);
+		this.tag = new CSS2DObject(this.tagEl);
+		this.tag.position.set(0, CONST.LABEL_ANCHOR_HEIGHT, 0);
+		this.add(this.tag);
 
 		this.path = trajectory.map((checkpoint) => enuToLocal(checkpoint.east, checkpoint.north, 0));
 
@@ -403,6 +404,15 @@ export class Operator extends THREE.Group {
 		this.updateLegSwing(delta, CONST.OPERATOR_SPEED);
 		this.updateRifleFacing();
 		this.updateLeaderLine(camera);
+	}
+
+	// Hides/shows the callsign label + its leader line, independent of the
+	// operator's own `visible` (which also gates the body/reticle/etc) — used
+	// by the "H" HUD-minimal toggle (main.ts) to strip the drone-feed ID tag
+	// without hiding the operator itself.
+	setLabelVisible(visible: boolean) {
+		this.tag.visible = visible;
+		this.leaderLine.visible = visible;
 	}
 
 	// Turns heading toward targetHeading at a capped angular speed rather than
