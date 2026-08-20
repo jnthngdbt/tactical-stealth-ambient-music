@@ -297,9 +297,16 @@ export function runPathEditor(onCancel: () => void): () => void {
 	const editorCountEl = document.getElementById('editorCount');
 	const editorBearingEl = document.getElementById('editorBearing');
 	const saveBtn = document.getElementById('editorSaveBtn');
+	const setAngleBtn = document.getElementById('editorSetAngleBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
 	const cancelBtn = document.getElementById('editorCancelBtn');
+
+	// The angle actually written to the `rotation` URL param on Save — separate
+	// from the orbit camera's own live azimuthal angle, so freely orbiting to
+	// look around the scene doesn't change what gets saved. Starts at whatever
+	// mission.ts already had, unchanged until "Set Angle" is clicked.
+	let savedRotationDeg = MAP_ROTATION_DEG;
 	// Nothing to cancel back to if mission.ts didn't already have valid paths
 	// (i.e. the editor started because PATHS_READY was false at load).
 	if (cancelBtn) cancelBtn.style.display = PATHS_READY ? '' : 'none';
@@ -330,7 +337,8 @@ export function runPathEditor(onCancel: () => void): () => void {
 	function updateBearingHud() {
 		if (!editorBearingEl) return;
 		const deg = Math.round((((controls.getAzimuthalAngle() * 180) / Math.PI) % 360 + 360) % 360);
-		editorBearingEl.textContent = `Map bearing: ${deg}\u00b0`;
+		const savedDeg = Math.round(((savedRotationDeg % 360) + 360) % 360);
+		editorBearingEl.textContent = `Map bearing: ${deg}\u00b0 (saved: ${savedDeg}\u00b0)`;
 	}
 	updateBearingHud();
 
@@ -403,8 +411,12 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	function onSaveClick() {
-		const rotationDeg = (controls.getAzimuthalAngle() * 180) / Math.PI;
-		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
+		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, savedRotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
+	}
+	function onSetAngleClick() {
+		// Sub-degree precision is meaningless for a map bearing, so round it off here.
+		savedRotationDeg = Math.round((controls.getAzimuthalAngle() * 180) / Math.PI);
+		updateBearingHud();
 	}
 	function onAddClick() {
 		paths.push([]);
@@ -436,6 +448,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 		onCancel();
 	}
 	saveBtn?.addEventListener('click', onSaveClick);
+	setAngleBtn?.addEventListener('click', onSetAngleClick);
 	addBtn?.addEventListener('click', onAddClick);
 	deleteBtn?.addEventListener('click', onDeleteClick);
 	cancelBtn?.addEventListener('click', onCancelClick);
@@ -550,6 +563,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 		window.removeEventListener('resize', onResize);
 		window.removeEventListener('keydown', onKeyDown);
 		saveBtn?.removeEventListener('click', onSaveClick);
+		setAngleBtn?.removeEventListener('click', onSetAngleClick);
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
 		cancelBtn?.removeEventListener('click', onCancelClick);
