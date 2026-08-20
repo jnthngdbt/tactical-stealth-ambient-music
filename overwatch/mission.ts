@@ -1,6 +1,6 @@
 import type { Checkpoint } from './objects/operator.ts';
 import * as CONST from './constants.ts';
-import { URL_TRAJECTORIES, URL_MAP_ROTATION_DEG } from './urlParams.ts';
+import { URL_TRAJECTORIES, URL_OPERATOR_NAMES, URL_MAP_ROTATION_DEG } from './urlParams.ts';
 
 // Per-operator patrol path, expressed as metre offsets (east, north) from the
 // SITE_LAT/SITE_LON origin in constants.ts, walked in order and ping-ponged
@@ -76,5 +76,35 @@ function pickOperatorNames(count: number): string[] {
 	return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
 }
 
-export const OPERATOR_NAMES = pickOperatorNames(TRAJECTORIES.length);
+// Pads `provided` (truncated to `count`, ignoring any superfluous names) up
+// to `count` entries by drawing extras from CONST.OPERATOR_NAME_POOL, never
+// picking a name already in use (by `provided` or by an already-picked
+// extra) — falls back to a plain "OP-n" label if the pool runs out of unused
+// names (only possible once operator count exceeds the pool size).
+function fillMissingNames(provided: string[], count: number): string[] {
+	const names = provided.slice(0, count);
+	if (names.length >= count) return names;
+
+	const used = new Set(names);
+	const shuffled = CONST.OPERATOR_NAME_POOL.filter((name) => !used.has(name));
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
+
+	const missing = count - names.length;
+	for (let i = 0; i < missing; i++) {
+		names.push(shuffled[i] ?? `OP-${names.length + 1}`);
+	}
+	return names;
+}
+
+// A `?names=` URL query param (see urlParams.ts) overrides the random pick
+// above with an explicit, comma-separated callsign list — assigned in
+// TRAJECTORIES order. Superfluous names (more given than operators) are
+// ignored; missing names (fewer given than operators) are filled from
+// CONST.OPERATOR_NAME_POOL, never duplicating a name already in use.
+export const OPERATOR_NAMES = URL_OPERATOR_NAMES
+	? fillMissingNames(URL_OPERATOR_NAMES, TRAJECTORIES.length)
+	: pickOperatorNames(TRAJECTORIES.length);
 

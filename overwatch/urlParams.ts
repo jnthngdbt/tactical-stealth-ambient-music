@@ -9,7 +9,8 @@ import type { Checkpoint } from './objects/operator.ts';
 // know these can come from the URL.
 //
 // Supported params: `coord` (site origin, as `lat,lon`), `paths` (operator
-// trajectories, see parseTrajectories below), `rotation` (map bearing in
+// trajectories, see parseTrajectories below), `names` (operator callsigns,
+// comma-separated, see parseNames below), `rotation` (map bearing in
 // degrees, set via Ctrl-drag in the path editor), `alt` (drone hover altitude
 // in metres, see CAMERA_DRIFT_ALTITUDE in constants.ts), `hud` (0-1,
 // see HUD_OPACITY in constants.ts). All are optional — anything not present
@@ -50,10 +51,23 @@ function parseTrajectories(raw: string | null): Checkpoint[][] | null {
 	}
 }
 
+// Single comma-separated list of callsigns, e.g. `?names=Mitchell,Clark` —
+// one name per operator, assigned in TRAJECTORIES order (wrapping via
+// `i % length` if there are more operators than names given).
+function parseNames(raw: string | null): string[] | null {
+	if (!raw) return null;
+	const names = raw
+		.split(',')
+		.map((name) => name.trim())
+		.filter((name) => name.length > 0);
+	return names.length > 0 ? names : null;
+}
+
 const URL_COORD = parseCoord(params.get('coord'));
 export const URL_SITE_LAT = URL_COORD?.lat ?? null;
 export const URL_SITE_LON = URL_COORD?.lon ?? null;
 export const URL_TRAJECTORIES = parseTrajectories(params.get('paths'));
+export const URL_OPERATOR_NAMES = parseNames(params.get('names'));
 export const URL_MAP_ROTATION_DEG = parseNumber(params.get('rotation'));
 export const URL_FLIGHT_ALTITUDE = parseNumber(params.get('alt'));
 export const URL_HUD_OPACITY = parseNumber(params.get('hud'));
@@ -65,6 +79,7 @@ export function buildMissionUrl(
 	lat: number,
 	lon: number,
 	trajectories: Checkpoint[][],
+	names: string[],
 	rotationDeg: number,
 	altitude: number,
 	hudOpacity: number,
@@ -72,6 +87,7 @@ export function buildMissionUrl(
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
 	query.set('coord', `${lat},${lon}`);
+	query.set('names', names.join(','));
 	query.set('rotation', String(rotationDeg));
 	query.set('alt', String(altitude));
 	query.set('hud', String(hudOpacity));

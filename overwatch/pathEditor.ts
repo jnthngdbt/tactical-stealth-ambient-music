@@ -411,7 +411,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	function onSaveClick() {
-		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, savedRotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
+		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, names, savedRotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
 	}
 	function onSetAngleClick() {
 		// Sub-degree precision is meaningless for a map bearing, so round it off here.
