@@ -14,10 +14,12 @@ import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
 // PATHS_READY), or whenever the HUD mode toggle switches into path-editing
-// mode. A static, straight-down view — no camera drift, no operator movement
-// — but otherwise the same bloom + night-grading render pipeline as cinematic
-// mode, so switching modes doesn't change how the scene looks. Click the
-// ground to add a checkpoint for the selected operator; the "Save" button
+// mode. Starts in a straight-down view (no camera drift, no operator
+// movement) but supports full OrbitControls orbiting (Ctrl+left-drag) to
+// look around the scene while editing — otherwise the same bloom +
+// night-grading render pipeline as cinematic mode, so switching modes
+// doesn't change how the scene looks. Click the ground to add a checkpoint
+// for the selected operator; the "Save" button
 // builds a mission URL (site + these paths, no token) and navigates there,
 // which starts cinematic mode straight from the saved link once every
 // operator has at least 1 checkpoint (a single checkpoint just stands
@@ -42,9 +44,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 	spawnPoints.forEach((sp) => centroid.add(enuToLocal(sp.east, sp.north, 0)));
 	centroid.divideScalar(Math.max(1, spawnPoints.length));
 
-	// Straight-down orthographic camera: an "up" vector parallel to the view
-	// direction is a classic OrbitControls gimbal-lock trap, so the camera
-	// points along -Y while "up" points along -Z instead of the default +Y.
+	// Orthographic camera, starting in a straight-down view over the centroid.
+	// Uses the standard Y-up OrbitControls convention (no more camera-up
+	// hackery — see the orbit setup below) so real 3D orbiting works.
 	const aspect = window.innerWidth / window.innerHeight;
 	const camera = new THREE.OrthographicCamera(
 		-CONST.EDIT_VIEW_HALF_SIZE * aspect,
@@ -54,22 +56,41 @@ export function runPathEditor(onCancel: () => void): () => void {
 		1,
 		4000,
 	);
-	camera.position.set(centroid.x, CONST.EDIT_CAMERA_HEIGHT, centroid.z);
-
-	// Map bearing (radians): Ctrl-drag anywhere on the view rotates it around
-	// the vertical axis, like turning a paper map, while the camera stays
-	// locked straight down at the same spot (see the pointer handlers below).
-	// Seeded from mission.ts so a previously saved bearing resumes as-is.
-	let mapRotation = (MAP_ROTATION_DEG * Math.PI) / 180;
-	const Y_AXIS = new THREE.Vector3(0, 1, 0);
-	function applyMapRotation() {
-		camera.up.set(0, 0, -1).applyAxisAngle(Y_AXIS, mapRotation);
-		camera.lookAt(centroid.x, 0, centroid.z);
-	}
-	applyMapRotation();
+	const orbitTarget = new THREE.Vector3(centroid.x, 0, centroid.z);
+	camera.up.set(0, 1, 0);
+	// A perfectly vertical offset is parallel to the up axis, which leaves
+	// OrbitControls' internal azimuthal angle undefined — nudge it off the pole
+	// by a tiny, visually-imperceptible amount so the bearing seeded from
+	// mission.ts (a previously saved map bearing) is well-defined from frame 1.
+	const initialBearing = (MAP_ROTATION_DEG * Math.PI) / 180;
+	const initialOffset = new THREE.Vector3(0, 0, CONST.EDIT_CAMERA_HEIGHT * 0.01).applyAxisAngle(
+		new THREE.Vector3(0, 1, 0),
+		initialBearing,
+	);
+	initialOffset.y = CONST.EDIT_CAMERA_HEIGHT;
+	camera.position.copy(orbitTarget).add(initialOffset);
+	camera.lookAt(orbitTarget);
 
 	const { tiles } = createTiles(camera, renderer);
 	scene.add(tiles.group);
+
+	// Ground-height sampling (checkpoint marker/line altitude, below) can hit
+	// stale/placeholder geometry before the map's initial tiles finish
+	// streaming in — wait for that before drawing any checkpoint, same pattern
+	// cinematic mode uses to gate operator visibility (main.ts).
+	let mapReady = false;
+	function onTilesLoadEnd() {
+		mapReady = true;
+		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
+		// One-time correction of the orbit pivot's height (seeded at y=0, real
+		// terrain height unknown until now) — done here, before the user has
+		// touched anything, and never again: standard OrbitControls never
+		// touches target.y on its own, and doing so ourselves mid-interaction
+		// (tried and reverted) is exactly what made panning/orbiting feel off.
+		controls.target.y = sampleGroundHeight(tiles, controls.target.x, controls.target.z, controls.target.y);
+		paths.forEach((_, i) => rebuildOperatorVisual(i));
+	}
+	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);
 
 	// Same bloom + night-grading pipeline as cinematic mode (see app.ts).
 	const composer = new EffectComposer(renderer);
@@ -104,26 +125,22 @@ export function runPathEditor(onCancel: () => void): () => void {
 	labelRenderer.domElement.style.zIndex = '1';
 	document.body.appendChild(labelRenderer.domElement);
 
-	// OrbitControls caches a quaternion derived from camera.up once at
-	// construction time (used internally for pan direction) — recreated via
-	// refreshControlsAfterRoll() below whenever a Ctrl-drag changes camera.up,
-	// so panning still tracks the screen correctly after rotating the view.
-	function createControls(target: THREE.Vector3): OrbitControls {
-		const c = new OrbitControls(camera, renderer.domElement);
-		c.enableRotate = false; // locked top-down, no angle/animation
-		c.screenSpacePanning = true;
-		c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-		c.target.copy(target);
-		c.minZoom = 0.2;
-		c.maxZoom = 8;
-		return c;
-	}
-	let controls = createControls(new THREE.Vector3(centroid.x, 0, centroid.z));
-	function refreshControlsAfterRoll() {
-		const target = controls.target.clone();
-		controls.dispose();
-		controls = createControls(target);
-	}
+	// Left-drag pans by default; OrbitControls itself auto-switches a
+	// PAN-mapped button to ROTATE while Ctrl/Meta/Shift is held, so Ctrl+drag
+	// orbits with no extra wiring here. Right-click is left unmapped, so it
+	// does nothing at all.
+	const controls = new OrbitControls(camera, renderer.domElement);
+	controls.enableRotate = true;
+	// false keeps pan strictly on the horizontal ground plane (perpendicular
+	// to world up) regardless of camera tilt — true ("screen space") would
+	// drag along the camera's own tilted up/down axis instead, which reads as
+	// the map bobbing up and down in altitude whenever the view isn't top-down.
+	controls.screenSpacePanning = false;
+	controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY };
+	controls.target.copy(orbitTarget);
+	controls.minZoom = 0.2;
+	controls.maxZoom = 8;
+	controls.maxPolarAngle = CONST.EDIT_ORBIT_MAX_POLAR_ANGLE; // keep the horizon in frame, same as cinematic mode
 	renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
 	function onResize() {
@@ -188,6 +205,8 @@ export function runPathEditor(onCancel: () => void): () => void {
 		disposeGroup(group);
 		labelElements[index].forEach((el) => el.remove());
 		labelElements[index] = [];
+
+		if (!mapReady) return; // ground samples would be wrong/placeholder before tiles stream in
 
 		const path = paths[index];
 		const color = CONST.OPERATOR_COLOR;
@@ -305,7 +324,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 
 	function updateBearingHud() {
 		if (!editorBearingEl) return;
-		const deg = Math.round((((mapRotation * 180) / Math.PI) % 360 + 360) % 360);
+		const deg = Math.round((((controls.getAzimuthalAngle() * 180) / Math.PI) % 360 + 360) % 360);
 		editorBearingEl.textContent = `Map bearing: ${deg}\u00b0`;
 	}
 	updateBearingHud();
@@ -371,7 +390,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	function onSaveClick() {
-		const rotationDeg = (mapRotation * 180) / Math.PI;
+		const rotationDeg = (controls.getAzimuthalAngle() * 180) / Math.PI;
 		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
 	}
 	function onAddClick() {
@@ -413,22 +432,12 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// (also the left mouse button, via controls.mouseButtons above) doesn't
 	// also drop a checkpoint. Pointerdown on an existing marker instead starts
 	// a drag that repositions that checkpoint, taking priority over placement.
+	// Right-click is unmapped entirely (see controls.mouseButtons above) and
+	// Ctrl+left-drag orbits via OrbitControls' own built-in modifier-key
+	// handling — both bail out of this logic up front.
 	const raycaster = new THREE.Raycaster();
 	let downPos: { x: number; y: number } | null = null;
 	let draggingIndex: number | null = null;
-
-	// Ctrl-drag rotates the view (see applyMapRotation above) instead of
-	// panning/placing a checkpoint — tracked separately from marker dragging.
-	let rotating = false;
-	let rotateStartAngle = 0;
-	let rotateStartRotation = 0;
-
-	function angleFromPointer(event: PointerEvent): number {
-		const rect = renderer.domElement.getBoundingClientRect();
-		const cx = rect.left + rect.width / 2;
-		const cy = rect.top + rect.height / 2;
-		return Math.atan2(event.clientY - cy, event.clientX - cx);
-	}
 
 	function ndcFromEvent(event: PointerEvent) {
 		const rect = renderer.domElement.getBoundingClientRect();
@@ -439,17 +448,10 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	renderer.domElement.addEventListener('pointerdown', (event) => {
-		if (event.ctrlKey && event.button === 0) {
-			rotating = true;
-			rotateStartAngle = angleFromPointer(event);
-			rotateStartRotation = mapRotation;
-			controls.enabled = false; // rotating and panning don't mix
-			renderer.domElement.style.cursor = 'grabbing';
-			return;
-		}
+		if (event.button !== 0 || event.ctrlKey) return; // right-click: nothing; Ctrl+left: orbit
 
 		downPos = { x: event.clientX, y: event.clientY };
-		if (event.button !== 0 || paths.length === 0) return;
+		if (paths.length === 0) return;
 
 		raycaster.setFromCamera(ndcFromEvent(event), camera);
 		const markerHit = raycaster.intersectObjects(operatorGroups[selected].children, false)
@@ -462,13 +464,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 	});
 
 	renderer.domElement.addEventListener('pointermove', (event) => {
-		if (rotating) {
-			mapRotation = rotateStartRotation + (angleFromPointer(event) - rotateStartAngle);
-			applyMapRotation();
-			updateBearingHud();
-			return;
-		}
-
 		if (draggingIndex === null) return;
 		raycaster.setFromCamera(ndcFromEvent(event), camera);
 		const hit = raycaster.intersectObject(tiles.group, true)[0];
@@ -480,13 +475,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 	});
 
 	renderer.domElement.addEventListener('pointerup', (event) => {
-		if (rotating) {
-			rotating = false;
-			refreshControlsAfterRoll(); // camera.up changed, its cached pan quat needs refreshing
-			renderer.domElement.style.cursor = '';
-			return;
-		}
-
 		if (draggingIndex !== null) {
 			draggingIndex = null;
 			controls.enabled = true;
@@ -501,27 +489,18 @@ export function runPathEditor(onCancel: () => void): () => void {
 		downPos = null;
 		if (moved > CONST.EDIT_CLICK_DRAG_THRESHOLD_PX || paths.length === 0) return;
 
-		const rect = renderer.domElement.getBoundingClientRect();
-		const ndc = new THREE.Vector2(
-			((event.clientX - rect.left) / rect.width) * 2 - 1,
-			-((event.clientY - rect.top) / rect.height) * 2 + 1,
-		);
-		raycaster.setFromCamera(ndc, camera);
+		raycaster.setFromCamera(ndcFromEvent(event), camera);
 		const hit = raycaster.intersectObject(tiles.group, true)[0];
 		if (!hit) return;
 
 		const { east, north } = localToEnu(hit.point.x, hit.point.z);
-		if (event.button === 2) {
-			paths[selected].pop(); // right-click: undo last checkpoint
-		} else {
-			const checkpoint = { east: round1(east), north: round1(north) };
-			paths[selected].splice(findInsertIndex(paths[selected], checkpoint), 0, checkpoint);
-		}
+		const checkpoint = { east: round1(east), north: round1(north) };
+		paths[selected].splice(findInsertIndex(paths[selected], checkpoint), 0, checkpoint);
 		rebuildOperatorVisual(selected);
 		updateHud();
 	});
 
-	// --- Render loop (static camera, no drift/animation) -----------------
+	// --- Render loop (no drift/operator animation, but the camera can orbit) ---
 
 	let rafId = 0;
 	function animate() {
@@ -531,6 +510,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 		tiles.setCamera(camera);
 		tiles.update();
 		controls.update();
+		updateBearingHud(); // bearing changes continuously while orbiting
 		composer.render();
 		labelRenderer.render(scene, camera);
 	}
@@ -550,7 +530,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 		cancelBtn?.removeEventListener('click', onCancelClick);
 		operatorGroups.forEach(disposeGroup);
 		labelElements.forEach((els) => els.forEach((el) => el.remove()));
+		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 		tiles.dispose();
+		controls.dispose();
 		renderer.dispose();
 		renderer.domElement.remove();
 		labelRenderer.domElement.remove();

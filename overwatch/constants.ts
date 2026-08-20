@@ -208,9 +208,10 @@ export const HUD_OPACITY = URL_HUD_OPACITY ?? 0.5;
 export const OPERATOR_NAME_POOL = ['Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle'];
 
 // Path editor (pathEditor.ts) — active whenever mission.ts's TRAJECTORIES has
-// any operator with no checkpoints at all. A static, straight-down
-// orthographic view (no drift, no operator movement) but the same
-// bloom/night-grade render pipeline as cinematic mode.
+// any operator with no checkpoints at all. Starts in a straight-down
+// orthographic view (no drift, no operator movement) with the same
+// bloom/night-grade render pipeline as cinematic mode; Ctrl+left-drag orbits
+// freely from there (see the EDIT_ORBIT_* tuning below).
 export const EDIT_CAMERA_HEIGHT = 220; // metres, straight above the operators' centroid
 export const EDIT_VIEW_HALF_SIZE = 70; // metres, half the visible height at zoom 1
 export const EDIT_MARKER_RADIUS = 0.6; // metres, flat disc drawn at each checkpoint
@@ -220,3 +221,4 @@ export const EDIT_LINE_HEIGHT_OFFSET = 2; // metres above ground, keeps the path
 export const EDIT_PATH_OPACITY_ACTIVE = 0.95; // selected operator's path/markers
 export const EDIT_PATH_OPACITY_INACTIVE = 0.35; // other operators' paths/markers, dimmed for reference
 export const EDIT_CLICK_DRAG_THRESHOLD_PX = 6; // pointer movement above this counts as a pan, not a click
+export const EDIT_ORBIT_MAX_POLAR_ANGLE = Math.PI / 2 - 0.02; // Ctrl-drag orbit limit, keeps the horizon in frame like cinematic mode
