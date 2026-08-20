@@ -333,6 +333,43 @@ export function runPathEditor(onCancel: () => void): () => void {
 
 	const round1 = (v: number) => Math.round(v * 10) / 10;
 
+	// Where a newly-clicked point should be spliced into an existing path,
+	// rather than always appending at the end. Scans every leg (i, i+1) and
+	// scores it by the point's distance to that leg's segment; the leg with
+	// the lowest score wins and the point is inserted between its two
+	// checkpoints. The first and last legs are also scored against their
+	// *unclamped* projection (t outside [0,1]) so a point that overshoots
+	// past either end of the path is scored by its endpoint distance and
+	// correctly prepended/appended instead of being forced "between" the
+	// outermost two checkpoints.
+	function findInsertIndex(path: Checkpoint[], point: Checkpoint): number {
+		if (path.length < 2) return path.length; // nothing to be "between" yet
+		let bestIndex = path.length;
+		let bestDistSq = Infinity;
+		for (let i = 0; i < path.length - 1; i++) {
+			const a = path[i];
+			const b = path[i + 1];
+			const abEast = b.east - a.east;
+			const abNorth = b.north - a.north;
+			const apEast = point.east - a.east;
+			const apNorth = point.north - a.north;
+			const abLenSq = abEast * abEast + abNorth * abNorth;
+			const t = abLenSq > 0 ? (apEast * abEast + apNorth * abNorth) / abLenSq : 0;
+			const tc = Math.max(0, Math.min(1, t));
+			const closestEast = a.east + tc * abEast;
+			const closestNorth = a.north + tc * abNorth;
+			const dEast = point.east - closestEast;
+			const dNorth = point.north - closestNorth;
+			const distSq = dEast * dEast + dNorth * dNorth;
+			if (distSq >= bestDistSq) continue;
+			bestDistSq = distSq;
+			if (i === 0 && t < 0) bestIndex = 0; // before the first checkpoint
+			else if (i === path.length - 2 && t > 1) bestIndex = path.length; // after the last checkpoint
+			else bestIndex = i + 1; // between checkpoints i and i+1
+		}
+		return bestIndex;
+	}
+
 	function onSaveClick() {
 		const rotationDeg = (mapRotation * 180) / Math.PI;
 		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, rotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
@@ -477,7 +514,8 @@ export function runPathEditor(onCancel: () => void): () => void {
 		if (event.button === 2) {
 			paths[selected].pop(); // right-click: undo last checkpoint
 		} else {
-			paths[selected].push({ east: round1(east), north: round1(north) });
+			const checkpoint = { east: round1(east), north: round1(north) };
+			paths[selected].splice(findInsertIndex(paths[selected], checkpoint), 0, checkpoint);
 		}
 		rebuildOperatorVisual(selected);
 		updateHud();
