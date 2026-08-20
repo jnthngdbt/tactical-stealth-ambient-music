@@ -57,6 +57,10 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 	tiles.registerPlugin(new TileCompressionPlugin());
 	tiles.registerPlugin(new TilesFadePlugin());
 
+	// Applied after the auth plugins above so it overrides GoogleCloudAuthPlugin's
+	// own errorTarget=20 (its "recommended settings" favour efficiency, not quality).
+	tiles.errorTarget = CONST.TILE_ERROR_TARGET;
+
 	const dracoLoader = new DRACOLoader();
 	dracoLoader.setDecoderPath('https://unpkg.com/three@0.169.0/examples/jsm/libs/draco/');
 	tiles.registerPlugin(new GLTFExtensionsPlugin({ dracoLoader }));
@@ -110,9 +114,26 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 	}
 
 	tiles.setCamera(camera);
-	tiles.setResolutionFromRenderer(camera, renderer);
+	updateTilesResolution(tiles, camera, renderer);
 
 	return { tiles, reorient };
+}
+
+const rendererSize = new THREE.Vector2();
+
+// Same as tiles.setResolutionFromRenderer(camera, renderer), except the
+// resolution is floored to CONST.TILE_LOD_MIN_WIDTH/HEIGHT — prevents a small
+// (e.g. deliberately shrunk-for-recording) window from making the tileset
+// stream in lower-detail geometry/textures than the "always render full
+// quality" baseline we want, while a genuinely larger window still benefits
+// from its own higher resolution.
+export function updateTilesResolution(tiles: TilesRenderer, camera: THREE.Camera, renderer: THREE.WebGLRenderer) {
+	renderer.getSize(rendererSize);
+	tiles.setResolution(
+		camera,
+		Math.max(rendererSize.x, CONST.TILE_LOD_MIN_WIDTH),
+		Math.max(rendererSize.y, CONST.TILE_LOD_MIN_HEIGHT),
+	);
 }
 
 // Converts an East/North/Up offset in metres from the site origin into the

@@ -56,6 +56,26 @@ export const CESIUM_ION_TOKEN = import.meta.env.VITE_ION_KEY ?? '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
 export const GOOGLE_PHOTOREALISTIC_ION_ASSET_ID = '2275207';
 
+// 3d-tiles-renderer picks tile detail (screen-space error) from the actual
+// renderer/window size — shrinking the browser window (e.g. to record a
+// smaller video) makes it stream in visibly lower-detail tiles, which then
+// look blurry/blocky when that recording is later watched full-screen. Tile
+// resolution is floored to at least this size (see tiles.ts's
+// updateTilesResolution) so detail never drops below a "looks good full-
+// screen" baseline regardless of how small the window actually is; an
+// already-bigger window still gets to use its real (higher) resolution.
+// Set to a 4K floor since the user wants maximum quality regardless of the
+// extra tile downloads/GPU memory that costs.
+export const TILE_LOD_MIN_WIDTH = 3840;
+export const TILE_LOD_MIN_HEIGHT = 2160;
+
+// Lower = tiles refine until the geometric error projected on screen is
+// smaller, i.e. more detail. GoogleCloudAuthPlugin's "recommended settings"
+// otherwise force this up to 20 (tuned for efficiency, not quality) — createTiles
+// overrides it unconditionally after registering plugins so both tile sources
+// get the same, deliberately aggressive, max-quality target.
+export const TILE_ERROR_TARGET = 4;
+
 // Operator movement — a steady constant walking pace for every operator.
 // Movement is a continuous steering model (heading is always a unit vector
 // scaled by speed).

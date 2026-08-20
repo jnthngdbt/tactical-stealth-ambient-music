@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
-import { createTiles, sampleGroundHeight, localToEnu, enuToLocal } from './tiles.ts';
+import { createTiles, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
@@ -544,7 +544,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 	function animate() {
 		rafId = requestAnimationFrame(animate);
 		camera.updateMatrixWorld();
-		tiles.setResolutionFromRenderer(camera, renderer);
+		updateTilesResolution(tiles, camera, renderer);
 		tiles.setCamera(camera);
 		tiles.update();
 		controls.update();

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { App } from './app.ts';
-import { createTiles, sampleGroundHeight } from './tiles.ts';
+import { createTiles, sampleGroundHeight, updateTilesResolution } from './tiles.ts';
 import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
@@ -186,7 +186,7 @@ function runCinematic(): () => void {
 		if (recorder.isRecording) recordingElapsed += delta;
 
 		app.camera.updateMatrixWorld();
-		tiles.setResolutionFromRenderer(app.camera, app.renderer);
+		updateTilesResolution(tiles, app.camera, app.renderer);
 		tiles.setCamera(app.camera);
 		tiles.update();
 
