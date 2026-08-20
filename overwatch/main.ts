@@ -200,7 +200,7 @@ function runCinematic(): () => void {
 			row.append(nameEl, vitalsEl);
 			vitalsPanelEl.appendChild(row);
 
-			const hr = 68 + Math.random() * 8;
+			const hr = 60 + Math.random() * 4;
 			vitals.push({ hr, hrTarget: hr, hrTargetTimer: Math.random() * 5, hrEl, o2El, pulseEl });
 		});
 	}
@@ -227,10 +227,14 @@ function runCinematic(): () => void {
 		// Simulated biometrics — bpm wanders on its own randomized timer rather
 		// than tracking the operator's actual movement, and only repaints every
 		// few seconds, so it reads as a slow-drifting vital sign, not a live wire.
+		// The wander is centered on a baseline that starts around 60 BPM and
+		// climbs ~8 BPM per minute (rising exertion over the mission), with
+		// fluctuations layered on top of that climbing baseline.
+		const hrBaseline = 60 + (elapsed / 60) * 8;
 		vitals.forEach((v, i) => {
 			v.hrTargetTimer -= delta;
 			if (v.hrTargetTimer <= 0) {
-				v.hrTarget = 65 + Math.random() * 45;
+				v.hrTarget = hrBaseline + (Math.random() * 16 - 8);
 				v.hrTargetTimer = 12 + Math.random() * 10;
 			}
 			v.hr += (v.hrTarget - v.hr) * Math.min(1, delta * 0.15);
