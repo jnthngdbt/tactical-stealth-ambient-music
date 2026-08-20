@@ -160,6 +160,11 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// Editor-only callsigns, kept in sync with `paths` as operators are added/deleted.
 	const names: string[] = [...OPERATOR_NAMES];
 	let selected = 0;
+	// Whether checkpoint markers/path lines depth-test against terrain/buildings
+	// (occluded like normal scene geometry) or always draw on top; toggled by 'O'.
+	let occludePaths = true;
+	// Whether per-checkpoint ETA tags are shown; toggled by 'T'.
+	let showTimestamps = true;
 
 	function pickAvailableName(): string {
 		const used = new Set(names);
@@ -213,9 +218,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 		const opacity = index === selected ? CONST.EDIT_PATH_OPACITY_ACTIVE : CONST.EDIT_PATH_OPACITY_INACTIVE;
 		const hex = `#${new THREE.Color(color).getHexString()}`;
 
-		// Line points sit well above ground (EDIT_LINE_HEIGHT_OFFSET) so the path
-		// stays visible over buildings/terrain instead of ducking behind the mesh
-		// between two ground-hugging checkpoints; markers stay flush with the ground.
+		// Line points sit a bit above ground (EDIT_LINE_HEIGHT_OFFSET, keeps the
+		// line from z-fighting with flat terrain); markers stay flush with the ground.
+		// Both depth-test against occludePaths, see the 'o' key toggle below.
 		const linePoints: THREE.Vector3[] = [];
 		let elapsed = 0;
 		path.forEach((checkpoint, i) => {
@@ -227,13 +232,11 @@ export function runPathEditor(onCancel: () => void): () => void {
 			const radius = i === 0 ? CONST.EDIT_MARKER_START_RADIUS : CONST.EDIT_MARKER_RADIUS;
 			const marker = new THREE.Mesh(
 				new THREE.CircleGeometry(radius, 20),
-				// depthTest off (same as the path line) so markers sitting flush with
-				// the ground aren't occluded by building meshes at that spot.
-				new THREE.MeshBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: false }),
+				new THREE.MeshBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: occludePaths }),
 			);
 			marker.rotation.x = -Math.PI / 2;
 			marker.position.copy(local);
-			marker.renderOrder = 2;
+			marker.renderOrder = occludePaths ? 0 : 2;
 			marker.userData.checkpointIndex = i; // picked up by the drag hit-test below
 			group.add(marker);
 
@@ -243,25 +246,27 @@ export function runPathEditor(onCancel: () => void): () => void {
 				elapsed += legDistance / CONST.OPERATOR_SPEED;
 			}
 
-			const labelEl = document.createElement('div');
-			labelEl.className = 'checkpoint-label';
-			labelEl.textContent = formatElapsed(elapsed);
-			labelEl.style.color = hex;
-			labelEl.style.borderLeftColor = hex;
-			labelEl.style.opacity = String(opacity);
-			const label = new CSS2DObject(labelEl);
-			label.position.copy(local);
-			label.center.set(0.5, 1.4); // renders just above the marker, screen-space only
-			group.add(label);
-			labelElements[index].push(labelEl);
+			if (showTimestamps) {
+				const labelEl = document.createElement('div');
+				labelEl.className = 'checkpoint-label';
+				labelEl.textContent = formatElapsed(elapsed);
+				labelEl.style.color = hex;
+				labelEl.style.borderLeftColor = hex;
+				labelEl.style.opacity = String(opacity);
+				const label = new CSS2DObject(labelEl);
+				label.position.copy(local);
+				label.center.set(0.5, 1.4); // renders just above the marker, screen-space only
+				group.add(label);
+				labelElements[index].push(labelEl);
+			}
 		});
 
 		if (linePoints.length >= 2) {
 			const line = new THREE.Line(
 				new THREE.BufferGeometry().setFromPoints(linePoints),
-				new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: false }),
+				new THREE.LineBasicMaterial({ color, transparent: true, opacity, toneMapped: false, depthTest: occludePaths }),
 			);
-			line.renderOrder = 1;
+			line.renderOrder = occludePaths ? 0 : 1;
 			group.add(line);
 		}
 	}
@@ -346,6 +351,14 @@ export function runPathEditor(onCancel: () => void): () => void {
 			paths[selected].pop();
 			rebuildOperatorVisual(selected);
 			updateHud();
+		}
+		if (event.key === 'o' || event.key === 'O') {
+			occludePaths = !occludePaths;
+			paths.forEach((_, i) => rebuildOperatorVisual(i));
+		}
+		if (event.key === 't' || event.key === 'T') {
+			showTimestamps = !showTimestamps;
+			paths.forEach((_, i) => rebuildOperatorVisual(i));
 		}
 	}
 	window.addEventListener('keydown', onKeyDown);
