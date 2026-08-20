@@ -87,6 +87,14 @@ export const OPERATOR_TURN_RATE = 0.5; // radians/s, how fast heading (and so bo
 // along their path.
 export const PATH_ARRIVAL_RADIUS = 1.2; // metres from a checkpoint counted as "arrived"
 
+// Ctrl+scroll in cinematic mode (main.ts) teleports every operator to the
+// next/previous checkpoint instead of walking there. Standard mouse wheels
+// report deltaY in chunks of ~100 per notch; trackpads emit many small
+// continuous deltas — accumulating until this threshold is crossed makes
+// both feel like one deliberate "step" per checkpoint instead of skipping
+// several at once on a single scroll gesture.
+export const CHECKPOINT_SCRUB_THRESHOLD = 80;
+
 // Operator visual: a dark, matte silhouette ("there's really someone there")
 // rather than a glowing dot, tagged with a bright tactical reticle so it still
 // reads clearly against the night terrain.

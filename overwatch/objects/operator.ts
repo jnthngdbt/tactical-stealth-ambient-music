@@ -420,6 +420,60 @@ export class Operator extends THREE.Group {
 		this.updateLeaderLine(camera);
 	}
 
+	// Instantly relocates the operator to the next/previous checkpoint along
+	// its patrol path (Ctrl+scroll in main.ts), instead of walking there over
+	// time. dir=1 reuses tickPath()'s own arrival bookkeeping (legFromIndex/
+	// pathIndex/pathDirection), just triggered immediately rather than after
+	// covering the remaining distance. dir=-1 is its mathematical inverse: a
+	// ping-pong bounce (direction flip) happens exactly when the checkpoint
+	// being left is a path endpoint (0 or length-1), so the direction used to
+	// arrive there is always derivable from the current one — no separate
+	// visit-history bookkeeping is needed, and it self-corrects at either end
+	// of the patrol (verified by tracing several jump/unjump round-trips).
+	public jumpCheckpoint(dir: 1 | -1, sampleGround: (x: number, z: number) => number) {
+		if (this.path.length < 2) return;
+
+		if (dir === 1) {
+			this.legFromIndex = this.pathIndex;
+			const next = this.pathIndex + this.pathDirection;
+			if (next < 0 || next >= this.path.length) this.pathDirection *= -1;
+			this.pathIndex += this.pathDirection;
+		} else {
+			const isEndpoint = this.legFromIndex === 0 || this.legFromIndex === this.path.length - 1;
+			const arrivalDirection = isEndpoint ? -this.pathDirection : this.pathDirection;
+			const previous = THREE.MathUtils.clamp(this.legFromIndex - arrivalDirection, 0, this.path.length - 1);
+			this.pathIndex = this.legFromIndex;
+			this.pathDirection = arrivalDirection;
+			this.legFromIndex = previous;
+		}
+
+		const target = this.path[this.legFromIndex];
+		this.position.x = target.x;
+		this.position.z = target.z;
+
+		// face the next leg's direction immediately instead of leaving heading
+		// pointed the old way for steerHeading to slowly catch up on
+		const toNext = new THREE.Vector3().subVectors(this.path[this.pathIndex], target);
+		toNext.y = 0;
+		if (toNext.lengthSq() > 1e-8) {
+			toNext.normalize();
+			this.heading.copy(toNext);
+			this.targetHeading.copy(toNext);
+		}
+
+		// snap altitude instantly when this checkpoint's ground height is
+		// already known (real, non-NaN sample) — a teleport should read as
+		// instantaneous, not a climb eased in over the following frames
+		const sample = sampleGround(target.x, target.z);
+		if (!Number.isNaN(sample)) {
+			this.legFromAltitude = sample;
+			this.legFromReady = true;
+			this.hasSnappedToGround = true;
+			this.position.y = sample + CONST.OPERATOR_GROUND_OFFSET;
+		}
+		this.legToReady = false; // force a fresh sample of the new target checkpoint next tick()
+	}
+
 	// Hides/shows the callsign label + its leader line, independent of the
 	// operator's own `visible` (which also gates the body/reticle/etc) — used
 	// by the "H" HUD-minimal toggle (main.ts) to strip the drone-feed ID tag

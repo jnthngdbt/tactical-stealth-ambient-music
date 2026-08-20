@@ -117,6 +117,38 @@ function runCinematic(): () => void {
 	}
 	window.addEventListener('keydown', onKeyDown);
 
+	// NaN (not 0) marks "tiles haven't streamed in here yet" — shared by the
+	// per-frame tick() sampling below and the Ctrl+scroll checkpoint jump.
+	const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, NaN);
+
+	// Ctrl/Cmd+scroll teleports every operator to the next (scroll up) or
+	// previous (scroll down) checkpoint on its patrol path, instead of
+	// smoothly walking there — the drone camera keeps its own fixed-distance
+	// framing on the operators' centroid (see app.ts's updateDrift/updateLookAt),
+	// so it swoops to catch up on its own, no special-casing needed here.
+	// Standard wheel notches and continuous trackpad deltas are both folded
+	// through CHECKPOINT_SCRUB_THRESHOLD so one scroll gesture reads as one
+	// deliberate step, not several skipped checkpoints. Listener is on
+	// `window` (not the canvas, where OrbitControls' own wheel listener
+	// lives) with `capture:true` so it always runs first regardless of
+	// registration order, and only preempts OrbitControls' zoom while
+	// Ctrl/Meta is actually held.
+	let wheelAccum = 0;
+	function onWheel(event: WheelEvent) {
+		if (!(event.ctrlKey || event.metaKey)) return;
+		event.preventDefault();
+		event.stopPropagation();
+		if (!mapReady) return;
+
+		wheelAccum += event.deltaY;
+		while (Math.abs(wheelAccum) >= CONST.CHECKPOINT_SCRUB_THRESHOLD) {
+			const dir = wheelAccum < 0 ? 1 : -1; // scroll up (negative deltaY) -> next checkpoint
+			operators.forEach((operator) => operator.jumpCheckpoint(dir, groundSample));
+			wheelAccum -= Math.sign(wheelAccum) * CONST.CHECKPOINT_SCRUB_THRESHOLD;
+		}
+	}
+	window.addEventListener('wheel', onWheel, { capture: true, passive: false });
+
 	// Per-operator name + simulated biometrics (bpm, blood-oxygen), replacing
 	// the map's own attribution text (removed) with something relevant to the
 	// mission instead. Rows are built dynamically since operator count varies
@@ -207,9 +239,6 @@ function runCinematic(): () => void {
 
 		let groundReady = false;
 		if (mapReady) {
-			// NaN (not 0) marks "tiles haven't streamed in here yet", so operators
-			// never treat an unloaded spot as sea-level ground.
-			const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, NaN);
 			operators.forEach((operator) => operator.tick(delta, groundSample, app.camera));
 
 			// the drone always looks at (and flies its figure-eight centered on) the
@@ -255,6 +284,7 @@ function runCinematic(): () => void {
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 		recordBtn.removeEventListener('click', onRecordClick);
 		window.removeEventListener('keydown', onKeyDown);
+		window.removeEventListener('wheel', onWheel, { capture: true });
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
 		operators.forEach((operator) => operator.dispose());
