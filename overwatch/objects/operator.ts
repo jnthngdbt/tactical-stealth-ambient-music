@@ -216,7 +216,8 @@ export class Operator extends THREE.Group {
 		this.rifle = new THREE.Group();
 		this.rifle.add(this.rifleBarrel, this.rifleStock);
 		this.rifle.position.y = bodyTopY * CONST.OPERATOR_RIFLE_HEIGHT_SCALE;
-		this.rifle.position.z = CONST.OPERATOR_RIFLE_FORWARD_OFFSET;
+		// x/z forward offset is set every tick in updateRifleFacing, along the
+		// operator's current heading rather than a fixed local axis
 
 		// slight random spin so a cluster of operators doesn't look copy-pasted;
 		// applied each tick in updateBodyTilt, combined with the heading-driven
@@ -304,6 +305,19 @@ export class Operator extends THREE.Group {
 
 		// the first checkpoint doubles as the spawn point
 		this.position.copy(this.path[0] ?? new THREE.Vector3());
+
+		// face the first leg's direction from the start, instead of the
+		// default (0,0,1) — otherwise steerHeading visibly spins the operator
+		// around right after spawn to catch up to wherever the path actually goes
+		if (this.path.length >= 2) {
+			const initialDirection = new THREE.Vector3().subVectors(this.path[1], this.path[0]);
+			initialDirection.y = 0;
+			if (initialDirection.lengthSq() > 1e-8) {
+				initialDirection.normalize();
+				this.heading.copy(initialDirection);
+				this.targetHeading.copy(initialDirection);
+			}
+		}
 	}
 
 	// Walks toward the current checkpoint, advancing (and reversing direction
@@ -457,8 +471,13 @@ export class Operator extends THREE.Group {
 	// Points the rifle group's local +Z (the barrel's forward direction)
 	// toward the last real direction of travel, since the operator's own body
 	// mesh keeps a fixed random rotation and the group itself never rotates.
+	// The pivot itself is also re-anchored along the current heading each tick
+	// (rather than a fixed local-Z offset) so it doesn't stay pinned to the
+	// model's original forward axis once heading points elsewhere.
 	private updateRifleFacing() {
 		this.rifle.rotation.y = Math.atan2(this.heading.x, this.heading.z);
+		this.rifle.position.x = this.heading.x * CONST.OPERATOR_RIFLE_FORWARD_OFFSET;
+		this.rifle.position.z = this.heading.z * CONST.OPERATOR_RIFLE_FORWARD_OFFSET;
 	}
 
 	// Recomputes the 3D leader line's two endpoints every frame so that, once

@@ -87,8 +87,9 @@
 }
 
 /* Doubles as the record button, so it opts back into pointer events despite
-   #hud's pointer-events: none (see also .hud-editor-panel below). Dimmed and
-   the dot held steady until actually recording, so it reads as a toggle. */
+   #hud's pointer-events: none (see also .hud-editor-panel below). Hidden
+   entirely until actually recording (started via the R shortcut), then shown
+   so it can be clicked to stop. */
 .hud-rec {
   font: inherit;
   text-transform: inherit;
@@ -100,19 +101,15 @@
   font-size: 13px;
   cursor: pointer;
   pointer-events: auto;
-  opacity: 0.55;
-  transition: opacity 0.3s ease;
+  display: none;
   /* buttons default to centered text and shrink-to-fit width in Chrome's
      UA stylesheet; .hud-status stretches flex items to its full cross-axis
-     width, so without these two it renders centered instead of left-aligned
-     like .hud-callsign below it. */
-  display: block;
+     width, so without this it renders centered instead of left-aligned
+     like .hud-callsign above it. */
   text-align: left;
 }
 
-.hud-rec:hover { opacity: 0.8; }
-
-.hud-rec.recording { opacity: 1; }
+.hud-rec.recording { display: block; }
 
 .hud-rec-dot {
   display: inline-block;

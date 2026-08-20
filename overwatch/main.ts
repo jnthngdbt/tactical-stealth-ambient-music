@@ -91,31 +91,20 @@ function runCinematic(): () => void {
 	const coordsEl = document.getElementById('hudCoords');
 	if (coordsEl) coordsEl.textContent = `${CONST.SITE_LAT.toFixed(5)}, ${CONST.SITE_LON.toFixed(5)}`;
 
-	const timecodeEl = document.getElementById('hudTimecode');
 	const altEl = document.getElementById('hudAlt');
 	const hdgEl = document.getElementById('hudHdg');
 	const spdEl = document.getElementById('hudSpd');
 	const batteryEl = document.getElementById('hudBattery');
 	const lastCameraPos = app.camera.position.clone();
 
-	const formatTimecode = (seconds: number) => {
-		const s = Math.floor(seconds);
-		const hh = String(Math.floor(s / 3600)).padStart(2, '0');
-		const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-		const ss = String(s % 60).padStart(2, '0');
-		return `${hh}:${mm}:${ss}`;
-	};
-
 	const recorder = new Recorder(app.renderer.domElement);
 	const recordBtn = document.getElementById('hudRec') as HTMLButtonElement;
-	let recordingElapsed = 0;
 	// start() is async (it awaits the tab-capture permission prompt), so the
 	// class toggle must wait for it too or isRecording still reads false.
 	async function onRecordClick() {
 		if (recorder.isRecording) {
 			recorder.stop();
 		} else {
-			recordingElapsed = 0;
 			await recorder.start();
 		}
 		recordBtn.classList.toggle('recording', recorder.isRecording);
@@ -192,7 +181,6 @@ function runCinematic(): () => void {
 		// clamp delta so a backgrounded tab doesn't make operators jump on return
 		const delta = Math.min(clock.getDelta(), 0.1);
 		elapsed += delta;
-		if (recorder.isRecording) recordingElapsed += delta;
 
 		app.camera.updateMatrixWorld();
 		updateTilesResolution(tiles, app.camera, app.renderer);
@@ -239,7 +227,6 @@ function runCinematic(): () => void {
 
 		// Faux flight telemetry, driven by the camera's actual motion so it
 		// reads as a live drone feed rather than static decoration.
-		if (timecodeEl) timecodeEl.textContent = formatTimecode(recordingElapsed);
 		if (groundReady) {
 			if (altEl) altEl.textContent = Math.round(app.camera.position.y - operatorsCentroid.y).toString();
 
@@ -270,7 +257,6 @@ function runCinematic(): () => void {
 		window.removeEventListener('keydown', onKeyDown);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
-		if (timecodeEl) timecodeEl.textContent = formatTimecode(0);
 		operators.forEach((operator) => operator.dispose());
 		activeOperators = [];
 		tiles.dispose();
