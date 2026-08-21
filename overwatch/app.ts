@@ -169,9 +169,16 @@ export class App {
 		this.controls.target.copy(this.lookAtTarget);
 	}
 
-	public render(delta: number, centroid: THREE.Vector3, groundReady: boolean) {
-		this.updateDrift(delta, centroid, groundReady);
-		this.updateLookAt(delta, centroid);
+	// `hasOperators` is false when there are zero operators to fly around (see
+	// mission.ts's TRAJECTORIES) — there's then no centroid worth drifting
+	// around or looking at, so both are skipped entirely and the camera is
+	// left under plain, unmodified OrbitControls (free orbit/pan/zoom, no
+	// automatic movement) instead of easing its target toward the origin.
+	public render(delta: number, centroid: THREE.Vector3, groundReady: boolean, hasOperators: boolean) {
+		if (hasOperators) {
+			this.updateDrift(delta, centroid, groundReady);
+			this.updateLookAt(delta, centroid);
+		}
 		this.controls.update();
 		this.composer.render();
 		this.labelRenderer.render(this.scene, this.camera);

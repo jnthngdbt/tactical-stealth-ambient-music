@@ -246,8 +246,12 @@ function runCinematic(): () => void {
 			}
 		});
 
+		// With zero operators (see mission.ts's TRAJECTORIES) there's no centroid
+		// to fly around or look at — app.render leaves the camera under plain
+		// orbit control with no automatic movement in that case.
+		const hasOperators = operators.length > 0;
 		let groundReady = false;
-		if (mapReady) {
+		if (mapReady && hasOperators) {
 			operators.forEach((operator) => operator.tick(delta, groundSample, app.camera));
 
 			// the drone always looks at (and flies its figure-eight centered on) the
@@ -261,7 +265,7 @@ function runCinematic(): () => void {
 			groundReady = operators.every((operator) => operator.isGroundReady());
 		}
 
-		app.render(delta, operatorsCentroid, groundReady);
+		app.render(delta, operatorsCentroid, groundReady, hasOperators);
 
 		// Faux flight telemetry, driven by the camera's actual motion so it
 		// reads as a live drone feed rather than static decoration.
