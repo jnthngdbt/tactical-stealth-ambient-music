@@ -40,15 +40,18 @@ export class App {
 			CONST.CAMERA_NEAR,
 			CONST.CAMERA_FAR,
 		);
-		this.camera.position.set(110, 85, 110);
 
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.controls.enableDamping = true;
 		this.controls.dampingFactor = 0.08;
 		this.controls.minDistance = 12;
-		this.controls.maxDistance = 1200;
+		this.controls.maxDistance = CONST.CAMERA_MAX_DISTANCE;
 		this.controls.maxPolarAngle = Math.PI / 2 - 0.02; // keep the horizon in frame
-		this.controls.target.set(0, 1.5, 0);
+
+		// Starts assuming a near-sea-level site (baseline 0); see placeCamera
+		// below and main.ts's elevation-guess retry loop for how this is
+		// corrected once the real ground height at the site origin is known.
+		this.placeCamera(0);
 
 		// Bloom runs on the raw (pre-grade) render so the glowing operators keep
 		// their punch; night grading then darkens/tints everything, bloom included.
@@ -92,6 +95,22 @@ export class App {
 		this.renderer.domElement.remove();
 		this.labelRenderer.domElement.remove();
 		this.renderer.dispose();
+	}
+
+	// Sets the camera to its normal flight framing at a given baseline
+	// elevation (metres) — same relative offsets/angle every time, just shifted
+	// up or down as a whole. Used both for the elevation guesses tried while
+	// the real ground height at the site origin is still unknown, and for the
+	// final placement once a real ground sample succeeds (see main.ts's
+	// siteGroundPlaced retry loop). The constructor's baseline-0 guess assumes
+	// a near-sea-level site — without ever correcting this, a site at
+	// real-world elevation (e.g. ~600m ASL) would leave the camera stuck
+	// underground for as long as there are no operators to otherwise correct
+	// the view via updateDrift's ground-aware centroid snap.
+	public placeCamera(baselineY: number) {
+		this.camera.position.set(110, baselineY + 85, 110);
+		this.controls.target.set(0, baselineY + 1.5, 0);
+		this.lookAtTarget.set(0, baselineY + 1.5, 0);
 	}
 
 	private onResize() {

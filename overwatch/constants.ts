@@ -12,10 +12,10 @@ export const OPERATOR_COLOR = 0x35f0d0;
 // at the source, before bloom/grading ever see it, instead of only faking
 // night in post — that's what was washing the whole scene out white.
 // (Tune this + NIGHT_EXPOSURE together — they compound.)
-export const TERRAIN_DIM_COLOR = 0x5c6d78;
+export const TERRAIN_DIM_COLOR = 0x6d7e89;
 
 // Night grading — simulates night over imagery that was actually captured in daylight.
-export const NIGHT_EXPOSURE = 0.85; // additional darkening applied on top of TERRAIN_DIM_COLOR
+export const NIGHT_EXPOSURE = 1; // additional darkening applied on top of TERRAIN_DIM_COLOR
 export const NIGHT_TINT = 0x1c3a4a; // cool moonlight tint pushed into the shadows
 export const NIGHT_SATURATION = 0.5;
 export const NIGHT_VIGNETTE = 0.6;
@@ -175,7 +175,11 @@ export const LABEL_LINE_GAP_END_PX = 6; // px, gap left between the line and the
 
 // Ground clamping — periodically raycasts down onto the streaming tiles so
 // operators stay pinned to the (progressively loading) street/terrain surface.
-export const GROUND_RAYCAST_HEIGHT = 400;
+// Raycast origin must sit above the real terrain height (measured above the
+// WGS84 ellipsoid post-ReorientationPlugin) for any site, not just low-lying
+// ones — a high-elevation site (e.g. ~600-1000m ASL) would otherwise start
+// the downward ray below the actual ground and never hit it at all.
+export const GROUND_RAYCAST_HEIGHT = 9500;
 export const GROUND_SAMPLE_INTERVAL = 0.25; // seconds between probes, staggered per operator
 
 // Any raycast hit outside this range (metres, relative to the site origin) is
@@ -183,8 +187,12 @@ export const GROUND_SAMPLE_INTERVAL = 0.25; // seconds between probes, staggered
 // geometry can occasionally return a wildly wrong hit (e.g. thousands of
 // metres below ground), which would otherwise get baked in as a "real"
 // ground sample and drag an operator (and the camera following it) miles away.
-export const GROUND_SAMPLE_PLAUSIBLE_MIN = -100;
-export const GROUND_SAMPLE_PLAUSIBLE_MAX = 400;
+// Bounds are set to cover real-world terrain elevation extremes (Dead Sea
+// shore ~-430m to Everest ~8849m) rather than assuming a near-sea-level site,
+// while still comfortably rejecting the thousands-of-metres-off garbage hits
+// this check exists to catch.
+export const GROUND_SAMPLE_PLAUSIBLE_MIN = -500;
+export const GROUND_SAMPLE_PLAUSIBLE_MAX = 9000;
 
 // Height changes between ground samples (terrain slopes, curbs, etc.) are
 // eased into at this rate instead of snapped, so they read as a climb.
@@ -198,6 +206,23 @@ export const OPERATOR_GROUND_OFFSET = 1.5; // metres above the ground surface
 export const CAMERA_FOV = 50;
 export const CAMERA_NEAR = 0.5;
 export const CAMERA_FAR = 8000;
+export const CAMERA_MAX_DISTANCE = 1200; // metres, OrbitControls zoom-out limit
+
+// Ground-height discovery at startup (see main.ts's siteGroundPlaced retry
+// loop): the camera's fixed startup framing assumes ground is near y=0 (i.e.
+// near sea level). That's true for most sites and converges in well under a
+// second, but at a real-world elevation far from 0 (e.g. Las Vegas, ~600m
+// ASL) the camera starts out literally embedded in/below the terrain, tilted
+// to look level-or-down — its view frustum then never actually reaches the
+// real ground sitting hundreds of metres above it, so no tiles ever stream
+// in there and the ground height can never be sampled (a deadlock). If no
+// sample succeeds after CAMERA_ELEVATION_GUESS_RETRY_SECONDS, the camera is
+// walked up through these guessed baseline elevations (added to its normal
+// framing, same shape/angle each time) until one guess finally sits above
+// the real ground and breaks the deadlock. Kept at 0 first so the common
+// near-sea-level case is unaffected/still fast.
+export const CAMERA_ELEVATION_GUESSES = [0, 800, 2000, 5000, 9000];
+export const CAMERA_ELEVATION_GUESS_RETRY_SECONDS = 3;
 
 // Slow autonomous "helicopter" drift: the camera position glides along a
 // lazy figure-eight centered on the operators' group (at a fixed hover

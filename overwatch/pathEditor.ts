@@ -87,7 +87,13 @@ export function runPathEditor(onCancel: () => void): () => void {
 		// touched anything, and never again: standard OrbitControls never
 		// touches target.y on its own, and doing so ourselves mid-interaction
 		// (tried and reverted) is exactly what made panning/orbiting feel off.
-		controls.target.y = sampleGroundHeight(tiles, controls.target.x, controls.target.z, controls.target.y);
+		// camera.position.y is shifted by the same delta so the camera's height
+		// *above* the pivot is preserved — otherwise a site at real-world
+		// elevation (e.g. ~600m ASL) would leave the camera far below its
+		// target after this correction, looking the wrong way.
+		const groundY = sampleGroundHeight(tiles, controls.target.x, controls.target.z, controls.target.y);
+		camera.position.y += groundY - controls.target.y;
+		controls.target.y = groundY;
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 	}
 	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);

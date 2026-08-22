@@ -211,6 +211,22 @@ function runCinematic(): () => void {
 	let rafId = 0;
 	let elapsed = 0;
 
+	// One-time correction of the camera's startup framing (assumed
+	// near-sea-level) to the real ground altitude at the site origin —
+	// otherwise a high-elevation site (e.g. ~600m ASL) leaves the camera stuck
+	// underground forever whenever there are no operators around to otherwise
+	// correct it via updateDrift's ground-aware centroid snap. Retried every
+	// frame (not just once at tiles-load-end) since the origin's tile may not
+	// have a hit-able mesh loaded yet on the very first ready frame. If no
+	// sample succeeds for a while, the camera itself is the problem (a badly
+	// wrong startup elevation guess means its own view frustum never reaches
+	// the real ground, so nothing ever streams in there to sample) — walk the
+	// guess up through CAMERA_ELEVATION_GUESSES until one finally breaks that
+	// deadlock (see the constant's comment in constants.ts for the full story).
+	let siteGroundPlaced = false;
+	let elevationGuessIndex = 0;
+	let elevationGuessDeadline = 0; // set once mapReady flips (see animate below)
+
 	function animate() {
 		rafId = requestAnimationFrame(animate);
 		frame++;
@@ -223,6 +239,24 @@ function runCinematic(): () => void {
 		updateTilesResolution(tiles, app.camera, app.renderer);
 		tiles.setCamera(app.camera);
 		tiles.update();
+
+		if (mapReady && !siteGroundPlaced) {
+			if (elevationGuessDeadline === 0) {
+				elevationGuessDeadline = performance.now() + CONST.CAMERA_ELEVATION_GUESS_RETRY_SECONDS * 1000;
+			}
+			const siteGroundY = sampleGroundHeight(tiles, 0, 0, NaN);
+			if (!Number.isNaN(siteGroundY)) {
+				app.placeCamera(siteGroundY);
+				siteGroundPlaced = true;
+			} else if (
+				performance.now() >= elevationGuessDeadline &&
+				elevationGuessIndex < CONST.CAMERA_ELEVATION_GUESSES.length - 1
+			) {
+				elevationGuessIndex++;
+				elevationGuessDeadline = performance.now() + CONST.CAMERA_ELEVATION_GUESS_RETRY_SECONDS * 1000;
+				app.placeCamera(CONST.CAMERA_ELEVATION_GUESSES[elevationGuessIndex]);
+			}
+		}
 
 		// Simulated biometrics — bpm wanders on its own randomized timer rather
 		// than tracking the operator's actual movement, and only repaints every
