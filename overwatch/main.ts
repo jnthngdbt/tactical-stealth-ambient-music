@@ -12,9 +12,9 @@ type Mode = 'cinematic' | 'edit';
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
 // first so those paths can be built by hand (see pathEditor.ts). E toggles
-// between the two modes; pathEditor.ts hides the site coords readout
-// entirely while active (its "Save" button generates a mission URL with the
-// edited paths and navigates there instead).
+// between the two modes.
+// pathEditor.ts's "Save" button generates a mission URL with the edited
+// paths and navigates there instead.
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
 
@@ -95,9 +95,6 @@ function runCinematic(): () => void {
 	// left to trigger a fresh 'tiles-load-end' event, so check synchronously
 	// too or this would wait forever.
 	if (isTilesLoaded(tiles)) onTilesLoadEnd();
-
-	const coordsEl = document.getElementById('hudCoords');
-	if (coordsEl) coordsEl.textContent = `${CONST.SITE_LAT.toFixed(5)}, ${CONST.SITE_LON.toFixed(5)}`;
 
 	const altEl = document.getElementById('hudAlt');
 	const hdgEl = document.getElementById('hudHdg');

@@ -202,17 +202,6 @@
   text-shadow: none;
 }
 
-.hud-coords-label {
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-.hud-coords {
-  font-size: 15px;
-  color: #7ffff0;
-  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
-}
-
 .hud-hint {
   margin-top: 4px;
   font-size: 10px;

@@ -289,11 +289,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 	document.body.classList.add('mode-edit');
 	const recordBtn = document.getElementById('hudRec');
 	if (recordBtn) recordBtn.style.display = 'none';
-	// Also the cinematic/edit mode toggle (main.ts) — hidden entirely while
-	// editing, since previewing in-progress edits in cinematic mode isn't
-	// meaningful; "Save" (below) is the only way out, via a mission URL.
-	const coordsPanel = document.querySelector<HTMLElement>('.hud-coords-panel');
-	if (coordsPanel) coordsPanel.style.display = 'none';
 	const telemetryEl = document.getElementById('hudTelemetry');
 	if (telemetryEl) telemetryEl.style.display = 'none';
 	const vitalsPanel = document.getElementById('hudVitalsPanel');
@@ -588,7 +583,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 
 		document.body.classList.remove('mode-edit');
 		if (recordBtn) recordBtn.style.display = '';
-		if (coordsPanel) coordsPanel.style.display = '';
 		if (telemetryEl) telemetryEl.style.display = '';
 		if (vitalsPanel) vitalsPanel.style.display = '';
 		if (subtitleEl) subtitleEl.textContent = originalSubtitle;

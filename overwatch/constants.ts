@@ -18,7 +18,7 @@ export const TERRAIN_DIM_COLOR = 0x6d7e89;
 export const NIGHT_EXPOSURE = 1; // additional darkening applied on top of TERRAIN_DIM_COLOR
 export const NIGHT_TINT = 0x1c3a4a; // cool moonlight tint pushed into the shadows
 export const NIGHT_SATURATION = 0.5;
-export const NIGHT_VIGNETTE = 0.6;
+export const NIGHT_VIGNETTE = 0.7;
 
 // Bloom threshold is set high so only the glowing operators (and their
 // halos), which are much brighter than the dimmed night terrain, pick up
