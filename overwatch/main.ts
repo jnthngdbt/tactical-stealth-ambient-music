@@ -75,15 +75,18 @@ function runCinematic(): () => void {
 	});
 	activeOperators = operators;
 
-	// nothing is ticked or shown until the tiles needed for the current view
-	// have actually finished downloading/parsing — 3d-tiles-renderer fires this
-	// once its load queues drain, which may still leave far-away, not-yet-
-	// visited parts of a long patrol route unloaded (handled by Operator's own
-	// per-leg ground-sample readiness once it walks there)
+	// nothing is ticked until the tiles needed for the current view have
+	// actually finished downloading/parsing — 3d-tiles-renderer fires this
+	// once its load queues drain. This is only a proxy for "this operator's
+	// own spawn point is loaded" though: the global queue can be empty while
+	// a particular operator's patrol sits somewhere the camera hasn't looked
+	// at yet (e.g. tiles already fully loaded from a previous mode run
+	// elsewhere on the map), so each operator only becomes visible once ITS
+	// OWN ground sample has actually landed (see the tick loop below,
+	// isGroundReady()) rather than all at once here.
 	let mapReady = false;
 	function onTilesLoadEnd() {
 		mapReady = true;
-		operators.forEach((operator) => (operator.visible = true));
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 	}
 	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);
@@ -286,7 +289,16 @@ function runCinematic(): () => void {
 		const hasOperators = operators.length > 0;
 		let groundReady = false;
 		if (mapReady && hasOperators) {
-			operators.forEach((operator) => operator.tick(delta, groundSample, app.camera));
+			operators.forEach((operator) => {
+				operator.tick(delta, groundSample, app.camera);
+				// reveal only once this specific operator has snapped to its own
+				// real ground height, not just when the global tile queue is
+				// empty — otherwise an operator whose spawn point wasn't in the
+				// camera's initial view can flash at its coordinate-space y=0
+				// default (often far above or below real terrain) before its
+				// first sample lands
+				if (!operator.visible && operator.isGroundReady()) operator.visible = true;
+			});
 
 			// the drone always looks at (and flies its figure-eight centered on) the
 			// operators' true center, wherever they wander

@@ -394,14 +394,21 @@ export class Operator extends THREE.Group {
 		}
 
 		if (targetY !== null) {
-			if (!this.hasSnappedToGround) {
-				// snap straight to the checkpoint's altitude the first time tiles
-				// have actually loaded here, instead of easing/falling from y=0
+			// A coarse/partially-refined tile can give a real (non-NaN, in-bounds)
+			// but wildly wrong first reading — e.g. thousands of metres off —
+			// which then quickly self-corrects as finer tiles stream in. Easing
+			// at OPERATOR_VERTICAL_SPEED assumes only small, genuine terrain
+			// changes, so a gap that large would otherwise crawl toward the
+			// truth for many real minutes. Snap immediately whenever the gap
+			// exceeds a normal terrain-following correction instead of always
+			// easing only on the very first sample.
+			const gap = Math.abs(targetY - this.position.y);
+			if (!this.hasSnappedToGround || gap > CONST.OPERATOR_ALTITUDE_SNAP_THRESHOLD) {
 				this.hasSnappedToGround = true;
 				this.position.y = targetY;
 			} else {
 				// ease toward the target altitude instead of snapping, so any
-				// change still reads as a climb rather than a sudden pop
+				// small change still reads as a climb rather than a sudden pop
 				const maxVerticalStep = CONST.OPERATOR_VERTICAL_SPEED * delta;
 				this.position.y += THREE.MathUtils.clamp(targetY - this.position.y, -maxVerticalStep, maxVerticalStep);
 			}

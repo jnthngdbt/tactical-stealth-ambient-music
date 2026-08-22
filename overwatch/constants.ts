@@ -198,6 +198,13 @@ export const GROUND_SAMPLE_PLAUSIBLE_MAX = 9000;
 // eased into at this rate instead of snapped, so they read as a climb.
 export const OPERATOR_VERTICAL_SPEED = 2.5; // m/s max climb/descend rate
 
+// A ground-sample gap bigger than this (metres) is treated as a bad coarse/
+// partially-refined tile reading self-correcting, not real terrain, and is
+// snapped instantly instead of eased at OPERATOR_VERTICAL_SPEED — otherwise a
+// multi-thousand-metre initial misread (see GROUND_SAMPLE_PLAUSIBLE_MIN/MAX's
+// wide Earth-covering bounds) would crawl toward the truth for real minutes.
+export const OPERATOR_ALTITUDE_SNAP_THRESHOLD = 20;
+
 // Added on top of the sampled/interpolated ground altitude so the operator's
 // feet never clip into the mesh (e.g. a slightly stale sample on a slope).
 export const OPERATOR_GROUND_OFFSET = 1.5; // metres above the ground surface
