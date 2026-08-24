@@ -19,15 +19,17 @@ import * as CONST from './constants.ts';
 // look around the scene while editing — otherwise the same bloom +
 // night-grading render pipeline as cinematic mode, so switching modes
 // doesn't change how the scene looks. Click the ground to add a checkpoint
-// for the selected operator; the "Save" button
-// builds a mission URL (site + these paths, no token) and navigates there,
-// which starts cinematic mode straight from the saved link once every
-// operator has at least 1 checkpoint (a single checkpoint just stands
-// there). "Cancel" instead discards any in-progress edits and calls
+// for the selected operator. There's no explicit "Save" control — leaving
+// edit mode (E, main.ts) always saves by default via the returned `save()`
+// (builds a mission URL out of the current in-progress edits and navigates
+// there, which starts cinematic mode straight from the saved link once every
+// operator has at least 1 checkpoint). "Cancel" is the only way to leave
+// without applying changes: it discards any in-progress edits and calls
 // onCancel (only shown when mission.ts's TRAJECTORIES were already valid,
-// i.e. there's a cinematic view to go back to). Returns a dispose()
-// function that tears this mode down so another mode can take over the page.
-export function runPathEditor(onCancel: () => void): () => void {
+// i.e. there's a cinematic view to go back to). Returns `{ dispose, save }`:
+// dispose() tears this mode down so another mode can take over the page,
+// save() is called by main.ts instead of dispose() when leaving normally.
+export function runPathEditor(onCancel: () => void): { dispose: () => void; save: () => void } {
 	const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -303,7 +305,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 	const editorCountEl = document.getElementById('editorCount');
 	const editorBearingEl = document.getElementById('editorBearing');
 	const editorVibeEl = document.getElementById('editorVibe');
-	const saveBtn = document.getElementById('editorSaveBtn');
 	const setAngleBtn = document.getElementById('editorSetAngleBtn');
 	const addBtn = document.getElementById('editorAddBtn');
 	const deleteBtn = document.getElementById('editorDeleteBtn');
@@ -446,7 +447,9 @@ export function runPathEditor(onCancel: () => void): () => void {
 		return bestIndex;
 	}
 
-	function onSaveClick() {
+	// Called by main.ts's save() (below) instead of a dedicated button —
+	// leaving edit mode any way other than Cancel applies this by default.
+	function save() {
 		window.location.href = buildMissionUrl(
 			CONST.SITE_LAT,
 			CONST.SITE_LON,
@@ -492,7 +495,6 @@ export function runPathEditor(onCancel: () => void): () => void {
 	function onCancelClick() {
 		onCancel();
 	}
-	saveBtn?.addEventListener('click', onSaveClick);
 	setAngleBtn?.addEventListener('click', onSetAngleClick);
 	addBtn?.addEventListener('click', onAddClick);
 	deleteBtn?.addEventListener('click', onDeleteClick);
@@ -603,11 +605,10 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// Tears everything path-editor-specific down (including the listeners
 	// above on persistent HUD elements/window) so cinematic mode (or a fresh
 	// path editor run) can take over the page cleanly.
-	return function dispose() {
+	function dispose() {
 		cancelAnimationFrame(rafId);
 		window.removeEventListener('resize', onResize);
 		window.removeEventListener('keydown', onKeyDown);
-		saveBtn?.removeEventListener('click', onSaveClick);
 		setAngleBtn?.removeEventListener('click', onSetAngleClick);
 		addBtn?.removeEventListener('click', onAddClick);
 		deleteBtn?.removeEventListener('click', onDeleteClick);
@@ -626,5 +627,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 		if (vitalsPanel) vitalsPanel.style.display = '';
 		if (subtitleEl) subtitleEl.textContent = originalSubtitle;
 		editorPanel?.setAttribute('hidden', '');
-	};
+	}
+
+	return { dispose, save };
 }

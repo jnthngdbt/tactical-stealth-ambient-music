@@ -12,11 +12,12 @@ type Mode = 'cinematic' | 'edit';
 // Cinematic mode is the default once every operator has a real path
 // configured in mission.ts (TRAJECTORIES); otherwise the path editor starts
 // first so those paths can be built by hand (see pathEditor.ts). E toggles
-// between the two modes.
-// pathEditor.ts's "Save" button generates a mission URL with the edited
-// paths and navigates there instead.
+// between the two modes; leaving edit mode via E always saves by default
+// (pathEditor.ts's save() generates a mission URL with the edited paths and
+// navigates there) — only the editor's "Cancel" button discards the edits.
 let mode: Mode = PATHS_READY ? 'cinematic' : 'edit';
 let stopCurrentMode: (() => void) | null = null;
+let saveEditorAndExit: (() => void) | null = null;
 
 const hudEl = document.getElementById('hud');
 if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
@@ -45,14 +46,25 @@ window.addEventListener('keydown', (event) => {
 		shortcutsVisible = !shortcutsVisible;
 		shortcutsPanel?.toggleAttribute('hidden', !shortcutsVisible);
 	} else if (event.key === 'e' || event.key === 'E') {
-		startMode(mode === 'cinematic' ? 'edit' : 'cinematic');
+		if (mode === 'edit') {
+			saveEditorAndExit?.(); // navigates away (see pathEditor.ts's save()), no need to also switch modes here
+		} else {
+			startMode('edit');
+		}
 	}
 });
 
 function startMode(next: Mode) {
 	stopCurrentMode?.();
 	mode = next;
-	stopCurrentMode = mode === 'cinematic' ? runCinematic() : runPathEditor(() => startMode('cinematic'));
+	if (mode === 'cinematic') {
+		stopCurrentMode = runCinematic();
+		saveEditorAndExit = null;
+	} else {
+		const editor = runPathEditor(() => startMode('cinematic'));
+		stopCurrentMode = editor.dispose;
+		saveEditorAndExit = editor.save;
+	}
 }
 
 startMode(mode);
