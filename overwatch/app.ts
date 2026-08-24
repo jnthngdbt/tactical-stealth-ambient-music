@@ -172,6 +172,20 @@ export class App {
 
 		const step = new THREE.Vector3().subVectors(anchor, this.lastAnchor);
 		const stepLength = step.length();
+		// A legitimate drift/centroid-tracking step is small (walking operators,
+		// the figure-eight path) — but an operator's OWN altitude can jump by
+		// hundreds/thousands of metres in a single frame when its ground sample
+		// self-corrects from a coarse/wrong LOD hit to the real value (see
+		// operator.ts's OPERATOR_ALTITUDE_SNAP_THRESHOLD). Without this check
+		// that shows up here as a sudden huge anchor jump, and the clamp below
+		// would make the camera visibly crawl for many seconds at
+		// CAMERA_DRIFT_MAX_STEP's per-frame pace to catch up — snapping instead
+		// mirrors the operator's own large-gap-snap behaviour.
+		if (stepLength > CONST.CAMERA_DRIFT_SNAP_THRESHOLD) {
+			this.camera.position.copy(anchor);
+			this.lastAnchor.copy(anchor);
+			return;
+		}
 		if (stepLength > CONST.CAMERA_DRIFT_MAX_STEP) step.multiplyScalar(CONST.CAMERA_DRIFT_MAX_STEP / stepLength);
 		this.camera.position.add(step);
 		// advance lastAnchor by only the (possibly clamped) applied step, not the
@@ -182,9 +196,18 @@ export class App {
 
 	// Eases the orbit target toward the true centroid of the operators instead
 	// of snapping to it, so the drone always keeps them framed no matter where
-	// its own flight drift (or the user's manual orbit/zoom) takes it.
+	// its own flight drift (or the user's manual orbit/zoom) takes it. A large
+	// one-off jump (same case updateDrift's CAMERA_DRIFT_SNAP_THRESHOLD guards
+	// against) snaps here too — otherwise the target keeps easing from its
+	// stale pre-jump value for a while, and OrbitControls' own maxDistance
+	// clamp (see controls.update() below) then yanks the just-snapped camera
+	// position back toward that stale target, undoing updateDrift's snap.
 	private updateLookAt(delta: number, centroid: THREE.Vector3) {
-		this.lookAtTarget.lerp(centroid, Math.min(1, CONST.CAMERA_LOOKAT_EASE * delta));
+		if (this.lookAtTarget.distanceTo(centroid) > CONST.CAMERA_DRIFT_SNAP_THRESHOLD) {
+			this.lookAtTarget.copy(centroid);
+		} else {
+			this.lookAtTarget.lerp(centroid, Math.min(1, CONST.CAMERA_LOOKAT_EASE * delta));
+		}
 		this.controls.target.copy(this.lookAtTarget);
 	}
 

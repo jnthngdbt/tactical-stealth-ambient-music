@@ -1,4 +1,4 @@
-import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_VIBE } from './urlParams.ts';
+import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_SITE_GROUND_Y, URL_VIBE } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
@@ -85,6 +85,13 @@ export const TERRAIN_WIREFRAME_OPACITY = 0; // 0 disables the wireframe entirely
 // `?coord=lat,lon` URL query param (see urlParams.ts).
 export const SITE_LAT = URL_SITE_LAT ?? 40.7033;
 export const SITE_LON = URL_SITE_LON ?? -74.017;
+
+// Ground elevation (metres) at the site origin, if already known — carried
+// through a saved mission link (see pathEditor.ts's save()) so main.ts's
+// cinematic camera can place itself correctly on the first frame instead of
+// climbing CAMERA_ELEVATION_GUESSES from scratch. null means "unknown",
+// falling back to that guess ladder as before.
+export const SITE_GROUND_Y = URL_SITE_GROUND_Y;
 
 // Tiles data source. The Cesium Ion asset below is a copy of Google's
 // Photorealistic 3D Tiles that Cesium exposes to every (free) Ion account by
@@ -294,6 +301,13 @@ export const CAMERA_DRIFT_ALTITUDE = URL_FLIGHT_ALTITUDE ?? 60; // metres, fixed
 // tiles finish streaming in) — any excess is carried over and caught up on
 // following frames instead of teleporting the camera off into empty space.
 export const CAMERA_DRIFT_MAX_STEP = 1.5; // metres per frame
+
+// Above this per-frame anchor jump (metres), the camera snaps straight to it
+// instead of chasing it at CAMERA_DRIFT_MAX_STEP — otherwise a rare-but-large
+// correction (an operator's altitude self-correcting from a coarse/wrong LOD
+// hit to the real value, same class of bug as OPERATOR_ALTITUDE_SNAP_THRESHOLD)
+// would make the camera visibly crawl for many seconds to catch up.
+export const CAMERA_DRIFT_SNAP_THRESHOLD = 20; // metres
 
 // How quickly the orbit target eases toward the true centroid of the
 // operators (rather than snapping straight to it every frame).

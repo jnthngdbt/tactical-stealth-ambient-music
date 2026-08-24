@@ -81,6 +81,12 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	// streaming in — wait for that before drawing any checkpoint, same pattern
 	// cinematic mode uses to gate operator visibility (main.ts).
 	let mapReady = false;
+	// Sampled once tiles are loaded (see onTilesLoadEnd) at the site origin
+	// (0,0) — same reference point main.ts's cinematic camera placement uses
+	// — and threaded through save() so cinematic mode can place its camera
+	// correctly on the very first frame instead of re-discovering this via its
+	// own elevation-guess ladder (see CAMERA_ELEVATION_GUESSES).
+	let siteOriginGroundY: number | null = null;
 	function onTilesLoadEnd() {
 		mapReady = true;
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
@@ -96,6 +102,8 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 		const groundY = sampleGroundHeight(tiles, controls.target.x, controls.target.z, controls.target.y);
 		camera.position.y += groundY - controls.target.y;
 		controls.target.y = groundY;
+		const originY = sampleGroundHeight(tiles, 0, 0, NaN);
+		if (!Number.isNaN(originY)) siteOriginGroundY = originY;
 		paths.forEach((_, i) => rebuildOperatorVisual(i));
 	}
 	tiles.addEventListener('tiles-load-end', onTilesLoadEnd);
@@ -459,6 +467,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 			CONST.CAMERA_DRIFT_ALTITUDE,
 			CONST.HUD_OPACITY,
 			currentVibe,
+			siteOriginGroundY,
 		);
 	}
 	function onSetAngleClick() {

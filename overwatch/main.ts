@@ -71,6 +71,13 @@ startMode(mode);
 
 function runCinematic(): () => void {
 	const app = new App((MAP_ROTATION_DEG * Math.PI) / 180);
+	// If a saved mission link already carries the site's real ground elevation
+	// (see pathEditor.ts's save()), place the camera there right away instead
+	// of starting from the near-sea-level default and climbing the
+	// elevation-guess ladder below to rediscover a value that's already known —
+	// otherwise every save-and-return-to-cinematic cycle would visibly start
+	// the camera high up and correct itself down once the ladder catches up.
+	if (CONST.SITE_GROUND_Y !== null) app.placeCamera(CONST.SITE_GROUND_Y);
 
 	const { tiles } = createTiles(app.camera, app.renderer);
 	app.scene.add(tiles.group);
@@ -86,6 +93,10 @@ function runCinematic(): () => void {
 		return operator;
 	});
 	activeOperators = operators;
+	// Whether there's any operator-derived centroid to place the camera from at
+	// all (see the siteGroundPlaced retry loop below and app.ts's updateDrift) —
+	// fixed for this mode run's lifetime since `operators` never changes size.
+	const hasOperators = operators.length > 0;
 
 	// nothing is ticked until the tiles needed for the current view have
 	// actually finished downloading/parsing — 3d-tiles-renderer fires this
@@ -227,15 +238,24 @@ function runCinematic(): () => void {
 	// near-sea-level) to the real ground altitude at the site origin —
 	// otherwise a high-elevation site (e.g. ~600m ASL) leaves the camera stuck
 	// underground forever whenever there are no operators around to otherwise
-	// correct it via updateDrift's ground-aware centroid snap. Retried every
-	// frame (not just once at tiles-load-end) since the origin's tile may not
-	// have a hit-able mesh loaded yet on the very first ready frame. If no
-	// sample succeeds for a while, the camera itself is the problem (a badly
-	// wrong startup elevation guess means its own view frustum never reaches
-	// the real ground, so nothing ever streams in there to sample) — walk the
-	// guess up through CAMERA_ELEVATION_GUESSES until one finally breaks that
-	// deadlock (see the constant's comment in constants.ts for the full story).
-	let siteGroundPlaced = false;
+	// correct it via updateDrift's ground-aware centroid snap. Only relevant
+	// when there ARE no operators (see the `!hasOperators` guard below): once
+	// operators exist, updateDrift's own anchorInitialized snap already places
+	// the camera correctly from their real (ground-truth) altitude, and this
+	// retry loop calling `app.placeCamera` on top of that would silently fight
+	// it — `placeCamera` only touches `camera.position` directly, with no idea
+	// updateDrift is tracking a separate `lastAnchor`, so the two diverge and
+	// never reconcile (confirmed live: the camera got stuck ~1000m above the
+	// operators, only crawling at CAMERA_DRIFT_MAX_STEP's slow pace or not
+	// correcting at all, depending on ordering). Retried every frame (not just
+	// once at tiles-load-end) since the origin's tile may not have a hit-able
+	// mesh loaded yet on the very first ready frame. If no sample succeeds for
+	// a while, the camera itself is the problem (a badly wrong startup
+	// elevation guess means its own view frustum never reaches the real
+	// ground, so nothing ever streams in there to sample) — walk the guess up
+	// through CAMERA_ELEVATION_GUESSES until one finally breaks that deadlock
+	// (see the constant's comment in constants.ts for the full story).
+	let siteGroundPlaced = hasOperators;
 	let elevationGuessIndex = 0;
 	let elevationGuessDeadline = 0; // set once mapReady flips (see animate below)
 
@@ -295,7 +315,6 @@ function runCinematic(): () => void {
 		// With zero operators (see mission.ts's TRAJECTORIES) there's no centroid
 		// to fly around or look at — app.render leaves the camera under plain
 		// orbit control with no automatic movement in that case.
-		const hasOperators = operators.length > 0;
 		let groundReady = false;
 		if (mapReady && hasOperators) {
 			operators.forEach((operator) => {

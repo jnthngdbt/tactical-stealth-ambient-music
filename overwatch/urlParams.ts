@@ -12,7 +12,10 @@ import type { Checkpoint } from './objects/operator.ts';
 // trajectories, see parseTrajectories below), `names` (operator callsigns,
 // comma-separated, see parseNames below), `rotation` (map bearing in
 // degrees, set via Ctrl-drag in the path editor), `alt` (drone hover altitude
-// in metres, see CAMERA_DRIFT_ALTITUDE in constants.ts), `hud` (0-1,
+// in metres, see CAMERA_DRIFT_ALTITUDE in constants.ts), `groundY` (known
+// ground elevation in metres at the site origin, sampled by the path editor —
+// lets cinematic mode place its camera correctly on the first frame instead
+// of climbing CAMERA_ELEVATION_GUESSES from scratch), `hud` (0-1,
 // see HUD_OPACITY in constants.ts), `vibe` (named look preset, see
 // VIBE_PRESETS in constants.ts). All are optional — anything not present
 // in the URL falls back to the existing constants.ts/mission.ts defaults.
@@ -71,6 +74,7 @@ export const URL_TRAJECTORIES = parseTrajectories(params.get('paths'));
 export const URL_OPERATOR_NAMES = parseNames(params.get('names'));
 export const URL_MAP_ROTATION_DEG = parseNumber(params.get('rotation'));
 export const URL_FLIGHT_ALTITUDE = parseNumber(params.get('alt'));
+export const URL_SITE_GROUND_Y = parseNumber(params.get('groundY'));
 export const URL_HUD_OPACITY = parseNumber(params.get('hud'));
 export const URL_VIBE = params.get('vibe'); // validated against VIBE_PRESETS in constants.ts
 
@@ -86,6 +90,7 @@ export function buildMissionUrl(
 	altitude: number,
 	hudOpacity: number,
 	vibe: string,
+	groundY: number | null,
 ): string {
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
@@ -95,6 +100,7 @@ export function buildMissionUrl(
 	query.set('rotation', String(rotationDeg));
 	query.set('alt', String(altitude));
 	query.set('hud', String(hudOpacity));
+	if (groundY !== null) query.set('groundY', String(groundY));
 	query.set('paths', JSON.stringify(trajectories.map((path) => path.map((cp) => [cp.east, cp.north]))));
 	url.search = query.toString();
 	return url.toString();
