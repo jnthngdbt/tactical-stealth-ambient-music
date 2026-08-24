@@ -1,9 +1,51 @@
-import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON } from './urlParams.ts';
+import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_VIBE } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night overwatch" grade applied on top of the
 // (daylight-captured) photorealistic tiles by NightGradingPass.
-export const BACKGROUND_COLOR = 0x03060a;
+//
+// The overall "vibe" (background/terrain/night-tint palette) is a named
+// preset rather than loose standalone constants, so more can be added later
+// without redefining every color individually. Selected via `?vibe=` (see
+// urlParams.ts) — `moonlit` picks VIBE_PRESETS.moonlit, anything else
+// (including no param at all) falls back to `cinematic`, the original look.
+// Exported (along with resolveVibeName) so the path editor can also switch
+// between presets live (Alt+1/2, see pathEditor.ts) instead of only at load.
+export interface VibePreset {
+	backgroundColor: number;
+	terrainDimColor: number;
+	nightTint: number;
+	nightSaturation: number;
+	nightVignette: number;
+}
+
+export const VIBE_PRESETS = {
+	cinematic: {
+		backgroundColor: 0x03060a,
+		terrainDimColor: 0x6d7e89,
+		nightTint: 0x1c3a4a,
+		nightSaturation: 0.5,
+		nightVignette: 0.7,
+	},
+	moonlit: {
+		backgroundColor: 0x040711,
+		terrainDimColor: 0x657798,
+		nightTint: 0x1e305e, // blue moonlight tint, split between a straight blue push and a fully desaturated grey-blue
+		nightSaturation: 0.58,
+		nightVignette: 0.8, // heavier edge darkening — sells a moonlit spotlight-in-the-dark read more than cinematic's
+	},
+} satisfies Record<string, VibePreset>;
+
+export type VibeName = keyof typeof VIBE_PRESETS;
+
+export function resolveVibeName(raw: string | null): VibeName {
+	return raw !== null && raw in VIBE_PRESETS ? (raw as VibeName) : 'cinematic';
+}
+
+export const VIBE_NAME = resolveVibeName(URL_VIBE);
+const vibe: VibePreset = VIBE_PRESETS[VIBE_NAME];
+
+export const BACKGROUND_COLOR = vibe.backgroundColor;
 
 export const OPERATOR_COLOR = 0x35f0d0;
 
@@ -12,13 +54,13 @@ export const OPERATOR_COLOR = 0x35f0d0;
 // at the source, before bloom/grading ever see it, instead of only faking
 // night in post — that's what was washing the whole scene out white.
 // (Tune this + NIGHT_EXPOSURE together — they compound.)
-export const TERRAIN_DIM_COLOR = 0x6d7e89;
+export const TERRAIN_DIM_COLOR = vibe.terrainDimColor;
 
 // Night grading — simulates night over imagery that was actually captured in daylight.
 export const NIGHT_EXPOSURE = 1; // additional darkening applied on top of TERRAIN_DIM_COLOR
-export const NIGHT_TINT = 0x1c3a4a; // cool moonlight tint pushed into the shadows
-export const NIGHT_SATURATION = 0.5;
-export const NIGHT_VIGNETTE = 0.7;
+export const NIGHT_TINT = vibe.nightTint;
+export const NIGHT_SATURATION = vibe.nightSaturation;
+export const NIGHT_VIGNETTE = vibe.nightVignette;
 
 // Bloom threshold is set high so only the glowing operators (and their
 // halos), which are much brighter than the dimmed night terrain, pick up

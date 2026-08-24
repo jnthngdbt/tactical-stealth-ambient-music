@@ -6,7 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
-import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution } from './tiles.ts';
+import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution, setTerrainDimColor } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
@@ -109,14 +109,14 @@ export function runPathEditor(onCancel: () => void): () => void {
 			CONST.BLOOM_THRESHOLD,
 		),
 	);
-	composer.addPass(
-		new NightGradingPass({
-			exposure: CONST.NIGHT_EXPOSURE,
-			tint: CONST.NIGHT_TINT,
-			saturation: CONST.NIGHT_SATURATION,
-			vignette: CONST.NIGHT_VIGNETTE,
-		}),
-	);
+	// Named (not inline) so applyVibe() below can mutate its uniforms live.
+	const nightPass = new NightGradingPass({
+		exposure: CONST.NIGHT_EXPOSURE,
+		tint: CONST.NIGHT_TINT,
+		saturation: CONST.NIGHT_SATURATION,
+		vignette: CONST.NIGHT_VIGNETTE,
+	});
+	composer.addPass(nightPass);
 	composer.addPass(new OutputPass());
 
 	// Checkpoint timestamp tags render through a separate CSS2D layer, same as
@@ -302,6 +302,7 @@ export function runPathEditor(onCancel: () => void): () => void {
 	const editorOperatorEl = document.getElementById('editorOperator');
 	const editorCountEl = document.getElementById('editorCount');
 	const editorBearingEl = document.getElementById('editorBearing');
+	const editorVibeEl = document.getElementById('editorVibe');
 	const saveBtn = document.getElementById('editorSaveBtn');
 	const setAngleBtn = document.getElementById('editorSetAngleBtn');
 	const addBtn = document.getElementById('editorAddBtn');
@@ -316,6 +317,30 @@ export function runPathEditor(onCancel: () => void): () => void {
 	// Nothing to cancel back to if mission.ts didn't already have valid paths
 	// (i.e. the editor started because PATHS_READY was false at load).
 	if (cancelBtn) cancelBtn.style.display = PATHS_READY ? '' : 'none';
+
+	// Alt+1/Alt+2 (see onKeyDown below) live-switches the whole night-grade
+	// look between named presets (constants.ts's VIBE_PRESETS) — retints the
+	// already-running bloom/night-grade pipeline and already-loaded tiles
+	// in place, no reload needed. Starts at whatever `?vibe=` resolved to.
+	let currentVibe: CONST.VibeName = CONST.VIBE_NAME;
+
+	function updateVibeHud() {
+		if (!editorVibeEl) return;
+		const label = currentVibe === 'moonlit' ? 'Moonlit' : 'Cinematic';
+		editorVibeEl.textContent = `Vibe: ${label} (Alt+1/2)`;
+	}
+
+	function applyVibe(name: CONST.VibeName) {
+		currentVibe = name;
+		const preset = CONST.VIBE_PRESETS[name];
+		renderer.setClearColor(preset.backgroundColor);
+		nightPass.uniforms.tint.value.setHex(preset.nightTint);
+		nightPass.uniforms.saturation.value = preset.nightSaturation;
+		nightPass.uniforms.vignette.value = preset.nightVignette;
+		setTerrainDimColor(preset.terrainDimColor);
+		updateVibeHud();
+	}
+	updateVibeHud();
 
 	function updateHud() {
 		if (paths.length === 0) {
@@ -356,6 +381,11 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
+		if (event.altKey && (event.key === '1' || event.key === '2')) {
+			applyVibe(event.key === '1' ? 'cinematic' : 'moonlit');
+			event.preventDefault();
+			return;
+		}
 		const num = Number.parseInt(event.key, 10);
 		if (!Number.isNaN(num) && num >= 1 && num <= paths.length) {
 			selectOperator(num - 1);
@@ -417,7 +447,16 @@ export function runPathEditor(onCancel: () => void): () => void {
 	}
 
 	function onSaveClick() {
-		window.location.href = buildMissionUrl(CONST.SITE_LAT, CONST.SITE_LON, paths, names, savedRotationDeg, CONST.CAMERA_DRIFT_ALTITUDE, CONST.HUD_OPACITY);
+		window.location.href = buildMissionUrl(
+			CONST.SITE_LAT,
+			CONST.SITE_LON,
+			paths,
+			names,
+			savedRotationDeg,
+			CONST.CAMERA_DRIFT_ALTITUDE,
+			CONST.HUD_OPACITY,
+			currentVibe,
+		);
 	}
 	function onSetAngleClick() {
 		// Sub-degree precision is meaningless for a map bearing, so round it off here.

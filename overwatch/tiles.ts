@@ -37,6 +37,19 @@ const wireframeMaterial = new THREE.LineBasicMaterial({
 // tile data — see the comment inside createTiles for why this matters.
 let sharedTiles: { tiles: TilesRenderer; reorient: ReorientationPlugin } | null = null;
 
+// Mutable so the path editor's live Alt+1/2 vibe switcher (pathEditor.ts) can
+// retint the terrain in place — CONST.TERRAIN_DIM_COLOR is only the starting
+// value. Tracks every dimmed tile material created so far (populated in the
+// load-model handler below, pruned in dispose-model) so an in-place color
+// change reaches already-loaded tiles, not just ones that stream in afterward.
+let liveDimColor = CONST.TERRAIN_DIM_COLOR;
+const dimmedMaterials = new Set<THREE.MeshBasicMaterial>();
+
+export function setTerrainDimColor(hex: number) {
+	liveDimColor = hex;
+	dimmedMaterials.forEach((material) => material.color.setHex(hex));
+}
+
 // Sets up the photorealistic 3D Tiles renderer, re-orients it so the given
 // site coordinates sit at the world origin (+Y up), and swaps loaded tile
 // materials to unlit so the night grading pass has full control over lighting.
@@ -104,11 +117,13 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 			const mesh = child as THREE.Mesh;
 			if (!mesh.isMesh) return;
 			const prev = mesh.material as THREE.MeshStandardMaterial;
-			mesh.material = new THREE.MeshBasicMaterial({
+			const dimmedMaterial = new THREE.MeshBasicMaterial({
 				map: prev.map ?? null,
-				color: prev.map ? (dim ? CONST.TERRAIN_DIM_COLOR : 0xffffff) : prev.color,
+				color: prev.map ? (dim ? liveDimColor : 0xffffff) : prev.color,
 			});
+			mesh.material = dimmedMaterial;
 			prev.dispose();
+			if (dim && prev.map) dimmedMaterials.add(dimmedMaterial);
 
 			if (!wireframeEnabled) return;
 
@@ -125,16 +140,17 @@ export function createTiles(camera: THREE.Camera, renderer: THREE.WebGLRenderer,
 	// disposal bookkeeping — dispose it ourselves or it leaks GPU buffers
 	// every time a tile streams out (the shared wireframeMaterial itself is
 	// never disposed, since it's reused across every tile for the app's
-	// lifetime). Skipped entirely alongside creation above when disabled.
-	if (wireframeEnabled) {
-		tiles.addEventListener('dispose-model', ({ scene }: any) => {
-			scene.traverse((child: THREE.Object3D) => {
-				if ((child as THREE.LineSegments).isLineSegments) {
-					(child as THREE.LineSegments).geometry.dispose();
-				}
-			});
+	// lifetime). Also prunes dimmedMaterials (see setTerrainDimColor above) so
+	// it doesn't keep growing forever as tiles stream in/out.
+	tiles.addEventListener('dispose-model', ({ scene }: any) => {
+		scene.traverse((child: THREE.Object3D) => {
+			if (wireframeEnabled && (child as THREE.LineSegments).isLineSegments) {
+				(child as THREE.LineSegments).geometry.dispose();
+			}
+			const mesh = child as THREE.Mesh;
+			if (mesh.isMesh) dimmedMaterials.delete(mesh.material as THREE.MeshBasicMaterial);
 		});
-	}
+	});
 
 	tiles.setCamera(camera);
 	updateTilesResolution(tiles, camera, renderer);

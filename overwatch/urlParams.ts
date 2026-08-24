@@ -13,7 +13,8 @@ import type { Checkpoint } from './objects/operator.ts';
 // comma-separated, see parseNames below), `rotation` (map bearing in
 // degrees, set via Ctrl-drag in the path editor), `alt` (drone hover altitude
 // in metres, see CAMERA_DRIFT_ALTITUDE in constants.ts), `hud` (0-1,
-// see HUD_OPACITY in constants.ts). All are optional — anything not present
+// see HUD_OPACITY in constants.ts), `vibe` (named look preset, see
+// VIBE_PRESETS in constants.ts). All are optional — anything not present
 // in the URL falls back to the existing constants.ts/mission.ts defaults.
 const params = new URLSearchParams(window.location.search);
 
@@ -71,10 +72,11 @@ export const URL_OPERATOR_NAMES = parseNames(params.get('names'));
 export const URL_MAP_ROTATION_DEG = parseNumber(params.get('rotation'));
 export const URL_FLIGHT_ALTITUDE = parseNumber(params.get('alt'));
 export const URL_HUD_OPACITY = parseNumber(params.get('hud'));
+export const URL_VIBE = params.get('vibe'); // validated against VIBE_PRESETS in constants.ts
 
 // Inverse of parseTrajectories, used by the path editor's "Save" button to
-// build a shareable mission link out of the site/paths/map bearing/altitude
-// currently in effect.
+// build a shareable mission link out of the site/paths/map bearing/altitude/
+// vibe currently in effect.
 export function buildMissionUrl(
 	lat: number,
 	lon: number,
@@ -83,11 +85,13 @@ export function buildMissionUrl(
 	rotationDeg: number,
 	altitude: number,
 	hudOpacity: number,
+	vibe: string,
 ): string {
 	const url = new URL(window.location.href);
 	const query = new URLSearchParams();
 	query.set('coord', `${lat},${lon}`);
 	query.set('names', names.join(','));
+	query.set('vibe', vibe);
 	query.set('rotation', String(rotationDeg));
 	query.set('alt', String(altitude));
 	query.set('hud', String(hudOpacity));
