@@ -319,6 +319,15 @@ export const CAMERA_LOOKAT_EASE = 1.5;
 // Overridable via `?hud=<0-1>` URL query param (see urlParams.ts).
 export const HUD_OPACITY = URL_HUD_OPACITY ?? 0.5;
 
+// The bottom-left RES readout (main.ts) is dimmed gray by default, only
+// lighting up in the normal telemetry cyan when the window's actual width/
+// height lands within this tolerance of one of these "notable" values
+// (common recording/output resolutions) — width and height are checked
+// independently of each other.
+export const RES_MATCH_WIDTHS = [480, 960];
+export const RES_MATCH_HEIGHTS = [270, 540];
+export const RES_MATCH_TOLERANCE = 5;
+
 // Callsign pool one is randomly assigned from, per trajectory, in mission.ts
 // (see OPERATOR_NAMES there) — shared by the cinematic view and path editor.
 export const OPERATOR_NAME_POOL = ['Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle'];

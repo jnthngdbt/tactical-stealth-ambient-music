@@ -185,11 +185,30 @@
 
 .hud-telemetry {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hud-telem-row {
+  display: flex;
   gap: 16px;
 }
 
 .hud-telem-item {
   font-size: 13px;
+  color: #7ffff0;
+  text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
+}
+
+/* Dim gray by default — only lights up (see .hud-res-match, toggled in
+   main.ts) when the window's actual width/height is close to a notable
+   value, otherwise it's just ambient/uninteresting info. */
+.hud-telem-res-value {
+  color: #5c6b70;
+  text-shadow: none;
+}
+
+.hud-telem-res-value.hud-res-match {
   color: #7ffff0;
   text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
 }

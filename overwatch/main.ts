@@ -119,11 +119,36 @@ function runCinematic(): () => void {
 	// too or this would wait forever.
 	if (isTilesLoaded(tiles)) onTilesLoadEnd();
 
+	const resWEl = document.getElementById('hudResW');
+	const resHEl = document.getElementById('hudResH');
 	const altEl = document.getElementById('hudAlt');
 	const hdgEl = document.getElementById('hudHdg');
 	const spdEl = document.getElementById('hudSpd');
 	const batteryEl = document.getElementById('hudBattery');
 	const lastCameraPos = app.camera.position.clone();
+
+	// Current window resolution, always known (unlike ALT/HDG/SPD it doesn't
+	// depend on groundReady), shown alongside the rest of the bottom-left
+	// telemetry — only needs to refresh when the window actually resizes.
+	// Width/height each light up independently once they land within
+	// RES_MATCH_TOLERANCE of one of their own "notable" values.
+	function isNearAny(value: number, targets: number[]) {
+		return targets.some((target) => Math.abs(value - target) <= CONST.RES_MATCH_TOLERANCE);
+	}
+	function onResize() {
+		const w = window.innerWidth;
+		const h = window.innerHeight;
+		if (resWEl) {
+			resWEl.textContent = w.toString();
+			resWEl.classList.toggle('hud-res-match', isNearAny(w, CONST.RES_MATCH_WIDTHS));
+		}
+		if (resHEl) {
+			resHEl.textContent = h.toString();
+			resHEl.classList.toggle('hud-res-match', isNearAny(h, CONST.RES_MATCH_HEIGHTS));
+		}
+	}
+	onResize();
+	window.addEventListener('resize', onResize);
 
 	const recorder = new Recorder(app.renderer.domElement);
 	const recordBtn = document.getElementById('hudRec') as HTMLButtonElement;
@@ -372,6 +397,7 @@ function runCinematic(): () => void {
 		recordBtn.removeEventListener('click', onRecordClick);
 		window.removeEventListener('keydown', onKeyDown);
 		window.removeEventListener('wheel', onWheel, { capture: true });
+		window.removeEventListener('resize', onResize);
 		if (recorder.isRecording) recorder.stop();
 		recordBtn.classList.remove('recording');
 		operators.forEach((operator) => operator.dispose());
