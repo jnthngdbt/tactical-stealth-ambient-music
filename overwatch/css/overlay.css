@@ -213,6 +213,10 @@
   text-shadow: 0 0 8px rgba(53, 240, 208, 0.5);
 }
 
+.hud-telem-res-sep {
+  color: #5c6b70;
+}
+
 .hud-telem-label {
   font-size: 10px;
   opacity: 0.6;
