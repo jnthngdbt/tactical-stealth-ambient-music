@@ -211,6 +211,17 @@ export class App {
 		this.controls.target.copy(this.lookAtTarget);
 	}
 
+	// Shifts the camera, its look-at target, and lastAnchor by the same
+	// world-space delta — used by main.ts's Ctrl+scroll scrub to keep the
+	// drone's framing exactly in sync with a direct operator-position move,
+	// which updateDrift's per-frame catch-up would otherwise lag behind.
+	public nudgeByOperatorDelta(delta: THREE.Vector3) {
+		this.camera.position.add(delta);
+		this.controls.target.add(delta);
+		this.lookAtTarget.add(delta);
+		this.lastAnchor.add(delta);
+	}
+
 	// `hasOperators` is false when there are zero operators to fly around (see
 	// mission.ts's TRAJECTORIES) — there's then no centroid worth drifting
 	// around or looking at, so both are skipped entirely and the camera is

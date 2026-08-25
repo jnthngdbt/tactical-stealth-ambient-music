@@ -187,31 +187,32 @@ function runCinematic(): () => void {
 	// per-frame tick() sampling below and the Ctrl+scroll checkpoint jump.
 	const groundSample = (x: number, z: number) => sampleGroundHeight(tiles, x, z, NaN);
 
-	// Ctrl/Cmd+scroll teleports every operator to the next (scroll up) or
-	// previous (scroll down) checkpoint on its patrol path, instead of
-	// smoothly walking there — the drone camera keeps its own fixed-distance
-	// framing on the operators' centroid (see app.ts's updateDrift/updateLookAt),
-	// so it swoops to catch up on its own, no special-casing needed here.
-	// Standard wheel notches and continuous trackpad deltas are both folded
-	// through CHECKPOINT_SCRUB_THRESHOLD so one scroll gesture reads as one
-	// deliberate step, not several skipped checkpoints. Listener is on
-	// `window` (not the canvas, where OrbitControls' own wheel listener
-	// lives) with `capture:true` so it always runs first regardless of
-	// registration order, and only preempts OrbitControls' zoom while
-	// Ctrl/Meta is actually held.
-	let wheelAccum = 0;
+	// Ctrl/Cmd+scroll smoothly scrubs every operator forward (scroll up) or
+	// backward (scroll down) along its patrol path (Operator.scrubAlongPath),
+	// nudging the camera by the exact same centroid shift so the drone stays
+	// in sync (app.nudgeByOperatorDelta). Listener is on `window` (not the
+	// canvas, where OrbitControls' own wheel listener lives) with
+	// `capture:true` so it always runs first, and only preempts OrbitControls'
+	// zoom while Ctrl/Meta is held.
+	const scrubCentroid = new THREE.Vector3();
+	function computeOperatorsCentroid(target: THREE.Vector3) {
+		target.set(0, 0, 0);
+		operators.forEach((operator) => target.add(operator.position));
+		target.divideScalar(operators.length);
+		return target;
+	}
 	function onWheel(event: WheelEvent) {
 		if (!(event.ctrlKey || event.metaKey)) return;
 		event.preventDefault();
 		event.stopPropagation();
-		if (!mapReady) return;
+		if (!mapReady || !hasOperators) return;
 
-		wheelAccum += event.deltaY;
-		while (Math.abs(wheelAccum) >= CONST.CHECKPOINT_SCRUB_THRESHOLD) {
-			const dir = wheelAccum < 0 ? 1 : -1; // scroll up (negative deltaY) -> next checkpoint
-			operators.forEach((operator) => operator.jumpCheckpoint(dir, groundSample));
-			wheelAccum -= Math.sign(wheelAccum) * CONST.CHECKPOINT_SCRUB_THRESHOLD;
-		}
+		// scroll up (negative deltaY) -> walk forward along the path
+		const distance = -event.deltaY * CONST.CHECKPOINT_SCRUB_METERS_PER_UNIT;
+		const centroidBefore = computeOperatorsCentroid(scrubCentroid).clone();
+		operators.forEach((operator) => operator.scrubAlongPath(distance, groundSample));
+		const shift = computeOperatorsCentroid(scrubCentroid).sub(centroidBefore);
+		app.nudgeByOperatorDelta(shift);
 	}
 	window.addEventListener('wheel', onWheel, { capture: true, passive: false });
 

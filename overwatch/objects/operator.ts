@@ -481,6 +481,112 @@ export class Operator extends THREE.Group {
 		this.legToReady = false; // force a fresh sample of the new target checkpoint next tick()
 	}
 
+	// Walks the operator a signed distance (metres) along its patrol path,
+	// smoothly interpolating position/altitude/heading rather than jumping to
+	// a checkpoint (Ctrl+scroll in main.ts). Positive moves toward the
+	// current leg's pathIndex, negative toward legFromIndex. Progress is
+	// measured as remaining distance to the target rather than distance
+	// walked from the start, since the operator's actual position can arc off
+	// the straight leg line after rounding a corner (see steerHeading). A
+	// large distance can cross several checkpoints in one call, ping-ponging
+	// at either end of the path like normal walking does.
+	public scrubAlongPath(distance: number, sampleGround: (x: number, z: number) => number) {
+		if (this.path.length < 2 || distance === 0) return;
+
+		let remaining = distance;
+		let guard = 0; // safety cap — degenerate (zero-length) legs must never spin forever
+		while (Math.abs(remaining) > 1e-6 && guard++ < 256) {
+			const from = this.path[this.legFromIndex];
+			const to = this.path[this.pathIndex];
+			const legLength = Math.hypot(to.x - from.x, to.z - from.z);
+			if (legLength < 1e-4) {
+				// duplicate/overlapping checkpoints — nothing to walk here, just cross it
+				if (remaining >= 0) this.jumpCheckpoint(1, sampleGround);
+				else this.crossToPreviousLeg(sampleGround);
+				continue;
+			}
+
+			// fraction of the leg already walked, 0 (at `from`) to 1 (at `to`)
+			const remainingToEnd = Math.hypot(to.x - this.position.x, to.z - this.position.z);
+			const t = THREE.MathUtils.clamp(1 - remainingToEnd / legLength, 0, 1);
+
+			if (remaining > 0) {
+				if (remaining <= remainingToEnd) {
+					const newT = t + remaining / legLength;
+					this.position.x = THREE.MathUtils.lerp(from.x, to.x, newT);
+					this.position.z = THREE.MathUtils.lerp(from.z, to.z, newT);
+					remaining = 0;
+				} else {
+					remaining -= remainingToEnd;
+					this.jumpCheckpoint(1, sampleGround); // lands exactly at `to`, sets up the next leg from there
+				}
+			} else {
+				const toStart = legLength - remainingToEnd;
+				const need = -remaining;
+				if (need <= toStart) {
+					const newT = t - need / legLength;
+					this.position.x = THREE.MathUtils.lerp(from.x, to.x, newT);
+					this.position.z = THREE.MathUtils.lerp(from.z, to.z, newT);
+					remaining = 0;
+				} else {
+					// crossToPreviousLeg assumes position is already at `from`
+					this.position.x = from.x;
+					this.position.z = from.z;
+					remaining += toStart;
+					this.crossToPreviousLeg(sampleGround);
+				}
+			}
+		}
+
+		// snap altitude/heading to the final resting spot (same interpolation
+		// formula as tick(), but snapped rather than eased)
+		const from = this.path[this.legFromIndex];
+		const to = this.path[this.pathIndex];
+		const legLength = Math.hypot(to.x - from.x, to.z - from.z);
+		const remainingToEnd = Math.hypot(to.x - this.position.x, to.z - this.position.z);
+		const t = legLength > 1e-4 ? THREE.MathUtils.clamp(1 - remainingToEnd / legLength, 0, 1) : 1;
+		if (this.legFromReady) {
+			this.position.y = THREE.MathUtils.lerp(this.legFromAltitude, this.legToAltitude, t) + CONST.OPERATOR_GROUND_OFFSET;
+			this.hasSnappedToGround = true;
+		}
+
+		const dir = new THREE.Vector3().subVectors(to, from);
+		dir.y = 0;
+		if (dir.lengthSq() > 1e-8) {
+			dir.normalize();
+			this.heading.copy(dir);
+			this.targetHeading.copy(dir);
+		}
+	}
+
+	// Relabels the current leg to the one preceding it — legFromIndex becomes
+	// the checkpoint before it (bouncing direction at a path endpoint, same as
+	// jumpCheckpoint), pathIndex becomes the old legFromIndex. Position is
+	// assumed to already be there, so it's left untouched.
+	private crossToPreviousLeg(sampleGround: (x: number, z: number) => number) {
+		const isEndpoint = this.legFromIndex === 0 || this.legFromIndex === this.path.length - 1;
+		const arrivalDirection = isEndpoint ? -this.pathDirection : this.pathDirection;
+		const previous = THREE.MathUtils.clamp(this.legFromIndex - arrivalDirection, 0, this.path.length - 1);
+
+		this.pathIndex = this.legFromIndex;
+		this.pathDirection = arrivalDirection;
+		this.legFromIndex = previous;
+
+		// the new pathIndex checkpoint is where we already stand, altitude already known
+		this.legToAltitude = this.legFromAltitude;
+		this.legToReady = this.legFromReady;
+
+		// sample the new leg's start immediately rather than waiting on tick()'s cooldown
+		const target = this.path[this.legFromIndex];
+		const sample = sampleGround(target.x, target.z);
+		if (!Number.isNaN(sample)) {
+			this.legFromAltitude = sample;
+			this.legFromReady = true;
+		} else {
+			this.legFromReady = false;
+		}
+	}
+
 	// Hides/shows the callsign label + its leader line, independent of the
 	// operator's own `visible` (which also gates the body/reticle/etc) — used
 	// by the "H" HUD-minimal toggle (main.ts) to strip the drone-feed ID tag
