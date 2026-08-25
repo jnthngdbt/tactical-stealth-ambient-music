@@ -98,6 +98,14 @@ function runCinematic(): () => void {
 	// fixed for this mode run's lifetime since `operators` never changes size.
 	const hasOperators = operators.length > 0;
 
+	// P poses the shot: freezes both the operators' patrol movement and the
+	// drone's automatic flight drift/look-at easing (by feeding them a delta of
+	// 0, see animate() below), while leaving OrbitControls' own drag/zoom fully
+	// responsive so the frozen frame can still be recomposed by hand.
+	let paused = false;
+	const hudModeEl = document.getElementById('hudMode');
+	const hudModeBaseText = hudModeEl?.textContent ?? '';
+
 	// nothing is ticked until the tiles needed for the current view have
 	// actually finished downloading/parsing — 3d-tiles-renderer fires this
 	// once its load queues drain. This is only a proxy for "this operator's
@@ -166,7 +174,12 @@ function runCinematic(): () => void {
 
 	// R is a keyboard shortcut for the same start/stop action as clicking hudRec.
 	function onKeyDown(event: KeyboardEvent) {
-		if (event.key === 'r' || event.key === 'R') onRecordClick();
+		if (event.key === 'r' || event.key === 'R') {
+			onRecordClick();
+		} else if (event.key === 'p' || event.key === 'P') {
+			paused = !paused;
+			if (hudModeEl) hudModeEl.textContent = paused ? `${hudModeBaseText} // PAUSED` : hudModeBaseText;
+		}
 	}
 	window.addEventListener('keydown', onKeyDown);
 
@@ -291,6 +304,10 @@ function runCinematic(): () => void {
 		// clamp delta so a backgrounded tab doesn't make operators jump on return
 		const delta = Math.min(clock.getDelta(), 0.1);
 		elapsed += delta;
+		// fed to the operator/camera-drift updates below instead of the real delta
+		// while paused, so they hold perfectly still without touching wall-clock-
+		// driven things (recording timecode, vitals, battery drain)
+		const simDelta = paused ? 0 : delta;
 
 		app.camera.updateMatrixWorld();
 		updateTilesResolution(tiles, app.camera, app.renderer);
@@ -343,7 +360,7 @@ function runCinematic(): () => void {
 		let groundReady = false;
 		if (mapReady && hasOperators) {
 			operators.forEach((operator) => {
-				operator.tick(delta, groundSample, app.camera);
+				operator.tick(simDelta, groundSample, app.camera);
 				// reveal only once this specific operator has snapped to its own
 				// real ground height, not just when the global tile queue is
 				// empty — otherwise an operator whose spawn point wasn't in the
@@ -364,7 +381,7 @@ function runCinematic(): () => void {
 			groundReady = operators.every((operator) => operator.isGroundReady());
 		}
 
-		app.render(delta, operatorsCentroid, groundReady, hasOperators);
+		app.render(simDelta, operatorsCentroid, groundReady, hasOperators);
 
 		// Faux flight telemetry, driven by the camera's actual motion so it
 		// reads as a live drone feed rather than static decoration.
