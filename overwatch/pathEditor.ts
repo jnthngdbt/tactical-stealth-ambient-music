@@ -6,10 +6,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
-import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution, setTerrainDimColor } from './tiles.ts';
+import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal, updateTilesResolution } from './tiles.ts';
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
+import { applyVibe, vibeLabel } from './vibes.ts';
 import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
@@ -331,22 +332,18 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	// look between named presets (constants.ts's VIBE_PRESETS) — retints the
 	// already-running bloom/night-grade pipeline and already-loaded tiles
 	// in place, no reload needed. Starts at whatever `?vibe=` resolved to.
+	// Cinematic mode (main.ts) supports the same shortcut via the shared
+	// applyVibe()/vibeLabel() helpers (vibes.ts).
 	let currentVibe: CONST.VibeName = CONST.VIBE_NAME;
 
 	function updateVibeHud() {
 		if (!editorVibeEl) return;
-		const label = currentVibe === 'moonlit' ? 'Moonlit' : 'Cinematic';
-		editorVibeEl.textContent = `Vibe: ${label} (Alt+1/2)`;
+		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1/2)`;
 	}
 
-	function applyVibe(name: CONST.VibeName) {
+	function setVibe(name: CONST.VibeName) {
 		currentVibe = name;
-		const preset = CONST.VIBE_PRESETS[name];
-		renderer.setClearColor(preset.backgroundColor);
-		nightPass.uniforms.tint.value.setHex(preset.nightTint);
-		nightPass.uniforms.saturation.value = preset.nightSaturation;
-		nightPass.uniforms.vignette.value = preset.nightVignette;
-		setTerrainDimColor(preset.terrainDimColor);
+		applyVibe(name, renderer, nightPass);
 		updateVibeHud();
 	}
 	updateVibeHud();
@@ -391,7 +388,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 
 	function onKeyDown(event: KeyboardEvent) {
 		if (event.altKey && (event.key === '1' || event.key === '2')) {
-			applyVibe(event.key === '1' ? 'cinematic' : 'moonlit');
+			setVibe(event.key === '1' ? 'cinematic' : 'moonlit');
 			event.preventDefault();
 			return;
 		}

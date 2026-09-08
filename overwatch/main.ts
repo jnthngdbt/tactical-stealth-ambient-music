@@ -5,6 +5,7 @@ import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { runPathEditor } from './pathEditor.ts';
+import { applyVibe } from './vibes.ts';
 import * as CONST from './constants.ts';
 
 type Mode = 'cinematic' | 'edit';
@@ -124,6 +125,12 @@ function runCinematic(): () => void {
 	// reads as a normal live shot.
 	let paused = false;
 
+	// Alt+1/Alt+2 live-switches the whole night-grade look between named
+	// presets (constants.ts's VIBE_PRESETS), same shortcut/behavior as the path
+	// editor (see vibes.ts) — resets to whatever `?vibe=` resolved to on every
+	// fresh cinematic run since `app`/its nightPass are rebuilt from scratch.
+	let currentVibe: CONST.VibeName = CONST.VIBE_NAME;
+
 	// nothing is ticked until the tiles needed for the current view have
 	// actually finished downloading/parsing — 3d-tiles-renderer fires this
 	// once its load queues drain. This is only a proxy for "this operator's
@@ -192,6 +199,12 @@ function runCinematic(): () => void {
 
 	// R is a keyboard shortcut for the same start/stop action as clicking hudRec.
 	function onKeyDown(event: KeyboardEvent) {
+		if (event.altKey && (event.key === '1' || event.key === '2')) {
+			currentVibe = event.key === '1' ? 'cinematic' : 'moonlit';
+			applyVibe(currentVibe, app.renderer, app.nightPass);
+			event.preventDefault();
+			return;
+		}
 		if (event.key === 'r' || event.key === 'R') {
 			onRecordClick();
 		} else if (event.key === 'p' || event.key === 'P') {

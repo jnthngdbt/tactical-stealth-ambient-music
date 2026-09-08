@@ -18,6 +18,9 @@ export class App {
 	public renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
 	public controls: OrbitControls;
 	public composer: EffectComposer;
+	// Public so a live vibe switcher (see vibes.ts, wired up in main.ts) can
+	// mutate its uniforms in place, same as the path editor already does.
+	public nightPass: NightGradingPass;
 	public labelRenderer = new CSS2DRenderer();
 	private driftElapsed = 0;
 	private lastAnchor = new THREE.Vector3();
@@ -65,14 +68,13 @@ export class App {
 				CONST.BLOOM_THRESHOLD,
 			),
 		);
-		this.composer.addPass(
-			new NightGradingPass({
-				exposure: CONST.NIGHT_EXPOSURE,
-				tint: CONST.NIGHT_TINT,
-				saturation: CONST.NIGHT_SATURATION,
-				vignette: CONST.NIGHT_VIGNETTE,
-			}),
-		);
+		this.nightPass = new NightGradingPass({
+			exposure: CONST.NIGHT_EXPOSURE,
+			tint: CONST.NIGHT_TINT,
+			saturation: CONST.NIGHT_SATURATION,
+			vignette: CONST.NIGHT_VIGNETTE,
+		});
+		this.composer.addPass(this.nightPass);
 		this.composer.addPass(new OutputPass());
 
 		// Operator nameplates render through a separate CSS2D layer so their text
