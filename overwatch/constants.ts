@@ -34,6 +34,13 @@ export const VIBE_PRESETS = {
 		nightSaturation: 0.58,
 		nightVignette: 0.8, // heavier edge darkening — sells a moonlit spotlight-in-the-dark read more than cinematic's
 	},
+	grayscale: {
+		backgroundColor: 0x0a0a0a,
+		terrainDimColor: 0x8a8a8a,
+		nightTint: 0x808080, // mid-gray: NightGradingPass does graded*tint*2.0, so this is a no-op tint, keeping true neutral grayscale
+		nightSaturation: 0, // fully desaturated — a black-and-white surveillance-feed look
+		nightVignette: 0.7,
+	},
 } satisfies Record<string, VibePreset>;
 
 export type VibeName = keyof typeof VIBE_PRESETS;

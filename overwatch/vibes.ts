@@ -17,5 +17,7 @@ export function applyVibe(name: CONST.VibeName, renderer: THREE.WebGLRenderer, n
 }
 
 export function vibeLabel(name: CONST.VibeName): string {
-	return name === 'moonlit' ? 'Moonlit' : 'Cinematic';
+	if (name === 'moonlit') return 'Moonlit';
+	if (name === 'grayscale') return 'Grayscale';
+	return 'Cinematic';
 }

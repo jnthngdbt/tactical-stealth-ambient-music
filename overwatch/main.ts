@@ -199,8 +199,8 @@ function runCinematic(): () => void {
 
 	// R is a keyboard shortcut for the same start/stop action as clicking hudRec.
 	function onKeyDown(event: KeyboardEvent) {
-		if (event.altKey && (event.key === '1' || event.key === '2')) {
-			currentVibe = event.key === '1' ? 'cinematic' : 'moonlit';
+		if (event.altKey && (event.key === '1' || event.key === '2' || event.key === '3')) {
+			currentVibe = event.key === '1' ? 'cinematic' : event.key === '2' ? 'moonlit' : 'grayscale';
 			applyVibe(currentVibe, app.renderer, app.nightPass);
 			event.preventDefault();
 			return;

@@ -338,7 +338,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 
 	function updateVibeHud() {
 		if (!editorVibeEl) return;
-		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1/2)`;
+		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1/2/3)`;
 	}
 
 	function setVibe(name: CONST.VibeName) {
@@ -387,8 +387,8 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
-		if (event.altKey && (event.key === '1' || event.key === '2')) {
-			setVibe(event.key === '1' ? 'cinematic' : 'moonlit');
+		if (event.altKey && (event.key === '1' || event.key === '2' || event.key === '3')) {
+			setVibe(event.key === '1' ? 'cinematic' : event.key === '2' ? 'moonlit' : 'grayscale');
 			event.preventDefault();
 			return;
 		}
