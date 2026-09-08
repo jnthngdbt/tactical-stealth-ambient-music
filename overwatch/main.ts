@@ -31,6 +31,21 @@ if (hudEl) hudEl.style.opacity = String(CONST.HUD_OPACITY);
 let hudMinimal = false;
 let activeOperators: Operator[] = [];
 
+// O toggles just the operator-specific HUD elements (callsign tags/leader
+// lines + the OPERATOR VITALS panel), independent of M — everything else
+// (ALT/HDG/SPD, REC, GPS, reticle, etc.) stays visible.
+let showOperatorHud = true;
+const vitalsPanelWrapperEl = document.getElementById('hudVitalsPanel');
+
+// Combines both toggles: a label/leader line only shows while neither M nor O
+// has hidden it; the vitals panel only depends on O (M already hides it via
+// the `#hud.hud-minimal` CSS rule regardless of this inline style).
+function updateOperatorHudVisibility() {
+	const labelsVisible = !hudMinimal && showOperatorHud;
+	activeOperators.forEach((operator) => operator.setLabelVisible(labelsVisible));
+	if (vitalsPanelWrapperEl) vitalsPanelWrapperEl.style.display = showOperatorHud ? '' : 'none';
+}
+
 // H toggles the shortcuts cheat-sheet (#shortcutsPanel, index.html) — a plain
 // top-level overlay, not a #hud child, so it stays visible even while
 // hud-minimal is on.
@@ -41,7 +56,10 @@ window.addEventListener('keydown', (event) => {
 	if (event.key === 'm' || event.key === 'M') {
 		hudMinimal = !hudMinimal;
 		hudEl?.classList.toggle('hud-minimal', hudMinimal);
-		activeOperators.forEach((operator) => operator.setLabelVisible(!hudMinimal));
+		updateOperatorHudVisibility();
+	} else if (event.key === 'o' || event.key === 'O') {
+		showOperatorHud = !showOperatorHud;
+		updateOperatorHudVisibility();
 	} else if (event.key === 'h' || event.key === 'H') {
 		shortcutsVisible = !shortcutsVisible;
 		shortcutsPanel?.toggleAttribute('hidden', !shortcutsVisible);
@@ -88,11 +106,11 @@ function runCinematic(): () => void {
 	const operators = TRAJECTORIES.map((trajectory, i) => {
 		const operator = new Operator(trajectory, OPERATOR_NAMES[i], CONST.OPERATOR_COLOR);
 		operator.visible = false;
-		operator.setLabelVisible(!hudMinimal); // honor an H toggle from a previous cinematic run
 		app.scene.add(operator);
 		return operator;
 	});
 	activeOperators = operators;
+	updateOperatorHudVisibility(); // honor M/O toggles left over from a previous cinematic run
 	// Whether there's any operator-derived centroid to place the camera from at
 	// all (see the siteGroundPlaced retry loop below and app.ts's updateDrift) —
 	// fixed for this mode run's lifetime since `operators` never changes size.
@@ -101,10 +119,10 @@ function runCinematic(): () => void {
 	// P poses the shot: freezes both the operators' patrol movement and the
 	// drone's automatic flight drift/look-at easing (by feeding them a delta of
 	// 0, see animate() below), while leaving OrbitControls' own drag/zoom fully
-	// responsive so the frozen frame can still be recomposed by hand.
+	// responsive so the frozen frame can still be recomposed by hand. Not shown
+	// in the HUD (deliberately no "// PAUSED" text) so a paused frame still
+	// reads as a normal live shot.
 	let paused = false;
-	const hudModeEl = document.getElementById('hudMode');
-	const hudModeBaseText = hudModeEl?.textContent ?? '';
 
 	// nothing is ticked until the tiles needed for the current view have
 	// actually finished downloading/parsing — 3d-tiles-renderer fires this
@@ -178,7 +196,6 @@ function runCinematic(): () => void {
 			onRecordClick();
 		} else if (event.key === 'p' || event.key === 'P') {
 			paused = !paused;
-			if (hudModeEl) hudModeEl.textContent = paused ? `${hudModeBaseText} // PAUSED` : hudModeBaseText;
 		}
 	}
 	window.addEventListener('keydown', onKeyDown);

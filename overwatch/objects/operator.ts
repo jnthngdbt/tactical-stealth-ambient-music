@@ -589,8 +589,8 @@ export class Operator extends THREE.Group {
 
 	// Hides/shows the callsign label + its leader line, independent of the
 	// operator's own `visible` (which also gates the body/reticle/etc) — used
-	// by the "H" HUD-minimal toggle (main.ts) to strip the drone-feed ID tag
-	// without hiding the operator itself.
+	// by main.ts's "M" (minimal HUD) and "O" (operator HUD) toggles to strip
+	// the drone-feed ID tag without hiding the operator itself.
 	setLabelVisible(visible: boolean) {
 		this.tag.visible = visible;
 		this.leaderLine.visible = visible;
