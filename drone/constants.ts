@@ -69,6 +69,16 @@ export const NIGHT_TINT = vibe.nightTint;
 export const NIGHT_SATURATION = vibe.nightSaturation;
 export const NIGHT_VIGNETTE = vibe.nightVignette;
 
+// Luma contrast curve applied after the tint (see NightGradingPass): 1 = off.
+// Values below NIGHT_CONTRAST_PIVOT (linear luma) get darker, values above get
+// brighter — keeps the dimmed terrain from sitting in one flat grey band.
+export const NIGHT_CONTRAST = 1.25;
+export const NIGHT_CONTRAST_PIVOT = 0.03;
+
+// Animated sensor-noise strength (see NightGradingPass): 0 = off. Kept low so
+// it reads as a live low-light feed without fighting video compression.
+export const NIGHT_GRAIN = 0.3;
+
 // Bloom threshold is set high so only the glowing operators (and their
 // halos), which are much brighter than the dimmed night terrain, pick up
 // bloom — a low threshold here made the whole scene bloom into a white haze.
@@ -212,6 +222,18 @@ export const OPERATOR_BODY_OPACITY_BASE = 0.9;
 // for a real blur pass.
 export const OPERATOR_HALO_SIZE = 1.0; // metres, camera-facing sprite size
 export const OPERATOR_HALO_OPACITY = 0.7;
+
+// IR strobe: a tiny light on each operator's helmet that double-flashes
+// every OPERATOR_STROBE_PERIOD seconds, like the identification strobes seen
+// on night-vision/drone footage. The silhouette itself stays dark — this is
+// what lets the eye find it from altitude. Drawn at a fixed on-screen size
+// (fraction of viewport height) so it stays a pinpoint at any zoom.
+// OPERATOR_STROBE_SIZE = 0 disables it.
+export const OPERATOR_STROBE_SIZE = 0.016;
+export const OPERATOR_STROBE_COLOR = 0xeafffb;
+export const OPERATOR_STROBE_PERIOD = 1.6; // seconds between double-flashes
+export const OPERATOR_STROBE_FLASH = 0.09; // seconds each flash takes to fade out
+export const OPERATOR_STROBE_GAP = 0.2; // seconds between the two flashes
 
 export const OPERATOR_SHADOW_RADIUS = 0.5; // soft dark ground decal that grounds the body visually
 export const OPERATOR_RETICLE_SIZE = 1.05; // half-size of the square tactical bracket around the body

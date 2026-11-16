@@ -59,6 +59,28 @@ function getHaloTexture(): THREE.Texture {
 	return sharedHaloTexture;
 }
 
+let sharedStrobeTexture: THREE.Texture | null = null;
+
+// Hot core with a short soft falloff, for the IR strobe pinpoint.
+function getStrobeTexture(): THREE.Texture {
+	if (sharedStrobeTexture) return sharedStrobeTexture;
+
+	const size = 64;
+	const canvas = document.createElement('canvas');
+	canvas.width = canvas.height = size;
+	const ctx = canvas.getContext('2d')!;
+	const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+	gradient.addColorStop(0, 'rgba(255,255,255,1)');
+	gradient.addColorStop(0.25, 'rgba(255,255,255,0.9)');
+	gradient.addColorStop(0.5, 'rgba(255,255,255,0.25)');
+	gradient.addColorStop(1, 'rgba(255,255,255,0)');
+	ctx.fillStyle = gradient;
+	ctx.fillRect(0, 0, size, size);
+
+	sharedStrobeTexture = new THREE.CanvasTexture(canvas);
+	return sharedStrobeTexture;
+}
+
 // Builds the flat, ground-level square bracket (tactical "target lock"
 // reticle) around the operator, matching the HUD's own corner-bracket motif.
 function buildReticleGeometry(): THREE.BufferGeometry {
@@ -122,6 +144,9 @@ export class Operator extends THREE.Group {
 	private shadowMaterial: THREE.MeshBasicMaterial;
 	private reticle: THREE.LineSegments;
 	private reticleMaterial: THREE.LineBasicMaterial;
+	private strobe: THREE.Sprite;
+	private strobeMaterial: THREE.SpriteMaterial;
+	private strobePhase = Math.random() * CONST.OPERATOR_STROBE_PERIOD; // staggered so operators don't blink in unison
 	private leaderLine: THREE.Line;
 	private leaderMaterial: THREE.LineBasicMaterial;
 	private tagEl: HTMLDivElement;
@@ -257,6 +282,25 @@ export class Operator extends THREE.Group {
 		this.reticle.position.y = 0.04;
 
 		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.rifle, this.shadowDecal, this.reticle);
+
+		// IR strobe on the helmet (see OPERATOR_STROBE_* in constants.ts) —
+		// additive and bright enough to cross the bloom threshold, depth-tested
+		// so it's genuinely lost under tree cover like the operator itself.
+		this.strobeMaterial = new THREE.SpriteMaterial({
+			map: getStrobeTexture(),
+			color: CONST.OPERATOR_STROBE_COLOR,
+			transparent: true,
+			opacity: 0,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
+			sizeAttenuation: false,
+			toneMapped: false,
+		});
+		this.strobe = new THREE.Sprite(this.strobeMaterial);
+		this.strobe.scale.setScalar(CONST.OPERATOR_STROBE_SIZE);
+		this.strobe.position.y = bodyTopY + CONST.OPERATOR_HEAD_RADIUS * 2;
+		this.strobe.visible = CONST.OPERATOR_STROBE_SIZE > 0;
+		this.add(this.strobe);
 
 		// Drone-feed style ID tag: a diagonal leader line off the operator's
 		// head out to a floating callsign label. The label is a DOM element
@@ -419,6 +463,11 @@ export class Operator extends THREE.Group {
 		const pulse = 0.65 + 0.35 * Math.sin(this.pulsePhase);
 		this.reticleMaterial.opacity = 0.55 + 0.4 * pulse;
 		this.shadowMaterial.opacity = 0.55 + 0.25 * pulse;
+
+		// double-flash: two sharp pops that each fade out quickly, then dark
+		this.strobePhase = (this.strobePhase + delta) % CONST.OPERATOR_STROBE_PERIOD;
+		const flash = (t: number) => (t >= 0 && t < CONST.OPERATOR_STROBE_FLASH ? 1 - t / CONST.OPERATOR_STROBE_FLASH : 0);
+		this.strobeMaterial.opacity = Math.max(flash(this.strobePhase), flash(this.strobePhase - CONST.OPERATOR_STROBE_GAP));
 
 		this.updateIdleSway(delta);
 		this.updateBodyTilt();
@@ -749,6 +798,7 @@ export class Operator extends THREE.Group {
 		this.shadowMaterial.dispose();
 		this.reticle.geometry.dispose();
 		this.reticleMaterial.dispose();
+		this.strobeMaterial.dispose();
 		this.leaderLine.geometry.dispose();
 		this.leaderMaterial.dispose();
 		this.tagEl.remove();
