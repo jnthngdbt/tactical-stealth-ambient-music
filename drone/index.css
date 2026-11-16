@@ -7,3 +7,64 @@ html, body {
 canvas {
   display: block;
 }
+
+/* Mission gallery (gallery.ts), shown when the page has no query string.
+   Mirrors the root home page look (index.css), with a smaller font so the
+   longer mission titles fit. */
+html.drone-gallery-mode,
+html.drone-gallery-mode body {
+  overflow: auto;
+  font-family: 'Russo One';
+  background-color: rgb(7, 10, 12);
+}
+
+.drone-gallery-mode #hud,
+.drone-gallery-mode #shortcutsPanel {
+  display: none;
+}
+
+#droneGallery {
+  position: absolute;
+  top: 1%;
+  left: 1%;
+  right: 1%;
+  padding-bottom: 32px;
+  font-size: 36px;
+  text-transform: uppercase;
+}
+
+#droneGallery a {
+  text-decoration: none;
+  color: rgb(127, 154, 152);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+#droneGallery a:hover {
+  color: #b7f3ea;
+}
+
+.drone-gallery-entry {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(127, 154, 152, 0.16);
+}
+
+.drone-gallery-list {
+  border-top: 1px solid rgba(127, 154, 152, 0.16);
+}
+
+/* "+ New mission": an action, not a mission, so it's an outlined button
+   above the list rather than another row. */
+#droneGallery a.drone-gallery-new {
+  display: inline-block;
+  margin: 24px 0 28px;
+  padding: 10px 20px;
+  font-size: 22px;
+  color: rgba(127, 154, 152, 0.75);
+  border: 2px dashed rgba(127, 154, 152, 0.4);
+  border-radius: 4px;
+}
+
+#droneGallery a.drone-gallery-new:hover {
+  color: #b7f3ea;
+  border-color: #b7f3ea;
+}

@@ -1,0 +1,55 @@
+// Landing page shown when /drone/ is opened with no query string at all:
+// a gallery of predefined missions in the same style as the root home page
+// (index.html/index.css). Each entry links to the full mission URL (see
+// urlParams.ts for the supported params). Links are relative (`./?...`) so
+// they work both locally and on GitHub Pages.
+
+interface GalleryEntry {
+	title: string;
+	query: string; // query string without the leading `?`
+}
+
+const ENTRIES: GalleryEntry[] = [
+	{
+		title: '20260820 - Castle Clinton, New York',
+		query:
+			'coord=40.7033%2C-74.017&rotation=70&alt=80&hud=0.5&paths=%5B%5B%5B-42%2C97.2%5D%2C%5B-37.5%2C73.1%5D%2C%5B-34.6%2C33.7%5D%2C%5B-11.3%2C2.3%5D%2C%5B13%2C-14.7%5D%2C%5B31.6%2C-12.5%5D%2C%5B43.1%2C-5.2%5D%2C%5B60.1%2C-17.1%5D%2C%5B70%2C-43.1%5D%2C%5B73.4%2C-66.9%5D%2C%5B87.3%2C-92.9%5D%2C%5B125.8%2C-113.8%5D%2C%5B163.4%2C-116.5%5D%2C%5B182.2%2C-116.9%5D%2C%5B196.9%2C-132.3%5D%2C%5B212.1%2C-162.6%5D%2C%5B226.7%2C-175.5%5D%5D%2C%5B%5B-44.6%2C92.4%5D%2C%5B-53.3%2C68.3%5D%2C%5B-50.6%2C44.7%5D%2C%5B-43.6%2C24%5D%2C%5B-24.1%2C10.7%5D%2C%5B-11.6%2C-14.7%5D%2C%5B1.5%2C-30.9%5D%2C%5B38.7%2C-32.5%5D%2C%5B71.3%2C-65.4%5D%2C%5B84.5%2C-82.9%5D%2C%5B123.6%2C-120.2%5D%2C%5B141.7%2C-129.9%5D%2C%5B156.5%2C-147.2%5D%2C%5B170.6%2C-163.8%5D%2C%5B187.2%2C-163.2%5D%2C%5B204.7%2C-165.7%5D%2C%5B211.8%2C-177.3%5D%2C%5B215.9%2C-187.4%5D%2C%5B224.2%2C-190.7%5D%5D%5D',
+	},
+	{
+		title: '20260826 - Grenada Castle, Spain',
+		query:
+			'coord=37.1773098%2C-3.5932233&names=Johnston%2CLoiselle&vibe=moonlit&rotation=-17&alt=60&hud=0.5&groundY=788.4478755886629&paths=%5B%5B%5B28.6%2C-41.7%5D%2C%5B40.3%2C-37.4%5D%2C%5B51.1%2C-30.7%5D%2C%5B60.1%2C-25.1%5D%2C%5B72.7%2C-16.7%5D%2C%5B98.1%2C-15.9%5D%2C%5B101.8%2C-19.9%5D%2C%5B116.7%2C-20.3%5D%2C%5B127%2C-14.2%5D%2C%5B145.3%2C-4.3%5D%2C%5B170%2C15.4%5D%2C%5B183.4%2C14.5%5D%2C%5B180.9%2C-18.9%5D%2C%5B190.1%2C-23%5D%2C%5B191.6%2C-31.1%5D%2C%5B197.8%2C-46.5%5D%2C%5B213.2%2C-62.5%5D%2C%5B216.9%2C-71.3%5D%2C%5B232.9%2C-78.6%5D%2C%5B244.3%2C-83.8%5D%2C%5B252%2C-95%5D%2C%5B268.6%2C-108.1%5D%2C%5B277%2C-124.9%5D%2C%5B312%2C-137.6%5D%2C%5B343.9%2C-150.5%5D%5D%2C%5B%5B15.9%2C-23%5D%2C%5B27.9%2C-19.9%5D%2C%5B44.6%2C-18.5%5D%2C%5B57.2%2C-14.4%5D%2C%5B65.2%2C-10.5%5D%2C%5B99.7%2C-3.6%5D%2C%5B114.2%2C-11.9%5D%2C%5B131.1%2C-2.9%5D%2C%5B162.5%2C20.2%5D%2C%5B176.9%2C22.4%5D%2C%5B195.5%2C20.2%5D%2C%5B196.6%2C-2.8%5D%2C%5B197%2C-13.4%5D%2C%5B198.7%2C-23.2%5D%2C%5B209.4%2C-39.6%5D%2C%5B213.6%2C-57.6%5D%2C%5B215.7%2C-70.9%5D%2C%5B230.2%2C-75%5D%2C%5B255.4%2C-89.1%5D%2C%5B267.2%2C-104.5%5D%2C%5B279%2C-116.1%5D%2C%5B314%2C-130.9%5D%2C%5B345.9%2C-150.9%5D%5D%5D',
+	},
+];
+
+export function showGallery() {
+	document.documentElement.classList.add('drone-gallery-mode');
+	document.title = 'TSAM // DRONE';
+
+	const container = document.createElement('div');
+	container.id = 'droneGallery';
+
+	const list = document.createElement('div');
+	list.className = 'drone-gallery-list';
+	// Decreasing alphabetical order (titles start with a date, so newest first).
+	const sorted = [...ENTRIES].sort((a, b) => b.title.localeCompare(a.title));
+	sorted.forEach((entry) => {
+		const row = document.createElement('div');
+		row.className = 'drone-gallery-entry';
+		const link = document.createElement('a');
+		link.href = `./?${entry.query}`;
+		link.textContent = entry.title;
+		row.appendChild(link);
+		list.appendChild(row);
+	});
+
+	// Not a saved mission: a blank one (default site, no paths) that opens
+	// straight into the path editor — styled as a button, above the list.
+	const newLink = document.createElement('a');
+	newLink.className = 'drone-gallery-new';
+	newLink.href = './?coord=';
+	newLink.textContent = '+ New mission';
+
+	container.append(newLink, list);
+	document.body.appendChild(container);
+}

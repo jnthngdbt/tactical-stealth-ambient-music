@@ -1,6 +1,6 @@
 body {
   font-family: 'Russo One';
-  background-color: rgb(20, 18, 29);
+  background-color: rgb(7, 10, 12);
 
   text-size-adjust:100%; 
   -webkit-text-size-adjust:100%;
@@ -8,22 +8,32 @@ body {
   -moz-text-size-adjust:100%;
 }
 
+/* Same look as the drone mission gallery (drone/index.css, #droneGallery). */
 #links {
-  /*background: rgba(128,128,128,0.2);*/
-
   position: absolute;
   top: 1%;
-  height: 45%;
   left: 1%;
-  width: 45%;
-
-  /*text-align: center;*/
-  font-size: 160px;
-  /*font-weight: 400;*/
+  right: 1%;
+  padding-top: 10px;
+  padding-bottom: 32px;
+  font-size: 36px;
   text-transform: uppercase;
+}
+
+#links > div {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(127, 154, 152, 0.16);
 }
 
 a {
   text-decoration: none;
-  color: rgb(132, 75, 162);
+  color: rgb(127, 154, 152);
+}
+
+a {
+  transition: color 0.15s;
+}
+
+a:hover {
+  color: #b7f3ea;
 }
