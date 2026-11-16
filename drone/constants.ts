@@ -1,7 +1,7 @@
 import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_SITE_GROUND_Y, URL_VIBE } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
-// pushed further into a cool "night overwatch" grade applied on top of the
+// pushed further into a cool "night drone" grade applied on top of the
 // (daylight-captured) photorealistic tiles by NightGradingPass.
 //
 // The overall "vibe" (background/terrain/night-tint palette) is a named

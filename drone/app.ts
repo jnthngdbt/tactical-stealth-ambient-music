@@ -8,7 +8,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { NightGradingPass } from './NightGradingPass.ts';
 import * as CONST from './constants.ts';
 
-// Renders the overwatch feed: a camera drifting along a slow figure-eight
+// Renders the drone feed: a camera drifting along a slow figure-eight
 // flight path but always looking at the operators' centroid, with bloom for
 // their glow and a night grading pass applied last so the (daylight-captured)
 // imagery reads as a dark tactical night feed.

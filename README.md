@@ -46,9 +46,9 @@ Visuals experiments for [@TacticalStealthAmbientMusic](https://www.youtube.com/@
 
 # Pages
 
-## overwatch/
+## drone/
 
 Mission-monitoring visual: glowing operator dots patrol a photorealistic 3D
-map, graded into a dark tactical night look. See [overwatch/README.md](overwatch/README.md)
+map, graded into a dark tactical night look. See [drone/README.md](drone/README.md)
 for setup (API key/token) and usage (URL query params to share missions).
 

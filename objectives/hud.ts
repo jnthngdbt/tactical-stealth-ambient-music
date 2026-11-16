@@ -46,7 +46,7 @@ export class Hud {
 				this.subtitleEl.textContent = 'OBJECTIVE IN PROGRESS';
 				break;
 			case 'outro':
-				this.subtitleEl.textContent = 'MISSION COMPLETE — RETURNING TO OVERWATCH';
+				this.subtitleEl.textContent = 'MISSION COMPLETE — RETURNING TO DRONE';
 				break;
 		}
 

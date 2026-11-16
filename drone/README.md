@@ -1,4 +1,4 @@
-# overwatch/
+# drone/
 
 Mission-monitoring visual: glowing operator dots patrol a photorealistic 3D
 map (streets, trees, buildings) rendered with [3d-tiles-renderer](https://github.com/NASA-AMMOS/3DTilesRendererJS)
@@ -11,11 +11,11 @@ works with Google's Photorealistic 3D Tiles):
 
 1. Copy `.env.local.example` to `.env.local` (already gitignored).
 2. Fill in `VITE_ION_KEY` with a free [Cesium Ion](https://ion.cesium.com) access token — every account gets Google's Photorealistic 3D Tiles available by default (asset id `2275207`), no billing needed to start. Alternatively set `VITE_GOOGLE_MAPS_API_KEY` to stream directly from the Google Maps Platform Map Tiles API (requires billing).
-3. `npx vite` and open `/overwatch/`.
+3. `npx vite` and open `/drone/`.
 
 To point it at a different real-world location, change `SITE_LAT`/`SITE_LON`
-in `overwatch/constants.ts`, then orbit the scene and adjust the illustrative
-patrol routes in `overwatch/mission.ts` to match the actual streets/cover.
+in `drone/constants.ts`, then orbit the scene and adjust the illustrative
+patrol routes in `drone/mission.ts` to match the actual streets/cover.
 
 Because this is a static site, whatever key is present at build time gets
 bundled into the published JS. Restrict the key/token (HTTP referrer or Ion's
@@ -40,8 +40,8 @@ deployed site:
 ## Mission via URL
 
 Instead of (or in addition to) baking location/paths into the build,
-`overwatch/` accepts them as URL query params, resolved once in
-`overwatch/urlParams.ts` and preferred over the `constants.ts`/`mission.ts`
+`drone/` accepts them as URL query params, resolved once in
+`drone/urlParams.ts` and preferred over the `constants.ts`/`mission.ts`
 defaults when present:
 
 - `coord` — site origin, as `lat,lon`, overrides `SITE_LAT`/`SITE_LON`
