@@ -1,11 +1,25 @@
+/* HUD typeface: VT323, a DEC VT320 terminal face, for an old FLIR / CRT
+   hardware read. It's drawn small for its size, hence the font-size-adjust
+   (on the elements that set it) to keep the HUD legible. */
+:root {
+  --hud-font: 'VT323', monospace;
+}
+
+#hud,
+.operator-label,
+.checkpoint-label,
+.hud-editor-btn {
+  font-size-adjust: 0.62;
+}
+
 #hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
   color: #b7f3ea;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--hud-font);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   z-index: 2;
 }
 
@@ -343,7 +357,7 @@
 }
 
 .hud-editor-btn {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--hud-font);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 11px;
@@ -377,7 +391,7 @@
 .operator-label {
   position: absolute;
   transform: translateY(-50%);
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--hud-font);
   font-size: 11px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -391,7 +405,7 @@
 
 /* Per-checkpoint estimated timestamp tag in the path editor (CSS2DObject) */
 .checkpoint-label {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--hud-font);
   font-size: 10px;
   letter-spacing: 0.05em;
   background: rgba(5, 10, 10, 0.5);
@@ -416,7 +430,7 @@
   border: 1px solid rgba(183, 243, 234, 0.4);
   border-radius: 6px;
   color: #b7f3ea;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--hud-font);
   letter-spacing: 0.04em;
   box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
 }

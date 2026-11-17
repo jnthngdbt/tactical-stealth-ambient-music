@@ -10,7 +10,7 @@ import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal,
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
-import { applyVibe, vibeLabel } from './vibes.ts';
+import { applyVibe, vibeForKey, vibeLabel } from './vibes.ts';
 import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
@@ -338,7 +338,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 
 	function updateVibeHud() {
 		if (!editorVibeEl) return;
-		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1/2/3)`;
+		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1-4)`;
 	}
 
 	function setVibe(name: CONST.VibeName) {
@@ -387,8 +387,9 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
-		if (event.altKey && (event.key === '1' || event.key === '2' || event.key === '3')) {
-			setVibe(event.key === '1' ? 'cinematic' : event.key === '2' ? 'moonlit' : 'grayscale');
+		const vibe = vibeForKey(event);
+		if (vibe) {
+			setVibe(vibe);
 			event.preventDefault();
 			return;
 		}

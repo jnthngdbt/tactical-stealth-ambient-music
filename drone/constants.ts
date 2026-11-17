@@ -17,6 +17,7 @@ export interface VibePreset {
 	nightTint: number;
 	nightSaturation: number;
 	nightVignette: number;
+	operatorBodyColor: number; // silhouette fill — near-black normally, white-hot under `thermal`
 }
 
 export const VIBE_PRESETS = {
@@ -26,6 +27,7 @@ export const VIBE_PRESETS = {
 		nightTint: 0x1c3a4a,
 		nightSaturation: 0.5,
 		nightVignette: 0.7,
+		operatorBodyColor: 0x05070a,
 	},
 	moonlit: {
 		backgroundColor: 0x040711,
@@ -33,6 +35,7 @@ export const VIBE_PRESETS = {
 		nightTint: 0x1e305e, // blue moonlight tint, split between a straight blue push and a fully desaturated grey-blue
 		nightSaturation: 0.58,
 		nightVignette: 0.8, // heavier edge darkening — sells a moonlit spotlight-in-the-dark read more than cinematic's
+		operatorBodyColor: 0x05070a,
 	},
 	grayscale: {
 		backgroundColor: 0x0a0a0a,
@@ -40,6 +43,18 @@ export const VIBE_PRESETS = {
 		nightTint: 0x808080, // mid-gray: NightGradingPass does graded*tint*2.0, so this is a no-op tint, keeping true neutral grayscale
 		nightSaturation: 0, // fully desaturated — a black-and-white surveillance-feed look
 		nightVignette: 0.7,
+		operatorBodyColor: 0x05070a,
+	},
+	// White-hot infrared: cool, dark grayscale terrain with the operators
+	// rendered as bright white heat signatures (bright enough to cross the
+	// bloom threshold, so they glow like a FLIR feed).
+	thermal: {
+		backgroundColor: 0x050505,
+		terrainDimColor: 0x6a6a6a, // darker than grayscale's — the ground reads as cold
+		nightTint: 0x808080, // neutral (no-op) tint, same as grayscale
+		nightSaturation: 0,
+		nightVignette: 0.6,
+		operatorBodyColor: 0xffffff,
 	},
 } satisfies Record<string, VibePreset>;
 
@@ -156,7 +171,7 @@ export const CHECKPOINT_SCRUB_METERS_PER_UNIT = 0.03;
 // Operator visual: a dark, matte silhouette ("there's really someone there")
 // rather than a glowing dot, tagged with a bright tactical reticle so it still
 // reads clearly against the night terrain.
-export const OPERATOR_BODY_COLOR = 0x05070a; // near-black, stays dark regardless of the night grade
+export const OPERATOR_BODY_COLOR = vibe.operatorBodyColor; // starting value; near-black except under `thermal` (see setOperatorBodyColor in operator.ts)
 
 // Body + head are two overlapping, non-uniformly scaled spheres rather than
 // one perfect sphere, so the silhouette reads as a crouching figure instead

@@ -89,6 +89,19 @@ function buildReticleGeometry(): THREE.BufferGeometry {
 // (each sampled once against the streaming tiles) rather than raycast
 // continuously at the operator's own position, so a stray prop/tree mesh
 // between checkpoints can't yank the operator up onto it.
+// Mutable so the live Alt+1..4 vibe switcher (vibes.ts) can recolor the
+// silhouettes in place — CONST.OPERATOR_BODY_COLOR is only the starting value
+// (same pattern as setTerrainDimColor in tiles.ts). Tracks every live
+// operator (added in the constructor, removed in dispose) so the change
+// reaches ones already in the scene.
+let liveBodyColor = CONST.OPERATOR_BODY_COLOR;
+const liveOperators = new Set<Operator>();
+
+export function setOperatorBodyColor(hex: number) {
+	liveBodyColor = hex;
+	liveOperators.forEach((operator) => operator.setBodyColor(hex));
+}
+
 export class Operator extends THREE.Group {
 	private body: THREE.Mesh;
 	private head: THREE.Mesh;
@@ -162,7 +175,7 @@ export class Operator extends THREE.Group {
 		// pulsing) rather than fully opaque, to soften the contrast against
 		// the terrain.
 		this.bodyMaterial = new THREE.MeshBasicMaterial({
-			color: CONST.OPERATOR_BODY_COLOR,
+			color: liveBodyColor,
 			transparent: true,
 			opacity: CONST.OPERATOR_BODY_OPACITY_BASE,
 			toneMapped: false,
@@ -229,7 +242,7 @@ export class Operator extends THREE.Group {
 		// sphere silhouette, softening the contrast against the terrain.
 		this.haloMaterial = new THREE.SpriteMaterial({
 			map: getHaloTexture(),
-			color: CONST.OPERATOR_BODY_COLOR,
+			color: liveBodyColor,
 			transparent: true,
 			depthWrite: false,
 			opacity: CONST.OPERATOR_HALO_OPACITY,
@@ -257,6 +270,7 @@ export class Operator extends THREE.Group {
 		this.reticle.position.y = 0.04;
 
 		this.add(this.haloSprite, this.body, this.head, this.leftLeg, this.rightLeg, this.rifle, this.shadowDecal, this.reticle);
+		liveOperators.add(this);
 
 		// Drone-feed style ID tag: a diagonal leader line off the operator's
 		// head out to a floating callsign label. The label is a DOM element
@@ -736,7 +750,13 @@ export class Operator extends THREE.Group {
 	// Frees GPU resources and the CSS2D label DOM node — called when tearing
 	// down cinematic mode (see main.ts's mode toggle) so switching back and
 	// forth doesn't leak geometry/materials/labels each time.
+	public setBodyColor(hex: number) {
+		this.bodyMaterial.color.setHex(hex);
+		this.haloMaterial.color.setHex(hex);
+	}
+
 	public dispose() {
+		liveOperators.delete(this);
 		this.body.geometry.dispose();
 		this.head.geometry.dispose();
 		this.leftLeg.geometry.dispose();
