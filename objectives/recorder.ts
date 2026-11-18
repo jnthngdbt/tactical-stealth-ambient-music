@@ -15,8 +15,10 @@ import { BufferTarget, Mp4OutputFormat, Output, Quality, VideoSample, VideoSampl
 // That output is fragmented and variable-frame-rate, so it is only a last
 // resort and a warning is logged when it is used.
 
-// ≈ 120 MB per minute; the whole recording is held in memory until stop.
-const BITRATE = 16_000_000;
+// ≈ 60 MB per minute; the whole recording is held in memory until stop.
+// The encoder spends the whole budget even on slow, dark scenes, so this
+// directly sets the file size (16 Mbps gave 937 MB for 7.8 min).
+const BITRATE = 8_000_000;
 const KEY_FRAME_INTERVAL_SECONDS = 1;
 // Output boxes to try, long side × short side, largest first. Tab capture
 // records physical pixels (CSS size × devicePixelRatio, i.e. OS scaling ×
