@@ -15,16 +15,17 @@ import { BufferTarget, Mp4OutputFormat, Output, Quality, VideoSample, VideoSampl
 // That output is fragmented and variable-frame-rate, so it is only a last
 // resort and a warning is logged when it is used.
 
-// 16 Mbps at 1080p, scaled with pixel count, capped so a long 4K recording
-// still fits in memory (24 Mbps ≈ 180 MB per minute).
-const BASE_BITRATE = 16_000_000;
-const MAX_BITRATE = 24_000_000;
+// ≈ 120 MB per minute; the whole recording is held in memory until stop.
+const BITRATE = 16_000_000;
 const KEY_FRAME_INTERVAL_SECONDS = 1;
-// Largest output boxes to try, long side × short side. A HiDPI tab capture
-// can exceed what H.264 hardware encoders accept (e.g. 3840×2348 is taller
-// than the usual 4096×2304 limit), so the capture is scaled down, keeping
-// its aspect ratio, to the largest box the hardware encoder supports.
-const OUTPUT_BOXES: [number, number][] = [[3840, 2160], [2560, 1440], [1920, 1080], [1280, 720]];
+// Output boxes to try, long side × short side, largest first. Tab capture
+// records physical pixels (CSS size × devicePixelRatio, i.e. OS scaling ×
+// browser zoom), so a 960×540 page can arrive as 4K or more. The capture is
+// scaled down, keeping its aspect ratio, to the largest box the hardware
+// encoder accepts. Capped at 1080p: the drone 3D scene renders at no more
+// than 2× CSS size anyway, and 4K files are ~3× larger for sharper HUD text
+// only.
+const OUTPUT_BOXES: [number, number][] = [[1920, 1080], [1280, 720]];
 const FIRST_FRAME_TIMEOUT_MS = 3000;
 // A tab capture changes size right after it starts (seen in Edge: the first
 // frame was 3360×2054, every later one 3360×1890 — likely the browser's
@@ -46,13 +47,9 @@ const FALLBACK_MIME_TYPES = [
 const toEven = (n: number) => Math.max(2, Math.floor(n / 2) * 2);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const bitrateFor = (width: number, height: number) =>
-	Math.round(Math.min(MAX_BITRATE, Math.max(BASE_BITRATE, BASE_BITRATE * (width * height) / (1920 * 1080))));
-
 type EncodeSettings = {
 	width: number;
 	height: number;
-	bitrate: number;
 	hardwareAcceleration: HardwareAcceleration;
 };
 
@@ -216,9 +213,8 @@ export class Recorder {
 				const scale = Math.min(1, boxLong / long, boxShort / short);
 				const width = toEven(frameWidth * scale);
 				const height = toEven(frameHeight * scale);
-				const bitrate = bitrateFor(width, height);
-				if (await canEncodeVideo('avc', { width, height, bitrate, frameRate: this.fps, hardwareAcceleration })) {
-					return { width, height, bitrate, hardwareAcceleration };
+				if (await canEncodeVideo('avc', { width, height, bitrate: BITRATE, frameRate: this.fps, hardwareAcceleration })) {
+					return { width, height, hardwareAcceleration };
 				}
 			}
 		}
@@ -232,8 +228,8 @@ export class Recorder {
 			if (!size) throw new Error('No video frame received from the capture');
 			const { width: frameWidth, height: frameHeight } = size;
 
-			const { width, height, bitrate, hardwareAcceleration } = await this.pickEncodeSettings(frameWidth, frameHeight);
-			console.info(`Recording ${frameWidth}×${frameHeight} capture as ${width}×${height} H.264 MP4 @ ${bitrate / 1e6} Mbps (${hardwareAcceleration})`);
+			const { width, height, hardwareAcceleration } = await this.pickEncodeSettings(frameWidth, frameHeight);
+			console.info(`Recording ${frameWidth}×${frameHeight} capture as ${width}×${height} H.264 MP4 @ ${BITRATE / 1e6} Mbps (${hardwareAcceleration})`);
 
 			const output = new Output({
 				// 'in-memory' writes the index (moov) at the start of the file.
@@ -243,7 +239,7 @@ export class Recorder {
 
 			const source = new VideoSampleSource({
 				codec: 'avc',
-				quality: new Quality({ bitrate }),
+				quality: new Quality({ bitrate: BITRATE }),
 				keyFrameInterval: KEY_FRAME_INTERVAL_SECONDS,
 				latencyMode: 'quality',
 				hardwareAcceleration,
@@ -324,7 +320,7 @@ export class Recorder {
 		const extension = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
 
 		this.chunks = [];
-		const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BASE_BITRATE });
+		const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
 		recorder.ondataavailable = (e) => {
 			if (e.data.size > 0) this.chunks.push(e.data);
 		};
