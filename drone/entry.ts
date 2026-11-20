@@ -2,6 +2,11 @@
 // (gallery.ts) instead of the 3D scene. main.ts is imported dynamically so
 // none of its module-level side effects (renderer, tiles, URL parsing) run
 // on the gallery page.
+import { installGeoPaste } from './geoPaste.ts';
+
+// Ctrl+V with a Google Maps link jumps to its location, on either page.
+installGeoPaste();
+
 if (window.location.search === '') {
 	import('./gallery.ts').then(({ showGallery }) => showGallery());
 } else {

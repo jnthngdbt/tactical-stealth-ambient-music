@@ -68,3 +68,21 @@ html.drone-gallery-mode body {
   color: #b7f3ea;
   border-color: #b7f3ea;
 }
+
+/* Ctrl+V feedback when the clipboard has no usable Google Maps link
+   (geoPaste.ts). Shown on both the gallery and the 3D scene. */
+.geo-paste-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  padding: 8px 16px;
+  background: rgba(6, 12, 13, 0.85);
+  border: 1px solid rgba(183, 243, 234, 0.4);
+  border-radius: 6px;
+  color: #b7f3ea;
+  font-family: var(--hud-font, 'VT323'), monospace;
+  font-size: 20px;
+  pointer-events: none;
+}

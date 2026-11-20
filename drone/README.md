@@ -52,3 +52,14 @@ defaults when present:
 This makes a "mission" fully shareable as one URL — no rebuild needed to hand
 someone a different location/route, and any number of missions can exist as
 different links instead of different files.
+
+### Jump to a location from Google Maps
+
+Copy a Google Maps URL (or a plain `lat, lon` pair) and press Ctrl+V (Cmd+V
+on macOS) on the gallery or in the scene. `drone/geoPaste.ts` extracts the
+coordinates (the place pin `!3d…!4d…` if present, else the `@lat,lon` view
+centre, else `?q=`/`?query=`/`?ll=`) and reloads with them as `coord`.
+`paths`, `rotation` and `groundY` are dropped since they belong to the old
+site, so the path editor opens; `vibe`, `hud`, `alt` and `names` are kept.
+Short links (`maps.app.goo.gl/…`) aren't supported — open them first and
+copy the full URL from the address bar.
