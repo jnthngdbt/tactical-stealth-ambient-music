@@ -359,8 +359,8 @@ export const OPERATOR_NAME_POOL = [
 	'Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle',
 	// Rainbow Six (1998 novel)
 	'Covington', 'Chin', 'Houston', 'Franklin', 'Bates',
-	'Vega', 'Tomlinson', 'Pierce', 'Lincoln', 'McTyler', 'Patterson', 'Connolly', 'Weber',
-	'Stanley', 'Noonan', 'Tawney', 'Bellow', 'Peled', 'Bennett', 'Malloy', 'Nance', 'Woods',
+	'Vega', 'Tomlinson', 'Pierce', 'Lincoln', 'Connolly', 'Weber',
+	'Stanley', 'Noonan', 'Tawney', 'Malloy', 'Nance', 'Woods',
 	// Ghost Recon Advanced Warfighter
 	'Keating', 'Martin', 'Barnes',
 	// SCP: Overlord (2020 short film)
