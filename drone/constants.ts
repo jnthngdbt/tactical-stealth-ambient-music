@@ -354,7 +354,18 @@ export const RES_MATCH_TOLERANCE = 5;
 
 // Callsign pool one is randomly assigned from, per trajectory, in mission.ts
 // (see OPERATOR_NAMES there) — shared by the cinematic view and path editor.
-export const OPERATOR_NAME_POOL = ['Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle'];
+export const OPERATOR_NAME_POOL = [
+	// Original pool
+	'Mitchell', 'Clark', 'Chavez', 'Ramirez', 'Johnston', 'Diaz', 'Price', 'Loiselle',
+	// Rainbow Six (1998 novel)
+	'Covington', 'Chin', 'Houston', 'Franklin', 'Bates',
+	'Vega', 'Tomlinson', 'Pierce', 'Lincoln', 'McTyler', 'Patterson', 'Connolly', 'Weber',
+	'Stanley', 'Noonan', 'Tawney', 'Bellow', 'Peled', 'Bennett', 'Malloy', 'Nance', 'Woods',
+	// Ghost Recon Advanced Warfighter
+	'Keating', 'Martin', 'Barnes',
+	// SCP: Overlord (2020 short film)
+	'Kolinski', 'Besson', 'Cicero',
+];
 
 // Path editor (pathEditor.ts) — active whenever mission.ts's TRAJECTORIES has
 // any operator with no checkpoints at all. Starts in a straight-down
