@@ -188,6 +188,10 @@ function runCinematic(): () => void {
 
 	const recorder = new Recorder(app.renderer.domElement);
 	const recordBtn = document.getElementById('hudRec') as HTMLButtonElement;
+	// Per-operator arrival counts at the moment recording started — the
+	// recording auto-stops (see animate) once every operator has reached its
+	// path's final checkpoint since then. null while not recording.
+	let recordingArrivalSnapshot: number[] | null = null;
 	// start() is async (it awaits the tab-capture permission prompt), so the
 	// class toggle must wait for it too or isRecording still reads false.
 	async function onRecordClick() {
@@ -195,6 +199,10 @@ function runCinematic(): () => void {
 			recorder.stop();
 		} else {
 			await recorder.start();
+			// skipped when nobody walks, or a stationary-only mission would stop at once
+			if (recorder.isRecording && operators.some((operator) => !operator.isStationary())) {
+				recordingArrivalSnapshot = operators.map((operator) => operator.getLastCheckpointArrivals());
+			}
 		}
 		recordBtn.classList.toggle('recording', recorder.isRecording);
 	}
@@ -421,6 +429,22 @@ function runCinematic(): () => void {
 			// held off until every operator has a real ground sample, so the camera
 			// doesn't start drifting/following before it knows their true altitude
 			groundReady = operators.every((operator) => operator.isGroundReady());
+		}
+
+		// Auto-stop once every operator has reached its last checkpoint since
+		// recording started. Also resyncs the button if the recording ended
+		// some other way (e.g. the browser's "Stop sharing").
+		if (!recorder.isRecording) {
+			recordingArrivalSnapshot = null;
+		} else if (
+			recordingArrivalSnapshot &&
+			operators.every((operator, i) => operator.hasReachedLastCheckpointSince(recordingArrivalSnapshot![i]))
+		) {
+			recorder.stop();
+			recordingArrivalSnapshot = null;
+		}
+		if (recordBtn.classList.contains('recording') !== recorder.isRecording) {
+			recordBtn.classList.toggle('recording', recorder.isRecording);
 		}
 
 		app.render(simDelta, operatorsCentroid, groundReady, hasOperators);

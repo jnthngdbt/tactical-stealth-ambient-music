@@ -148,6 +148,10 @@ export class Operator extends THREE.Group {
 	private path: THREE.Vector3[];
 	private pathIndex = 0;
 	private pathDirection = 1;
+	// Times the operator has arrived at its path's final checkpoint (walking
+	// or via jump/scrub). Callers snapshot it and compare later to know
+	// whether the end was reached since then (see main.ts's recording auto-stop).
+	private lastCheckpointArrivals = 0;
 
 	// Altitude of the current leg's two endpoints (checkpoint indices), each
 	// sampled once against the tiles rather than re-raycast every frame along
@@ -351,6 +355,7 @@ export class Operator extends THREE.Group {
 
 		if (distance <= CONST.PATH_ARRIVAL_RADIUS) {
 			this.legFromIndex = this.pathIndex;
+			if (this.legFromIndex === this.path.length - 1) this.lastCheckpointArrivals++;
 			const next = this.pathIndex + this.pathDirection;
 			if (next < 0 || next >= this.path.length) this.pathDirection *= -1;
 			this.pathIndex += this.pathDirection;
@@ -456,6 +461,7 @@ export class Operator extends THREE.Group {
 
 		if (dir === 1) {
 			this.legFromIndex = this.pathIndex;
+			if (this.legFromIndex === this.path.length - 1) this.lastCheckpointArrivals++;
 			const next = this.pathIndex + this.pathDirection;
 			if (next < 0 || next >= this.path.length) this.pathDirection *= -1;
 			this.pathIndex += this.pathDirection;
@@ -745,6 +751,23 @@ export class Operator extends THREE.Group {
 	// tiles are still streaming in.
 	public isGroundReady(): boolean {
 		return this.hasSnappedToGround;
+	}
+
+	// A single-checkpoint path has nowhere to walk (see tickPath).
+	public isStationary(): boolean {
+		return this.path.length < 2;
+	}
+
+	// Snapshot to pass back into hasReachedLastCheckpointSince() later.
+	public getLastCheckpointArrivals(): number {
+		return this.lastCheckpointArrivals;
+	}
+
+	// True once the operator has arrived at its final checkpoint after the
+	// given snapshot. A single-checkpoint path never moves, so it's always
+	// already "there".
+	public hasReachedLastCheckpointSince(snapshot: number): boolean {
+		return this.path.length < 2 || this.lastCheckpointArrivals > snapshot;
 	}
 
 	// Frees GPU resources and the CSS2D label DOM node — called when tearing
