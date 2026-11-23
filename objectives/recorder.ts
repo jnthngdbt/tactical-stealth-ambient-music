@@ -22,11 +22,17 @@ const BITRATE = 8_000_000;
 const KEY_FRAME_INTERVAL_SECONDS = 1;
 // Output boxes to try, long side × short side, largest first. Tab capture
 // records physical pixels (CSS size × devicePixelRatio, i.e. OS scaling ×
-// browser zoom), so a 960×540 page can arrive as 4K or more. The capture is
-// scaled down, keeping its aspect ratio, to the largest box the hardware
-// encoder accepts. Capped at 1080p: the drone 3D scene renders at no more
-// than 2× CSS size anyway, and 4K files are ~3× larger for sharper HUD text
-// only.
+// browser zoom), so a 960×540 page can arrive as 4K or more — or, in a
+// small window at 100% OS scaling, as less than 1080p. The capture is
+// scaled (down or up), keeping its aspect ratio, to fill the largest box the
+// hardware encoder accepts, so recordings are always HD. Capped at 1080p:
+// the drone 3D scene renders at no more than 2× CSS size anyway, and 4K
+// files are ~3× larger for sharper HUD text only.
+//
+// The bitrate is a variable-bitrate target, not a constant: static or
+// repeated frames (the frame pump repeats the last frame when the page does
+// not change) use far less, so a quiet flight can average ~2 Mbps with no
+// visible quality loss. Constant bitrate would only pad the file.
 const OUTPUT_BOXES: [number, number][] = [[1920, 1080], [1280, 720]];
 const FIRST_FRAME_TIMEOUT_MS = 3000;
 // A tab capture changes size right after it starts (seen in Edge: the first
@@ -205,14 +211,14 @@ export class Recorder {
 
 	// Picks the output size from the settled capture size (the delivered
 	// frames, not the track settings, which can disagree — seen in Edge):
-	// the largest box the hardware encoder accepts, else the largest box
-	// software encoding can do.
+	// the capture scaled to fill the largest box the hardware encoder
+	// accepts, else the largest box software encoding can do.
 	private async pickEncodeSettings(frameWidth: number, frameHeight: number): Promise<EncodeSettings> {
 		const long = Math.max(frameWidth, frameHeight);
 		const short = Math.min(frameWidth, frameHeight);
 		for (const hardwareAcceleration of ['prefer-hardware', 'no-preference'] as const) {
 			for (const [boxLong, boxShort] of OUTPUT_BOXES) {
-				const scale = Math.min(1, boxLong / long, boxShort / short);
+				const scale = Math.min(boxLong / long, boxShort / short);
 				const width = toEven(frameWidth * scale);
 				const height = toEven(frameHeight * scale);
 				if (await canEncodeVideo('avc', { width, height, bitrate: BITRATE, frameRate: this.fps, hardwareAcceleration })) {
