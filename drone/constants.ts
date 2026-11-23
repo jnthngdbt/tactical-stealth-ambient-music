@@ -1,4 +1,4 @@
-import { URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_SITE_GROUND_Y, URL_VIBE } from './urlParams.ts';
+import { URL_BRIGHTNESS, URL_FLIGHT_ALTITUDE, URL_HUD_OPACITY, URL_SITE_LAT, URL_SITE_LON, URL_SITE_GROUND_Y, URL_VIBE } from './urlParams.ts';
 
 // Palette — same tactical language as the other pages (dark, cold cyan accent),
 // pushed further into a cool "night drone" grade applied on top of the
@@ -80,6 +80,21 @@ export const TERRAIN_DIM_COLOR = vibe.terrainDimColor;
 
 // Night grading — simulates night over imagery that was actually captured in daylight.
 export const NIGHT_EXPOSURE = 1; // additional darkening applied on top of TERRAIN_DIM_COLOR
+
+// Overall brightness, independent of vibe: multiplies NIGHT_EXPOSURE in the
+// night-grading pass. That pass runs after bloom, so raising it brightens the
+// frame without letting more terrain cross BLOOM_THRESHOLD (which would bring
+// back the white haze). 1 = each vibe's designed look. Overridable via
+// `?brightness=<n>` URL query param (see urlParams.ts), and live via Alt+- /
+// Alt+= in both modes (see vibes.ts).
+export const BRIGHTNESS_MIN = 0.25;
+export const BRIGHTNESS_MAX = 3;
+export const BRIGHTNESS_STEP = 0.1;
+export function clampBrightness(value: number): number {
+	const rounded = Math.round(value * 100) / 100; // keep live steps from drifting into 1.2000000000000002
+	return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, rounded));
+}
+export const BRIGHTNESS = clampBrightness(URL_BRIGHTNESS ?? 1);
 export const NIGHT_TINT = vibe.nightTint;
 export const NIGHT_SATURATION = vibe.nightSaturation;
 export const NIGHT_VIGNETTE = vibe.nightVignette;

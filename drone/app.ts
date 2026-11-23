@@ -69,7 +69,7 @@ export class App {
 			),
 		);
 		this.nightPass = new NightGradingPass({
-			exposure: CONST.NIGHT_EXPOSURE,
+			exposure: CONST.NIGHT_EXPOSURE * CONST.BRIGHTNESS,
 			tint: CONST.NIGHT_TINT,
 			saturation: CONST.NIGHT_SATURATION,
 			vignette: CONST.NIGHT_VIGNETTE,

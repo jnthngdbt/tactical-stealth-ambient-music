@@ -17,7 +17,8 @@ import type { Checkpoint } from './objects/operator.ts';
 // lets cinematic mode place its camera correctly on the first frame instead
 // of climbing CAMERA_ELEVATION_GUESSES from scratch), `hud` (0-1,
 // see HUD_OPACITY in constants.ts), `vibe` (named look preset, see
-// VIBE_PRESETS in constants.ts). All are optional — anything not present
+// VIBE_PRESETS in constants.ts), `brightness` (overall brightness multiplier,
+// independent of vibe, see BRIGHTNESS in constants.ts). All are optional — anything not present
 // in the URL falls back to the existing constants.ts/mission.ts defaults.
 const params = new URLSearchParams(window.location.search);
 
@@ -77,10 +78,11 @@ export const URL_FLIGHT_ALTITUDE = parseNumber(params.get('alt'));
 export const URL_SITE_GROUND_Y = parseNumber(params.get('groundY'));
 export const URL_HUD_OPACITY = parseNumber(params.get('hud'));
 export const URL_VIBE = params.get('vibe'); // validated against VIBE_PRESETS in constants.ts
+export const URL_BRIGHTNESS = parseNumber(params.get('brightness')); // clamped in constants.ts
 
 // Inverse of parseTrajectories, used by the path editor's "Save" button to
 // build a shareable mission link out of the site/paths/map bearing/altitude/
-// vibe currently in effect.
+// vibe/brightness currently in effect.
 export function buildMissionUrl(
 	lat: number,
 	lon: number,
@@ -90,6 +92,7 @@ export function buildMissionUrl(
 	altitude: number,
 	hudOpacity: number,
 	vibe: string,
+	brightness: number,
 	groundY: number | null,
 ): string {
 	const url = new URL(window.location.href);
@@ -97,6 +100,7 @@ export function buildMissionUrl(
 	query.set('coord', `${lat},${lon}`);
 	query.set('names', names.join(','));
 	query.set('vibe', vibe);
+	query.set('brightness', String(brightness));
 	query.set('rotation', String(rotationDeg));
 	query.set('alt', String(altitude));
 	query.set('hud', String(hudOpacity));

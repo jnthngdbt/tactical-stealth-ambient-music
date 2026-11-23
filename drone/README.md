@@ -48,6 +48,9 @@ defaults when present:
 - `paths` — operator trajectories, as JSON `[[[east,north],...], ...]` (one
   array of `[east, north]` pairs per operator) — e.g.
   `?paths=[[[-48.9,15.1],[-43.6,25.4]]]`
+- `brightness` — overall brightness multiplier, independent of `vibe`
+  (default `1`, clamped to `0.25`–`3`), e.g. `?brightness=1.5`. Also
+  adjustable live with Alt+- / Alt+=, and saved by the path editor.
 
 This makes a "mission" fully shareable as one URL — no rebuild needed to hand
 someone a different location/route, and any number of missions can exist as
@@ -60,6 +63,6 @@ on macOS) on the gallery or in the scene. `drone/geoPaste.ts` extracts the
 coordinates (the place pin `!3d…!4d…` if present, else the `@lat,lon` view
 centre, else `?q=`/`?query=`/`?ll=`) and reloads with them as `coord`.
 `paths`, `rotation` and `groundY` are dropped since they belong to the old
-site, so the path editor opens; `vibe`, `hud`, `alt` and `names` are kept.
+site, so the path editor opens; `vibe`, `brightness`, `hud`, `alt` and `names` are kept.
 Short links (`maps.app.goo.gl/…`) aren't supported — open them first and
 copy the full URL from the address bar.

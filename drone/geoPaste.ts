@@ -87,7 +87,7 @@ export function parseGoogleMapsCoords(text: string): LatLon | null {
 	return null;
 }
 
-// Moving to a new site keeps the look (vibe, HUD opacity, altitude, callsigns)
+// Moving to a new site keeps the look (vibe, brightness, HUD opacity, altitude, callsigns)
 // but drops everything tied to the old site: operator paths and the map
 // bearing are in metres/degrees relative to the old origin, and groundY is
 // the old site's elevation. With no paths, main.ts opens the path editor.

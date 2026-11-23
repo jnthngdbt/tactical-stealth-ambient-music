@@ -10,7 +10,7 @@ import { createTiles, isTilesLoaded, sampleGroundHeight, localToEnu, enuToLocal,
 import type { Checkpoint } from './objects/operator.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { buildMissionUrl } from './urlParams.ts';
-import { applyVibe, vibeForKey, vibeLabel } from './vibes.ts';
+import { applyBrightness, applyVibe, brightnessForKey, vibeForKey, vibeLabel } from './vibes.ts';
 import * as CONST from './constants.ts';
 
 // Runs while any operator in mission.ts still has an incomplete path (see
@@ -122,7 +122,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	);
 	// Named (not inline) so applyVibe() below can mutate its uniforms live.
 	const nightPass = new NightGradingPass({
-		exposure: CONST.NIGHT_EXPOSURE,
+		exposure: CONST.NIGHT_EXPOSURE * CONST.BRIGHTNESS,
 		tint: CONST.NIGHT_TINT,
 		saturation: CONST.NIGHT_SATURATION,
 		vignette: CONST.NIGHT_VIGNETTE,
@@ -335,10 +335,13 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 	// Cinematic mode (main.ts) supports the same shortcut via the shared
 	// applyVibe()/vibeLabel() helpers (vibes.ts).
 	let currentVibe: CONST.VibeName = CONST.VIBE_NAME;
+	// Alt+-/Alt+= nudges overall brightness, independent of the vibe; saved
+	// into the mission link as `brightness`.
+	let currentBrightness = CONST.BRIGHTNESS;
 
 	function updateVibeHud() {
 		if (!editorVibeEl) return;
-		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1-4)`;
+		editorVibeEl.textContent = `Vibe: ${vibeLabel(currentVibe)} (Alt+1-4) \u00b7 Brightness: ${currentBrightness.toFixed(2)} (Alt+-/=)`;
 	}
 
 	function setVibe(name: CONST.VibeName) {
@@ -390,6 +393,14 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 		const vibe = vibeForKey(event);
 		if (vibe) {
 			setVibe(vibe);
+			event.preventDefault();
+			return;
+		}
+		const brightness = brightnessForKey(event, currentBrightness);
+		if (brightness !== null) {
+			currentBrightness = brightness;
+			applyBrightness(currentBrightness, nightPass);
+			updateVibeHud();
 			event.preventDefault();
 			return;
 		}
@@ -465,6 +476,7 @@ export function runPathEditor(onCancel: () => void): { dispose: () => void; save
 			CONST.CAMERA_DRIFT_ALTITUDE,
 			CONST.HUD_OPACITY,
 			currentVibe,
+			currentBrightness,
 			siteOriginGroundY,
 		);
 	}

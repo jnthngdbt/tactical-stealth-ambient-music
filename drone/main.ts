@@ -5,7 +5,7 @@ import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { runPathEditor } from './pathEditor.ts';
-import { applyVibe, vibeForKey } from './vibes.ts';
+import { applyBrightness, applyVibe, brightnessForKey, vibeForKey } from './vibes.ts';
 import * as CONST from './constants.ts';
 
 type Mode = 'cinematic' | 'edit';
@@ -130,6 +130,9 @@ function runCinematic(): () => void {
 	// editor (see vibes.ts) — resets to whatever `?vibe=` resolved to on every
 	// fresh cinematic run since `app`/its nightPass are rebuilt from scratch.
 	let currentVibe: CONST.VibeName = CONST.VIBE_NAME;
+	// Alt+-/Alt+= nudges overall brightness the same way (vibes.ts); also
+	// resets to `?brightness=` on every fresh cinematic run.
+	let currentBrightness = CONST.BRIGHTNESS;
 
 	// nothing is ticked until the tiles needed for the current view have
 	// actually finished downloading/parsing — 3d-tiles-renderer fires this
@@ -203,6 +206,13 @@ function runCinematic(): () => void {
 		if (vibe) {
 			currentVibe = vibe;
 			applyVibe(currentVibe, app.renderer, app.nightPass);
+			event.preventDefault();
+			return;
+		}
+		const brightness = brightnessForKey(event, currentBrightness);
+		if (brightness !== null) {
+			currentBrightness = brightness;
+			applyBrightness(currentBrightness, app.nightPass);
 			event.preventDefault();
 			return;
 		}

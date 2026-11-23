@@ -18,6 +18,25 @@ export function applyVibe(name: CONST.VibeName, renderer: THREE.WebGLRenderer, n
 	setOperatorBodyColor(preset.operatorBodyColor);
 }
 
+// Overall brightness (constants.ts's BRIGHTNESS), applied in place like
+// applyVibe. Vibes never touch the exposure uniform, so the two stay
+// independent: switching vibe keeps the current brightness.
+export function applyBrightness(brightness: number, nightPass: NightGradingPass): void {
+	nightPass.uniforms.exposure.value = CONST.NIGHT_EXPOSURE * brightness;
+}
+
+// Alt+- / Alt+= (or numpad -/+) -> the next brightness level, or null if the
+// event isn't a brightness shortcut. event.code so it works regardless of
+// what Alt does to event.key on the current layout.
+export function brightnessForKey(event: KeyboardEvent, current: number): number | null {
+	if (!event.altKey) return null;
+	let direction = 0;
+	if (event.code === 'Equal' || event.code === 'NumpadAdd') direction = 1;
+	else if (event.code === 'Minus' || event.code === 'NumpadSubtract') direction = -1;
+	if (direction === 0) return null;
+	return CONST.clampBrightness(current + direction * CONST.BRIGHTNESS_STEP);
+}
+
 export function vibeLabel(name: CONST.VibeName): string {
 	if (name === 'moonlit') return 'Moonlit';
 	if (name === 'grayscale') return 'Grayscale';
