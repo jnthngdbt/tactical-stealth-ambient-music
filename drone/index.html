@@ -11,9 +11,9 @@
 		<link href="https://fonts.googleapis.com/css?family=Russo+One" rel="stylesheet">
 		<link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
 
-		<script type="module" crossorigin src="../assets/drone-CxGO8pQ0.js"></script>
+		<script type="module" crossorigin src="../assets/drone-qfXPryVc.js"></script>
 		<link rel="modulepreload" crossorigin href="../assets/modulepreload-polyfill-B5Qt9EMX.js">
-		<link rel="stylesheet" crossorigin href="../assets/drone-D0hKolgR.css">
+		<link rel="stylesheet" crossorigin href="../assets/drone-2vNwYZEl.css">
 	</head>
 	<body>
 
@@ -111,6 +111,19 @@
 			<div class="hud-shortcuts-row"><span>1-9</span><span>Select operator</span></div>
 			<div class="hud-shortcuts-row"><span>O</span><span>Toggle path occlusion</span></div>
 			<div class="hud-shortcuts-row"><span>T</span><span>Toggle checkpoint timestamps</span></div>
+		</div>
+
+		<!-- Encoder choice, asked each time a recording starts (encoderPrompt.ts). -->
+		<div class="hud-shortcuts-panel hud-encoder-prompt" id="encoderPrompt" role="dialog" aria-modal="true" aria-labelledby="encoderPromptTitle" hidden>
+			<div class="hud-shortcuts-title" id="encoderPromptTitle">Record with which encoder?</div>
+			<button class="hud-encoder-option" type="button" data-encoder="gpu">
+				<span>G</span><span>GPU <em>(recommended)</em></span>
+			</button>
+			<button class="hud-encoder-option" type="button" data-encoder="cpu">
+				<span>C</span><span>CPU</span>
+			</button>
+			<div class="hud-encoder-hint">If the recording is choppy or low quality, try the CPU instead.</div>
+			<div class="hud-encoder-hint">Enter = GPU · Esc = cancel</div>
 		</div>
 
 	</body>
