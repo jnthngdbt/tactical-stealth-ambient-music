@@ -113,5 +113,18 @@
 			<div class="hud-shortcuts-row"><span>T</span><span>Toggle checkpoint timestamps</span></div>
 		</div>
 
+		<!-- Encoder choice, asked each time a recording starts (encoderPrompt.ts). -->
+		<div class="hud-shortcuts-panel hud-encoder-prompt" id="encoderPrompt" role="dialog" aria-modal="true" aria-labelledby="encoderPromptTitle" hidden>
+			<div class="hud-shortcuts-title" id="encoderPromptTitle">Record with which encoder?</div>
+			<button class="hud-encoder-option" type="button" data-encoder="gpu">
+				<span>G</span><span>GPU <em>(recommended)</em></span>
+			</button>
+			<button class="hud-encoder-option" type="button" data-encoder="cpu">
+				<span>C</span><span>CPU</span>
+			</button>
+			<div class="hud-encoder-hint">If the recording is choppy or low quality, try the CPU instead.</div>
+			<div class="hud-encoder-hint">Enter = GPU · Esc = cancel</div>
+		</div>
+
 	</body>
 </html>

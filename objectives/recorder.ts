@@ -17,21 +17,22 @@ import { BufferTarget, Mp4OutputFormat, Output, Quality, VideoSample, VideoSampl
 
 // ≈ 60 MB per minute; the whole recording is held in memory until stop.
 const BITRATE = 8_000_000;
-// Software encoding by default: the GPU's H.264 encoder (AMD, Windows) started
+// Which H.264 encoder to try first, chosen per recording (see start()).
+// The other one is still tried if the first cannot encode the size.
+// 'cpu' is the default: the GPU's H.264 encoder (AMD, Windows) once started
 // skipping frames after each key frame (frozen picture every second) after a
 // driver update, in both Edge and Chrome, ignoring the bitrate settings. The
 // browser's software encoder keeps up at 1080p60 and does not depend on GPU
-// drivers. Hardware is only used if software cannot encode the size.
-// `?encoder=gpu` in the page URL tries the GPU first instead, e.g. to check
-// whether a later driver fixed it.
-const USE_GPU = new URLSearchParams(window.location.search).get('encoder') === 'gpu';
-const ENCODER_PREFERENCE = USE_GPU
-	? ['prefer-hardware', 'prefer-software', 'no-preference'] as const
-	: ['prefer-software', 'prefer-hardware', 'no-preference'] as const;
+// drivers.
+export type EncoderChoice = 'gpu' | 'cpu';
+const ENCODER_PREFERENCE = {
+	gpu: ['prefer-hardware', 'prefer-software', 'no-preference'],
+	cpu: ['prefer-software', 'prefer-hardware', 'no-preference'],
+} as const satisfies Record<EncoderChoice, readonly HardwareAcceleration[]>;
 // Software: variable, since constant made each key frame eat the budget of
 // the frames after it (a visible quality pulse). GPU: constant, since in
 // variable mode it starved the frames after each key frame even harder.
-const BITRATE_MODE = USE_GPU ? 'constant' : 'variable';
+const BITRATE_MODE = { gpu: 'constant', cpu: 'variable' } as const satisfies Record<EncoderChoice, 'constant' | 'variable'>;
 // Each key frame causes a small quality dip; every 2 s keeps that rare while
 // seeking in editors stays quick.
 const KEY_FRAME_INTERVAL_SECONDS = 2;
@@ -181,6 +182,7 @@ export class Recorder {
 	private chunks: Blob[] = [];
 	public isRecording = false;
 	private starting = false;
+	private encoder: EncoderChoice = 'cpu';
 
 	constructor(
 		private canvas: HTMLCanvasElement,
@@ -190,9 +192,10 @@ export class Recorder {
 		private fps = 60,
 	) { }
 
-	public async start() {
+	public async start(encoder: EncoderChoice = 'cpu') {
 		if (this.isRecording || this.starting) return;
 		this.starting = true;
+		this.encoder = encoder;
 
 		try {
 			this.stream = await this.captureStream();
@@ -267,7 +270,7 @@ export class Recorder {
 	private async pickEncodeSettings(frameWidth: number, frameHeight: number): Promise<EncodeSettings> {
 		const long = Math.max(frameWidth, frameHeight);
 		const short = Math.min(frameWidth, frameHeight);
-		for (const hardwareAcceleration of ENCODER_PREFERENCE) {
+		for (const hardwareAcceleration of ENCODER_PREFERENCE[this.encoder]) {
 			for (const [boxLong, boxShort] of OUTPUT_BOXES) {
 				const scale = Math.min(boxLong / long, boxShort / short);
 				const width = toEven(frameWidth * scale);
@@ -308,7 +311,7 @@ export class Recorder {
 			const source = new VideoSampleSource({
 				codec: 'avc',
 				quality: new Quality({ bitrate: BITRATE }),
-				bitrateMode: BITRATE_MODE,
+				bitrateMode: BITRATE_MODE[this.encoder],
 				keyFrameInterval: KEY_FRAME_INTERVAL_SECONDS,
 				latencyMode: 'quality',
 				hardwareAcceleration,

@@ -3,6 +3,7 @@ import { App } from './app.ts';
 import { createTiles, isTilesLoaded, sampleGroundHeight, updateTilesResolution } from './tiles.ts';
 import { Operator } from './objects/operator.ts';
 import { Recorder } from '../objectives/recorder.ts';
+import { askEncoder } from './encoderPrompt.ts';
 import { TRAJECTORIES, PATHS_READY, OPERATOR_NAMES, MAP_ROTATION_DEG } from './mission.ts';
 import { runPathEditor } from './pathEditor.ts';
 import { applyBrightness, applyVibe, brightnessForKey, vibeForKey } from './vibes.ts';
@@ -192,13 +193,17 @@ function runCinematic(): () => void {
 	// recording auto-stops (see animate) once every operator has reached its
 	// path's final checkpoint since then. null while not recording.
 	let recordingArrivalSnapshot: number[] | null = null;
+	let disposed = false;
 	// start() is async (it awaits the tab-capture permission prompt), so the
 	// class toggle must wait for it too or isRecording still reads false.
+	// Starting first asks which encoder to use (encoderPrompt.ts).
 	async function onRecordClick() {
 		if (recorder.isRecording) {
 			recorder.stop();
 		} else {
-			await recorder.start();
+			const encoder = await askEncoder();
+			if (!encoder || disposed) return;
+			await recorder.start(encoder);
 			// skipped when nobody walks, or a stationary-only mission would stop at once
 			if (recorder.isRecording && operators.some((operator) => !operator.isStationary())) {
 				recordingArrivalSnapshot = operators.map((operator) => operator.getLastCheckpointArrivals());
@@ -475,6 +480,7 @@ function runCinematic(): () => void {
 	// Tears everything cinematic-mode-specific down so the path editor (or a
 	// fresh cinematic run) can take over the page cleanly.
 	return function dispose() {
+		disposed = true;
 		cancelAnimationFrame(rafId);
 		tiles.removeEventListener('tiles-load-end', onTilesLoadEnd);
 		recordBtn.removeEventListener('click', onRecordClick);
